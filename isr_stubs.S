@@ -159,7 +159,7 @@ __isr_restore:
 */
 
 	xorl	%eax,%eax	// push PID of the current process
-	movw	12(%eax), %ax
+	movw	12(%ebx), %ax
 	pushl	%eax
 	pushl	_system_time	// and the current system time
 
