@@ -137,6 +137,10 @@ floppy:	floppy.image
 usb:	usb.image
 	dd if=usb.image of=/local/devices/disk
 
+# Run the OS in qemu
+qemu:	usb.image
+	qemu-system-x86_64 usb.image -serial stdio
+
 #
 # Special rule for creating the modification and offset programs
 #
