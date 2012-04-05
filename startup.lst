@@ -1,0 +1,268 @@
+GAS LISTING startup.s 			page 1
+
+
+   1              	# 1 "startup.S"
+   1              	/*
+   0              	
+   0              	
+   2              	** SCCS ID:	@(#)startup.S	1.9	10/17/11
+   3              	**
+   4              	** File:	startup.S
+   5              	**
+   6              	** Author:	Jon Coles
+   7              	**
+   8              	** Contributor:	Warren R. Carithers, K. Reek
+   9              	**
+  10              	** Description:	SP1/SP2 startup code.
+  11              	**
+  12              	** This code prepares the various registers for execution of
+  13              	** the program.  It sets up all the segment registers and the
+  14              	** runtime stack.  By the time this code is running, we're in
+  15              	** protected mode already.
+  16              	**
+  17              	** This code is intended to be assembled with as, not as86.
+  18              	*/
+  19              	
+  20              	#include "bootstrap.h"
+   1              	/*
+  21              	
+  22              	/*
+  23              	** Configuration options - define in Makefile
+  24              	**
+  25              	**	CLEAR_BSS_SEGMENT	include code to clear all BSS space
+  26              	**	SP2_CONFIG		enable SP2-specific startup variations
+  27              	*/
+  28              	
+  29              	/*
+  30              	** A symbol for locating the beginning of the code.
+  31              	*/
+  32              		.globl begtext
+  33              	
+  34              		.text
+  35              	begtext:
+  36              	
+  37              	/*
+  38              	** The entry point.
+  39              	*/
+  40              		.globl	_start
+  41              	
+  42              	_start:
+  43 ???? FA       		cli			/* seems to be reset on entry to p. mode */
+  44 ???? B000     		movb	$0x00, %al	/* re-enable NMIs (bootstrap */
+  45 ???? E670     		outb	$0x70		/*   turned them off) */
+  46              	
+  47              	/*
+  48              	** Set the data and stack segment registers (code segment register
+  49              	** was set by the long jump that switched us into protected mode).
+  50              	*/
+  51 ???? 31C0     		xorl	%eax, %eax	/* clear EAX */
+  52 ???? 66B81800 		movw	$GDT_DATA, %ax	/* GDT entry #3 - data segment */
+  53 ???? 8ED8     		movw	%ax, %ds	/* for all four data segment registers */
+GAS LISTING startup.s 			page 2
+
+
+  54 ???? 8EC0     		movw	%ax, %es
+  55 ???? 8EE0     		movw	%ax, %fs
+  56 ???? 8EE8     		movw	%ax, %gs
+  57              	
+  58 ???? 66B82000 		movw	$GDT_STACK, %ax	/* entry #4 is the stack segment */
+  59 ???? 8ED0     		movw	%ax, %ss
+  60              	
+  61 ???? BD000001 		movl	$TARGET_STACK, %ebp	/* set up the system frame pointer */
+  61      00
+  62 ???? 89EC     		movl	%ebp, %esp	/* and stack pointer */
+  63              	
+  64              	#ifdef CLEAR_BSS_SEGMENT
+  65              	
+  66              	/*
+  67              	** Zero the BSS segment
+  68              	**
+  69              	** These symbols are defined automatically by the linker.
+  70              	*/
+  71              		.globl	__bss_start,_end
+  72              	
+  73 ???? BF000000 		movl	$__bss_start,%edi
+  73      00
+  74              	clearbss:
+  75 ???? 67C70700 		movl	$0,(%edi)
+  75      000000
+  76 ???? 83C704   		addl	$4,%edi
+  77 ???? 81FF0000 		cmpl	$_end,%edi
+  77      0000
+  78 ???? 72       		jb	clearbss
+  79              	
+  80              	#endif
+  81              	
+  82              	#ifdef SP2_CONFIG
+  83              	
+  84              	/*
+  85              	** Initialize devices
+  86              	*/
+  87 ???? E8000000 		call	_init		// initialize the OS
+  87      00
+  88              	
+  89              	/*
+  90              	** Restore the first user process context
+  91              	**
+  92              	** WARNING:  must set things up so that the stack looks like
+  93              	** we're returning to the context restore routine after handling
+  94              	** an interrupt!!!
+  95              	*/
+  96 ???? EB       		jmp	__isr_restore   // defined in isr_stubs.S
+  97              	
+  98              	#else
+  99              	
+ 100              	/*
+ 101              	** Initialize various devices
+ 102              	*/
+ 103              		call	__init_interrupts	/* initialize the interrupt system */
+ 104              		call	c_io_init	/* initialize the console I/O routines */
+ 105              	
+GAS LISTING startup.s 			page 3
+
+
+ 106              	/*
+ 107              	** Call the user's main program
+ 108              	*/
+ 109              		call	main
+ 110              	
+ 111              	/*
+ 112              	** Returned from the main function!  Stop execution.
+ 113              	*/
+ 114              		cli			// Disable interrupts
+ 115              		pushl	$message	// Print the message saying that
+ 116              		pushl	$24		//   the main function returned.
+ 117              		movl	$80,%eax	//   This goes to the lower right
+ 118              		subl	$messagelen,%eax //  corner of the screen.
+ 119              		pushl	%eax
+ 120              		call	c_puts_at
+ 121              	die:	hlt			// Stop.
+ 122              		jmp	die
+ 123              	
+ 124              	message: .string "     ***** Returned from main! *****     "
+ 125              	messagelen = . - message - 1
+ 126              	
+ 127              	#endif
+ 128              	
+ 129              	/*
+ 130              	** Support routines needed for boot up and the console.
+ 131              	*/
+ 132              	ARG1	= 8			// Offset to 1st argument
+ 133              	ARG2	= 12			// Offset to 2nd argument
+ 134              	
+ 135              	/*
+ 136              	** Name:	__inb, __inw, __inl
+ 137              	**
+ 138              	** Description: read a single byte, word, or longword from the specified
+ 139              	**		input port
+ 140              	** Arguments:	the port number
+ 141              	** Returns:	the byte, word, or longword value from the port (unused
+ 142              	**		high-order bytes are zeroed)
+ 143              	*/
+ 144              		.globl	__inb, __inw, __inl
+ 145              	
+ 146              	__inb:
+ 147 ???? C8000000 		enter	$0,$0
+ 148 ???? 31C0     		xorl	%eax,%eax	// Clear the high order bytes of %eax
+ 149 ???? 678B5508 		movl	ARG1(%ebp),%edx	// Move port number to %edx
+ 150 ???? EC       		inb	(%dx)		// Get a byte from the port into %al (low
+ 151 ???? C9       		leave			//   byte of %eax)
+ 152 ???? C3       		ret
+ 153              	__inw:
+ 154 ???? C8000000 		enter	$0,$0
+ 155 ???? 31C0     		xorl	%eax,%eax	// Clear the high order bytes of %eax
+ 156 ???? 678B5508 		movl	ARG1(%ebp),%edx	// Move port number to %edx
+ 157 ???? 66ED     		inw	(%dx)		// Get a word from the port into %ax (low
+ 158 ???? C9       		leave			//   word of %eax)
+ 159 ???? C3       		ret
+ 160              	__inl:
+ 161 ???? C8000000 		enter	$0,$0
+ 162 ???? 31C0     		xorl	%eax,%eax	// Clear the high order bytes of %eax
+GAS LISTING startup.s 			page 4
+
+
+ 163 ???? 678B5508 		movl	ARG1(%ebp),%edx	// Move port number to %edx
+ 164 ???? ED       		inl	(%dx)		// Get a longword from the port into %eax
+ 165 ???? C9       		leave
+ 166 ???? C3       		ret
+ 167              		
+ 168              	/*
+ 169              	** Name:	__outb, __outw, __outl
+ 170              	**
+ 171              	** Description: write a single byte, word, or longword to the specified
+ 172              	**		output port
+ 173              	** Arguments:	the port number, the value to write to it (unused high-order
+ 174              	**		bytes are ignored)
+ 175              	*/
+ 176              		.globl	__outb, __outw, __outl
+ 177              	__outb:
+ 178 ???? C8000000 		enter	$0,$0
+ 179 ???? 678B5508 		movl	ARG1(%ebp),%edx	// Get the port number into %edx,
+ 180 ???? 678B450C 		movl	ARG2(%ebp),%eax	//   and the value into %eax
+ 181 ???? EE       		outb	(%dx)		// Output that byte to the port
+ 182 ???? C9       		leave			//   (only %al is sent)
+ 183 ???? C3       		ret
+ 184              	__outw:
+ 185 ???? C8000000 		enter	$0,$0
+ 186 ???? 678B5508 		movl	ARG1(%ebp),%edx	// Get the port number into %edx,
+ 187 ???? 678B450C 		movl	ARG2(%ebp),%eax	//   and the value into %eax
+ 188 ???? 66EF     		outw	(%dx)		// Output that word to the port.
+ 189 ???? C9       		leave			//   (only %ax is sent)
+ 190 ???? C3       		ret
+ 191              	__outl:
+ 192 ???? C8000000 		enter	$0,$0
+ 193 ???? 678B5508 		movl	ARG1(%ebp),%edx	// Get the port number into %edx,
+ 194 ???? 678B450C 		movl	ARG2(%ebp),%eax	//   and the value into %eax
+ 195 ???? EF       		outl	(%dx)		// Output that longword to the port.
+ 196 ???? C9       		leave
+ 197 ???? C3       		ret
+ 198              	
+ 199              	/*
+ 200              	** __get_flags: return the current processor flags
+ 201              	**	int __get_flags( void );
+ 202              	*/
+ 203              		.globl	__get_flags
+ 204              	
+ 205              	__get_flags:
+ 206              		pushfl			// Push flags on the stack,
+ 207              		popl	%eax		//   and pop them into eax.
+ 208 ???? C3       		ret
+ 209              	
+ 210              	/*
+ 211              	** __pause: halt until something happens
+ 212              	**      void __pause( void );
+ 213              	*/
+ 214              		.globl	__pause
+ 215              	
+ 216              	__pause:
+ 217 ???? C8000000 		enter	$0,$0
+ 218 ???? FB       		sti
+ 219 ???? F4       		hlt
+GAS LISTING startup.s 			page 5
+
+
+ 220 ???? C9       		leave
+ 221 ???? C3       		ret
+GAS LISTING startup.s 			page 6
+
+
+DEFINED SYMBOLS
+           startup.S:35     .text:0000000000000000 begtext
+           startup.S:42     .text:0000000000000000 _start
+           startup.S:74     .text:0000000000000000 clearbss
+           startup.S:132    *ABS*:0000000000000008 ARG1
+           startup.S:133    *ABS*:000000000000000c ARG2
+           startup.S:146    .text:0000000000000000 __inb
+           startup.S:153    .text:0000000000000000 __inw
+           startup.S:160    .text:0000000000000000 __inl
+           startup.S:177    .text:0000000000000000 __outb
+           startup.S:184    .text:0000000000000000 __outw
+           startup.S:191    .text:0000000000000000 __outl
+           startup.S:205    .text:0000000000000000 __get_flags
+           startup.S:216    .text:0000000000000000 __pause
+
+UNDEFINED SYMBOLS
+__bss_start
+_end
+_init
+__isr_restore

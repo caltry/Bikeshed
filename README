@@ -1,0 +1,110 @@
+SP1/SP2 standalone framework information
+
+Version:  @(#)README	1.8
+Date:     10/17/11
+---------------------------------------------------------------------------
+
+Notes on the Makefile:
+
+	DO NOT USE makemake!  You must edit the given Makefile to tell
+	it about the file(s) you create.  Add your own file names (both 
+	source and object versions) to the U_* macros at the top of the
+	Makefile.
+
+	After adding or removing files from the Makefile (or changing
+	your #includes), do a "make depend" to adjust the Makefile's
+	dependency entries.
+
+To create your program:
+
+	* run 'make' in your project directory
+
+To copy it onto a USB flash drive:
+
+	All machines in the DSL have at least two front-panel USB slots
+	located at the bottom on the front of the machine; some have a
+	third slot, located next to the floppy disk drive.  Under Ubuntu,
+	you can use any of these slots; insert a flash drive, and the OS
+	automatically creates device entries for the drive, using the
+	next available disk name in /dev (e.g., /dev/sdg).
+
+	Because the name of the device in the filesystem varies depending
+	on the number and type of disk drives in the system, special
+	files named /local/devices/disk on each DSL system.  This file
+	has the necessary major/minor device numbers to work with the
+	plugged-in flash drive.
+
+	To copy your bootable image to the flash drive, plug the drive
+	into a USB socket, wait a few moments for Ubuntu to recognize
+	it and create the device entries in /dev, and type
+
+		make usb
+
+	This will remake the usb.image file (if necessary), and will then
+	copy it out to /local/devices/disk.
+
+To copy it onto a 3.5" floppy in the drive:
+
+	* run 'make floppy' in your project directory
+
+To boot your program:
+
+	* be sure you have copied it to a bootable medium
+	* shut down Ubuntu by executing the 'uhalt' command
+	* insert the bootable medium
+	* push the reset button on the front of the machine
+
+	DO NOT just push the reset button - Ubuntu must be shut down
+	correctly in order to avoid damaging the filesystems.
+
+To reboot Ubuntu:
+
+	* take your bootable medium out of the machine
+	* push the reset button
+
+Compiling your program creates several files:
+
+	prog.o	linked, object form of the system
+
+	prog.b	binary version of the system - generated from prog.o
+		by removing all the object file headers and symbol table
+
+	prog.nl	namelist of the prog.o file - lists all global symbols,
+		their values, and the program section they're defined in
+		(Text, Data, Bss)
+
+	*.image	the binary system image - contains the bootstrap, the
+		protected mode startup code, and your stuff, in this layout:
+
+			bootstrap	first sector
+			switch code	second sector
+			your program	sectors 3 through n+2
+			next file	n+3 through p+n+2
+			next file	p+n+3 through q+p+n+2
+			etc. (see below)
+
+		This file will be named floppy.image or usb.image,
+		depending on which device you'll be using.
+	
+	BuildImage used to patch the system length into the boot sector
+		of the disk.image file
+	
+	Offsets	prints byte offsets for major structures (only present
+		in SP2 distributions)
+
+Other things you can 'make':
+
+	prog.dis a disassembly of the prog.o file - a text version of the
+		binary machine code
+	
+	clean	deletes all object, listing, and binary files
+
+	depend	recreates the dependency lists in the Makefile
+	
+Loading additional files:
+
+	You can load additional files into memory by adding the name of
+	the file and the address where you want it loaded to the end of
+	the BuildImage command in the Makefile.  However, because the
+	loading is done in real mode, you cannot load into addresses
+	above 0x9ffff.
