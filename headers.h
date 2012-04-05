@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)headers.h	1.1	4/5/12
 **
 ** File:	headers.h
 **

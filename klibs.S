@@ -1,5 +1,5 @@
 /*
-** sccs id:	%W%	%G%
+** sccs id:	@(#)klibs.S	1.1	4/5/12
 **
 ** File:	klibs.S
 **

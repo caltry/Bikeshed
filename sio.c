@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)sio.c	1.1	4/5/12
 **
 ** File:	sio.c
 **
@@ -115,6 +115,7 @@ void _isr_sio( int vector, int code ) {
 	int eir, lsr, msr;
 	int ch;
 	int stat;
+	int *ptr;
 
 	//
 	// Must process all pending events; loop until the EIR
@@ -156,7 +157,9 @@ void _isr_sio( int vector, int code ) {
 						 "serial wakeup status %s",
 						 stat );
 				}
-				pcb->context->eax = ch & 0xff;
+				ptr = (int *) (ARG(pcb)[1]);
+				*ptr = ch & 0xff;
+				RET(pcb) = SUCCESS;
 				_sched( pcb );
 
 			} else {
@@ -422,7 +425,7 @@ int _sio_readc( void ) {
 	if( _incount > 0 ) {
 
 		// take it out of the input buffer
-		ch = (int)(*_innext++) & 0xff;
+		ch = ((int)(*_innext++)) & 0xff;
 		--_incount;
 
 		// reset the buffer variables if this was the last one

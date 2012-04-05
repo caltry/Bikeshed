@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)users.c	1.1	4/5/12
 **
 ** File:	user.c
 **
@@ -74,17 +74,16 @@ void user_a( void ) {
 	int i, j;
 	Status status;
 
-	c_puts( "User A running\n" );
 	status = write( 'A' );
 	if( status != SUCCESS ) {
-		prt_status( "User A, write status %s\n", status );
+		prt_status( "User A, write 1 status %s\n", status );
 	}
 	for( i = 0; i < 30; ++i ) {
 		for( j = 0; j < DELAY_STD; ++j )
 			continue;
 		status = write( 'A' );
 		if( status != SUCCESS ) {
-			prt_status( "User A, write status %s\n", status );
+			prt_status( "User A, write 2 status %s\n", status );
 		}
 	}
 
@@ -93,7 +92,7 @@ void user_a( void ) {
 
 	status = write( 'a' );	/* shouldn't happen! */
 	if( status != SUCCESS ) {
-		prt_status( "User A, exit write status %s\n", status );
+		prt_status( "User A, write 3 status %s\n", status );
 	}
 
 }
@@ -105,14 +104,14 @@ void user_b( void ) {
 	c_puts( "User B running\n" );
 	status = write( 'B' );
 	if( status != SUCCESS ) {
-		prt_status( "User B, write status %s\n", status );
+		prt_status( "User B, write 1 status %s\n", status );
 	}
 	for( i = 0; i < 30; ++i ) {
 		for( j = 0; j < DELAY_STD; ++j )
 			continue;
 		status = write( 'B' );
 		if( status != SUCCESS ) {
-			prt_status( "User B, write status %s\n", status );
+			prt_status( "User B, write 2 status %s\n", status );
 		}
 	}
 
@@ -121,7 +120,7 @@ void user_b( void ) {
 
 	status = write( 'b' );	/* shouldn't happen! */
 	if( status != SUCCESS ) {
-		prt_status( "User B, exit write status %s\n", status );
+		prt_status( "User B, write 3 status %s\n", status );
 	}
 
 }
@@ -133,14 +132,14 @@ void user_c( void ) {
 	c_puts( "User C running\n" );
 	status = write( 'C' );
 	if( status != SUCCESS ) {
-		prt_status( "User C, write status %s\n", status );
+		prt_status( "User C, write 1 status %s\n", status );
 	}
 	for( i = 0; i < 30; ++i ) {
 		for( j = 0; j < DELAY_STD; ++j )
 			continue;
 		status = write( 'C' );
 		if( status != SUCCESS ) {
-			prt_status( "User C, write status %s\n", status );
+			prt_status( "User C, write 2 status %s\n", status );
 		}
 	}
 
@@ -149,7 +148,7 @@ void user_c( void ) {
 
 	status = write( 'c' );	/* shouldn't happen! */
 	if( status != SUCCESS ) {
-		prt_status( "User C, exit write status %s\n", status );
+		prt_status( "User C, write 3 status %s\n", status );
 	}
 
 }
@@ -455,7 +454,7 @@ void user_p( void ) {
 	if( status != SUCCESS ) {
 		prt_status( "get_time status %s\n", status );
 	} else {
-		c_printf( " start at %u\n", time );
+		c_printf( " start at %08x\n", time );
 	}
 
 	write( 'P' );
@@ -466,7 +465,7 @@ void user_p( void ) {
 		if( status != SUCCESS ) {
 			prt_status( "get_time status %s\n", status );
 		} else {
-			c_printf( "User P reporting time %u\n", time );
+			c_printf( "User P reporting time %08x\n", time );
 		}
 		write( 'P' );
 	}
@@ -502,6 +501,7 @@ void user_r( void ) {
 	Status status;
 
 	c_puts( "User R running\n" );
+	sleep( 10 );
 	for( i = 0; i < 3; ++i ) {
 		do {
 			write( 'R' );
@@ -751,6 +751,7 @@ void init( void ) {
 	write( '$' );
 
 	// we'll start the first three "manually"
+	// by doing fork() and exec() ourselves
 
 #ifdef SPAWN_A
 	status = fork( &pid );
@@ -902,7 +903,7 @@ void init( void ) {
 	if( status != SUCCESS ) {
 		prt_status( "idle: get_time status %s\n", status );
 	}
-	c_printf( "init => idle at time %u\n", time );
+	c_printf( "init => idle at time %08x\n", time );
 
 	status = set_priority( PRIO_IDLE );
 	if( status != SUCCESS ) {

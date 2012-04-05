@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	@(#)isr_stubs.S	1.7        4/5/12
+** SCCS ID:	@(#)isr_stubs.S	1.8        4/5/12
 **
 ** File:	isr_stubs.S
 **
@@ -99,7 +99,7 @@ isr_save:
 	movl	56(%esp),%ebx
 
 /*
-** MODS for 20113 SP2
+** MOD for 20113 SP2
 */
 
 	.globl	_current
@@ -112,7 +112,7 @@ isr_save:
 	movl	_system_esp, %esp	// switch to OS stack
 
 /*
-** END MODS for 20113 SP2
+** END MOD for 20113 SP2
 */
 
 	pushl	%ebx		// put vector & code on top of the stack ...
@@ -132,14 +132,14 @@ isr_save:
 __isr_restore:
 
 /*
-** MODS for 20113 SP2
+** MOD for 20113 SP2
 */
 
 	movl	_current, %ebx
 	movl	(%ebx), %esp
 
 /*
-** END MODS for 20113 SP2
+** END MOD for 20113 SP2
 */
 
 #ifdef ISR_DEBUGGING_CODE
@@ -155,23 +155,38 @@ __isr_restore:
 */
 
 /*
-** MODS for 20113 SP2
+** MOD for 20113 SP2
 */
 
-	xorl	%eax,%eax	// push PID of the current process
-	movw	12(%ebx), %ax
+	/*
+	** In addition to the basic context information, print
+	** the current system time and the PID and PPID of the
+	** process whose context is being restored.
+	**
+	** THE CONSTANT IN THIS movl INSTRUCTION MUST BE CHANGED
+	** IF THE LOCATION OF EITHER FIELD IN THE PCB CHANGES!
+	*/
+
+	movl	12(%ebx), %eax	// get PID and PPID of this process
 	pushl	%eax
 	pushl	_system_time	// and the current system time
 
 /*
-** END MODS for 20113 SP2
+** END MOD for 20113 SP2
 */
 
 	pushl	$fmt
 	pushl	$1
 	pushl	$0
 	call	c_printf_at
-	addl	$20, %esp
+/*
+** MOD for 20113 SP2
+*/
+	addl	$20, %esp	// now five things to remove
+/*
+** END MOD for 20113 SP2
+*/
+
 /*
 ** END OF DEBUGGING CODE PART 1
 */
@@ -194,12 +209,12 @@ __isr_restore:
 ** DEBUGGING CODE PART 2
 */
 /*
-** MODS for 20113 SP2
+** MOD for 20113 SP2
 */
-fmt:	.ascii	"time %08x pid %d\n"
+fmt:	.ascii	"time %08x pids %08x\n"
 	.ascii	" ss=%08x  gs=%08x  fs=%08x  es=%08x  ds=%08x\n"
 /*
-** END MODS for 20113 SP2
+** END MOD for 20113 SP2
 */
 	.ascii	"edi=%08x esi=%08x ebp=%08x esp=%08x ebx=%08x\n"
 	.ascii	"edx=%08x ecx=%08x eax=%08x vec=%08x cod=%08x\n"

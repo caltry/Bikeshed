@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)ulibc.c	1.1	4/5/12
 **
 ** File:	ulibc.c
 **

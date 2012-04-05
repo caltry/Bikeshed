@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)clock.c	1.1	4/5/12
 **
 ** File:	clock.c
 **
@@ -21,6 +21,7 @@
 #include "pcbs.h"
 #include "queues.h"
 #include "scheduler.h"
+#include "sio.h"
 #include "syscalls.h"
 
 /*
@@ -147,6 +148,20 @@ void _isr_clock( int vector, int code ) {
 			_cleanup( pcb );
 		}
 	} while( 1 );
+
+	// Approximately every 20 seconds, dump the queues, and
+	// print the contents of the SIO buffers.
+
+	if( (_system_time % 10000) == 0 ) {
+		c_printf( "Queue contents @%08x\n", _system_time );
+		_q_dump( "ready[0]", _ready[0] );
+		_q_dump( "ready[1]", _ready[1] );
+		_q_dump( "ready[2]", _ready[2] );
+		_q_dump( "ready[3]", _ready[3] );
+		_q_dump( "sleep", _sleeping );
+		_q_dump( "read", _reading );
+		_sio_dump();
+	}
 
 	// if the current process has used its quantum, reschedule it
 	// and dispatch another one

@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)syscalls.c	1.1	4/5/12
 **
 ** File:	syscalls.c
 **
@@ -171,7 +171,7 @@ static void _sys_fork( Pcb *pcb ) {
 	ptr = (Uint32 *) (ARG(pcb)[1]);
 	*ptr = new->pid;
 
-	ptr = (Uint32 *) (ARG(new)[1]);
+	ptr = (Uint32 *) ( ((void *)(ARG(new)[1])) + diff );
 	*ptr = 0;
 
 	/*
@@ -218,7 +218,7 @@ static void _sys_exit( Pcb *pcb ) {
 /*
 ** _sys_read - read a single character from the SIO
 **
-** implements:	Status read(char *buf);
+** implements:	Status read(int *buf);
 **
 ** blocks the calling routine if there is no character to return
 **

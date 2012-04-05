@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)clock.h	1.1	4/5/12
 **
 ** File:	clock.h
 **

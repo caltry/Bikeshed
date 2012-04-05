@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)scheduler.c	1.1	4/5/12
 **
 ** File:	scheduler.c
 **

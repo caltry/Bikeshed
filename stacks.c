@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)stacks.c	1.1	4/5/12
 **
 ** File:	stacks.c
 **

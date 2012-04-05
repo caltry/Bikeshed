@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)queues.h	1.1	4/5/12
 **
 ** File:	queues.h
 **
@@ -174,6 +174,14 @@ Status _q_remove_by_key( Queue *, void **, Key );
 Status _q_remove_selected( Queue *, void **,
 				int (*compare)(void *, void *),
 				void *lookfor );
+
+/*
+** _q_dump(which,queue)
+**
+** dump the contents of the specified queue to the console
+*/
+
+void _q_dump( char *which, Queue *queue );
 
 #endif
 

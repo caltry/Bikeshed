@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)queues.c	1.1	4/5/12
 **
 ** File:	queues.c
 **
@@ -500,5 +500,35 @@ Status _q_remove_selected( Queue *que, void **data,
 	*data = qn->data;
 
 	return( _q_delete_node(que,qn) );
+
+}
+
+
+/*
+** _q_dump(which,queue)
+**
+** dump the contents of the specified queue to the console
+*/
+
+void _q_dump( char *which, Queue *queue ) {
+	Qnode *tmp;
+
+
+	c_printf( "%s: ", which );
+	if( queue == NULL ) {
+		c_puts( "NULL???" );
+		return;
+	}
+
+	c_printf( "head %08x tail %08x comp %08x\n",
+		  queue->head, queue->tail, queue->compare );
+	
+	if( !_q_empty(queue) ) {
+		c_puts( " keys: " );
+		for( tmp = queue->head; tmp != NULL; tmp = tmp->next ) {
+			c_printf( " [%x]", tmp->key.u );
+		}
+		c_puts( "\n" );
+	}
 
 }
