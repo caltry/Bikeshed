@@ -121,7 +121,7 @@ void _dispatch( void ) {
 	   do {
 
 		if( _q_empty(_ready[i]) ) {
-			continue;
+			break;
 		}
 
 		// found one - make it the currently-running process
