@@ -44,12 +44,13 @@ CPP = cpp
 CPPFLAGS = $(USER_OPTIONS) -nostdinc $(INCLUDES)
 
 CC = gcc
-CFLAGS = -fno-stack-protector -fno-builtin -Wall -Wstrict-prototypes $(CPPFLAGS)
+CFLAGS = -fno-stack-protector -fno-builtin -Wall -Wstrict-prototypes -m32 $(CPPFLAGS)
 
 AS = as
-ASFLAGS =
+ASFLAGS = --32 -n32 
 
 LD = ld
+LDFLAGS = -m elf_i386
 
 #		
 # Transformation rules - these ensure that all compilation
@@ -74,12 +75,12 @@ LD = ld
 
 .S.o:
 	$(CPP) $(CPPFLAGS) -o $*.s $*.S
-	$(AS) -o $*.o $*.s -a=$*.lst
+	$(AS) $(ASFLAGS) -o $*.o $*.s -a=$*.lst
 	$(RM) -f $*.s
 
 .s.b:
-	$(AS) -o $*.o $*.s -a=$*.lst
-	$(LD) -Ttext 0x0 -s --oformat binary -e begtext -o $*.b $*.o
+	$(AS) $(ASFLAGS) -o $*.o $*.s -a=$*.lst
+	$(LD) $(LDFLAGS) -Ttext 0x0 -s --oformat binary -e begtext -o $*.b $*.o
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
@@ -118,13 +119,13 @@ floppy.image: bootstrap.b prog.b prog.nl BuildImage #prog.dis
 	./BuildImage -d floppy -o floppy.image -b bootstrap.b prog.b 0x10000
 
 prog.out: $(OBJECTS)
-	$(LD) -o prog.out $(OBJECTS)
+	$(LD) $(LDFLAGS) -o prog.out $(OBJECTS)
 
 prog.o:	$(OBJECTS)
-	$(LD) -o prog.o -Ttext 0x10000 $(OBJECTS) $(U_LIBS)
+	$(LD) $(LDFLAGS) -o prog.o -Ttext 0x10000 $(OBJECTS) $(U_LIBS)
 
 prog.b:	prog.o
-	$(LD) -o prog.b -s --oformat binary -Ttext 0x10000 prog.o
+	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext 0x10000 prog.o
 
 #
 # Targets for copying bootable image onto boot devices
