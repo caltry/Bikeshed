@@ -164,16 +164,26 @@ clean:
 #
 # Create a printable namelist from the prog.o file
 #
+# options to 'nm':
+#	B	use (traditional) BSD format
+#	n	sort by addresses, not by names
+#	g	only global symbols
+#
 
 prog.nl: prog.o
-	nm -Bng prog.o | pr -w80 -3 > prog.nl
+#	nm -Bng prog.o | pr -w80 -3 > prog.nl
+	nm -Bn prog.o | pr -w80 -3 > prog.nl
 
 #
 # Generate a disassembly
 #
+# options to 'objdump':
+#	d	disassemble all text sections
+#
 
 prog.dis: prog.o
-	dis prog.o > prog.dis
+#	dis prog.o > prog.dis
+	objdump -d prog.o > prog.dis
 
 #
 #       makedepend is a program which creates dependency lists by
