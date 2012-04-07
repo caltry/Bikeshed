@@ -26,6 +26,19 @@
 **	SP2_CONFIG		enable SP2-specific startup variations
 */
 
+/* 
+ ** SETUP VIRTUAL MEMORY
+ */
+KERNEL_VIRTUAL_BASE equ 0xC0000000					; Our kernel is loaded at the 3GB line
+KERNEL_PAGE_NUMBER equ (KERNEL_VIRTUAL_BASE >> 22)	; Page directory in 4MB mode
+
+section .data
+align 4096
+global base_page_directory
+base_page_directory: 	; We use this to identity map the first 1MB
+						; of memory and the kernel at the 3GB line
+
+
 /*
 ** A symbol for locating the beginning of the code.
 */
