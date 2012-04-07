@@ -52,4 +52,6 @@ BuildImage:
 clean:
 	$(MAKE) -C target clean
 	$(MAKE) -C host clean
+
+realclean: clean
 	$(RM) usb.image floppy.image
