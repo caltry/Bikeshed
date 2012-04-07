@@ -10,10 +10,6 @@ OBJ_FILES := clock.o isr_stubs.o pcbs.o queues.o scheduler.o stacks.o syscalls.o
 
 all: klib.ar kernel.ar
 
-klib.ar:
-	$(MAKE) -C lib klib.ar
-	$(LN) lib/klib.ar .
-
 kernel.ar: $(OBJ_FILES)
 	$(AR) $@ $^
 
