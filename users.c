@@ -14,6 +14,8 @@
 
 #include "users.h"
 
+#include "vesa.h"
+
 /*
 ** USER PROCESSES
 **
@@ -747,6 +749,8 @@ void init( void ) {
 	Status status;
 
 	c_puts( "Init started\n" );
+
+	print_vesa_info();
 
 	write( '$' );
 

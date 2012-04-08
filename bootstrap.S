@@ -405,6 +405,19 @@ switch:
 	call	move_gdt
 	call	check_mem
 
+
+	/* Load the VESA Controller information while we are in real mode */
+#define GET_CONTROLLER_INFO			0x4F00
+#define VESA_INFO_ADDRESS			0x4000
+
+	xorw %bx, %bx
+	movw %bx, %es
+	movw $VESA_INFO_ADDRESS, %di
+	movw $GET_CONTROLLER_INFO, %ax
+	int $0x10
+	cli
+
+
 /*
 ** The IDTR and GDTR are loaded relative to this segment, so we must
 ** use the full offsets from the beginning of the segment (0000:0000);
