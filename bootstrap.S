@@ -28,7 +28,10 @@
 */
 	.code16
 
+#define __ASM__20113__
+
 #include "bootstrap.h"
+#include "vesa.h"
 
 BOOT_SEGMENT	= 0x07C0	/* default BIOS addr to load boot sector */
 BOOT_ADDRESS 	= 0x00007C00
@@ -406,10 +409,13 @@ switch:
 	call	check_mem
 
 
-	/* Load the VESA Controller information while we are in real mode */
-#define GET_CONTROLLER_INFO			0x4F00
-#define VESA_INFO_ADDRESS			0x4000
+/*
+** VESA code.
+**
+** Loads VESA mode information while the OS is still in real mode
+*/
 
+	/* Load the VESA Controller information while we are in real mode */
 	xorw %bx, %bx
 	movw %bx, %es
 	movw $VESA_INFO_ADDRESS, %di
@@ -417,6 +423,21 @@ switch:
 	int $0x10
 	cli
 
+	/* Load information for one of the vesa modes (hardcoded) */
+	
+	xorw %bx, %bx
+	movw %bx, %es
+	movw $VESA_MODE_ADDRESS, %di
+	movw $VESA_MODE_TO_LOAD, %cx
+	movw $GET_MODE_INFO, %ax
+	int $0x10
+	cli
+
+	/* Set the desired mode (hardcoded) */
+	movw $VESA_MODE_TO_LOAD, %bx
+	movw $SET_MODE, %ax
+	int $0x10
+	cli
 
 /*
 ** The IDTR and GDTR are loaded relative to this segment, so we must

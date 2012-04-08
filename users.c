@@ -751,6 +751,7 @@ void init( void ) {
 	c_puts( "Init started\n" );
 
 	print_vesa_info();
+	print_mode_info(VESA_MODE_TO_LOAD);
 
 	write( '$' );
 
