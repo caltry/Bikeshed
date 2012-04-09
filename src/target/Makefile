@@ -9,7 +9,7 @@
 MODULES := applications boot kernel/lib kernel serial ulib
 
 # That's right, there's no default support for newlines in Make.
-define NL =
+define NL
 
 
 endef
