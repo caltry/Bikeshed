@@ -6,7 +6,7 @@
 # 4003-506 (with appropriate tweaking).
 #
 
-MODULES := applications boot kernel/lib kernel serial ulib
+MODULES := applications/ boot/ kernel/lib/ kernel/ serial/ ulib/
 
 # That's right, there's no default support for newlines in Make.
 define NL
@@ -34,7 +34,7 @@ default:
 # Build all of the submodules that we've defined.
 .PHONY: make_modules
 make_modules:
-	$(foreach module,$(MODULES), $(MAKE) $(module)/$(NL))
+	$(MAKE) $(MODULES)
 
 # Build the default rule on a subdirectory. FORCE is an old hack from before
 # .PHONY existed. I need to use it here because you can't declare wildcard
