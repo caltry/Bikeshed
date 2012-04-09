@@ -1,5 +1,5 @@
 
-BUILDIMAGE = host/build/BuildImage
+BUILDIMAGE = build/BuildImage
 
 #
 # Targets for remaking bootable image of the program
@@ -7,22 +7,22 @@ BUILDIMAGE = host/build/BuildImage
 # Default target:  usb.image
 #
 
-usb.image: target/boot/bootstrap.b target/prog.b BuildImage
-	$(BUILDIMAGE) -d usb -o usb.image -b target/boot/bootstrap.b target/prog.b 0x10000
+usb.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE)
+	$(BUILDIMAGE) -d usb -o usb.image -b src/boot/bootstrap.b src/prog.b 0x10000
 
-floppy.image: target/boot/bootstrap.b target/prog.b BuildImage
-	$(BUILDIMAGE) -d floppy -o floppy.image -b target/boot/bootstrap.b target/prog.b 0x10000
+floppy.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE)
+	$(BUILDIMAGE) -d floppy -o floppy.image -b src/boot/bootstrap.b src/prog.b 0x10000
 
 #
 # Additional dependencies to make sure that bootstrap.b and prog.b are made
 #
 
-target/boot/bootstrap.b: build_target
-target/prog.b: build_target
+src/boot/bootstrap.b: build_src
+src/prog.b: build_src
 
-.PHONY: build_target
-build_target:
-	$(MAKE) -C target
+.PHONY: build_src
+build_src:
+	$(MAKE) -C src
 
 #
 # Targets for copying bootable image onto boot devices
@@ -45,13 +45,12 @@ qemu:	usb.image
 # as for the standalone binaries.
 #
 
-.PHONY: BuildImage
-BuildImage:
-	$(MAKE) -C host/build
+$(BUILDIMAGE):
+	$(MAKE) -C build
 
 clean:
-	$(MAKE) -C target clean
-	$(MAKE) -C host clean
+	$(MAKE) -C src clean
+	$(MAKE) -C build clean
 
 realclean: clean
 	$(RM) usb.image floppy.image
