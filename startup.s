@@ -5,19 +5,16 @@
 # 20 "startup.S"
 # 1 "bootstrap.h" 1
 # 21 "startup.S" 2
-# 39 "startup.S"
+# 51 "startup.S"
 .section .data
 .align 4096
 .globl boot_page_directory
+
 boot_page_directory:
  .long 0x00000083
-
  .fill ((0x00010000 >> 22) - 1), 4, 0
-
  .long 0x00000083
-
  .fill (1024 - (0x00010000 >> 22) - 1), 4, 0
-
 
 
 
@@ -36,6 +33,9 @@ _start:
  cli
  movb $0x00, %al
  outb $0x70
+
+
+
 
 
  mov $boot_page_directory, %ecx
@@ -71,7 +71,7 @@ enable_paging:
 
  movl $0x00010000, %ebp
  movl %ebp, %esp
-# 112 "startup.S"
+# 124 "startup.S"
  .globl __bss_start,_end
 
  movl $__bss_start,%edi
@@ -80,14 +80,14 @@ clearbss:
  addl $4,%edi
  cmpl $_end,%edi
  jb clearbss
-# 128 "startup.S"
+# 140 "startup.S"
  call _init
-# 137 "startup.S"
+# 149 "startup.S"
  jmp __isr_restore
-# 174 "startup.S"
+# 186 "startup.S"
 ARG1 = 8
 ARG2 = 12
-# 186 "startup.S"
+# 198 "startup.S"
  .globl __inb, __inw, __inl
 
 __inb:
@@ -111,7 +111,7 @@ __inl:
  inl (%dx)
  leave
  ret
-# 218 "startup.S"
+# 230 "startup.S"
  .globl __outb, __outw, __outl
 __outb:
  enter $0,$0

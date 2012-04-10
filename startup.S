@@ -27,7 +27,19 @@
 */
 
 /* 
- ** SETUP VIRTUAL MEMORY
+ ** Setup Virtual Memory
+ ** 
+ ** The boot_page_directory is for switching to our higher 
+ ** half kernel. We need an intermediate page directory because
+ ** the kernel will be linked at the 3GB line, and so all code
+ ** will reference 3GB line addresses. This page directory will
+ ** map the 3GB addresses back to the lower memory area so the
+ ** kernel code can still work.
+ **
+ ** To save on space we're using 4MB pages here so we don't need
+ ** to specify Page Tables. These 4MB pages will be replaced by
+ ** the standard 4KB pages later once the kernel enables virtual
+ ** memory for real.
  */
 #define KERNEL_VIRTUAL_BASE 0x00010000					/* Our kernel is loaded at the 3GB line */
 #define KERNEL_PAGE_NUMBER (KERNEL_VIRTUAL_BASE >> 22)	/* Page directory in 4MB mode */
@@ -39,15 +51,12 @@
 .section .data
 .align 4096
 .globl boot_page_directory
+/* This page directory defines the 4MB page containing the kernel */
 boot_page_directory:	/* We use this to identity map the first 1MB */
 	.long 0x00000083		/* of memory and the kernel at the 3GB line */
-	/*times (KERNEL_PAGE_NUMBER - 1) dd 0*/ /* Pages before kernel */
-	.fill (KERNEL_PAGE_NUMBER - 1), 4, 0 
-	/* This page directory defines the 4MB page containing the kernel */
-	.long 0x00000083 
-	/*times (1024 - KERNEL_PAGE_NUMBER - 1) dd 0 */ /* Pages after the kernel */
-	.fill (1024 - KERNEL_PAGE_NUMBER - 1), 4, 0
-	/*.fill 1023, 4, 0*/
+	.fill (KERNEL_PAGE_NUMBER - 1), 4, 0 /* Pages before kernel */
+	.long 0x00000083  /* This entry is the kernel in the higher-half */
+	.fill (1024 - KERNEL_PAGE_NUMBER - 1), 4, 0 /* Pages after the kernel */
 
 /*
 ** A symbol for locating the beginning of the code.
@@ -67,7 +76,10 @@ _start:
 	movb	$0x00, %al	/* re-enable NMIs (bootstrap */
 	outb	$0x70		/*   turned them off) */
 
-/* SETUP VIRTUAL MEMORY FOR THE HIGHER HALF KERNEL */
+/* SETUP VIRTUAL MEMORY FOR THE HIGHER HALF kernel
+ * This section of assembly loads the boot_page_directory as 
+ * the current page directory and enables paging
+ */
 	mov $boot_page_directory, %ecx
 	mov %ecx, %cr3	/* Load the Page Directory Base Register */
 
@@ -83,7 +95,7 @@ _start:
 	lea enable_paging, %ecx
 	jmp *%ecx
 enable_paging:
-
+/* Paging is now enabled */
 
 	/*
 	 ** Set the data and stack segment registers (code segment register
