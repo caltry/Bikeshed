@@ -434,10 +434,10 @@ switch:
 	cli
 
 	/* Set the desired mode (hardcoded) */
-	movw $VESA_MODE_TO_LOAD, %bx
+	/*movw $VESA_MODE_TO_LOAD, %bx
 	movw $SET_MODE, %ax
 	int $0x10
-	cli
+	cli*/
 
 /*
 ** The IDTR and GDTR are loaded relative to this segment, so we must
@@ -577,6 +577,30 @@ stack_seg:	/* limit FFFFF, base 0, R/W data seg, 32-bit 4K */
 	.byte	0x00
 	.byte	0x92
 	.byte	0xCF
+	.byte	0x00
+
+code_seg_16:	/* limit 64k, base 0, R/E code seg, 16-bit 4K */
+	.word	0xFFFF
+	.word	0x0000
+	.byte	0x00
+	.byte	0x9A
+	.byte	0x00
+	.byte	0x00
+
+data_seg_16:	/* limit 64k, base 0, R/W code seg, 16-bit 4K */
+	.word	0xFFFF
+	.word	0x0000
+	.byte	0x00
+	.byte	0x92
+	.byte	0x00
+	.byte	0x00
+
+stack_seg_16:	/* limit 64k, base 0, R/W code seg, 16-bit 4K */
+	.word	0xFFFF
+	.word	0x0000
+	.byte	0x00
+	.byte	0x92
+	.byte	0x00
 	.byte	0x00
 
 end_gdt:
