@@ -2,6 +2,7 @@
 #include "physical.h"
 #include "serial.h"
 
+#include "klib.h"
 #include "c_io.h"
 
 typedef long unsigned int ul;
@@ -65,6 +66,9 @@ void __virt_initialize_paging()
 		kernel_table->pages[i].value = address | 3;
 		address += 4096;
 	}*/
+
+	// Install the page fault ISR
+	__install_isr(INT_VEC_PAGE_FAULT, _isr_page_fault);
 
 	__virt_kpage_directory->ptables[0] = (uint32)first_table | 3;
 	//__virt_kpage_directory->ptables[page_dir_index] = (uint32)kernel_table | 3;
@@ -137,10 +141,12 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, uint32 flags)
 	// TODO Here need to check whether the PT entry is present
 	// When it is, then there is already a mapping present, what do you do?
 	
-	pt[page_tbl_index] = ((uint32)physical_addr) | (flags & 0xFFF) | 0x01; // Presnt
+	pt[page_tbl_index] = ((uint32)physical_addr) | (flags & 0xFFF) | PRESENT; // Present
 
 	// TODO Now you need to flush the entry in the TBL
 	// or you might not notice the change
+	// Is this the virtual address or the physical address?
+	asm volatile("invlpg %0"::"m" (*(char *)virtual_addr));	
 }
 
 void __virt_switch_page_directory(page_directory_t *page_directory)
@@ -152,4 +158,31 @@ void __virt_switch_page_directory(page_directory_t *page_directory)
 	asm volatile("mov %%cr0, %0": "=b"(cr0));
 	cr0 |= 0x80000000;
 	asm volatile("mov %0, %%cr0":: "r"(cr0));
+}
+
+static const char* const page_table_errors[] = {
+	"Supervisory process tried to read a non-present page entry",
+	"Supervisory process tried to read a page and caused a protection fault",
+	"Supervisory process tried to write to a non-present page entry",
+	"Supervisory process tried to write a page and caused a protection fault",
+	"User process tried to read a non-present page entry",
+	"User process tried to read a page and caused a protection fault",
+	"User process tried to write to a non-present page entry",
+	"User process tried to write to a non-present page entry"
+};
+
+void _isr_page_fault(int vector, int code)
+{
+	serial_string("US RW P - Description\n");
+	serial_printf("%d  ",  code & 0x4);
+	serial_printf("%d  ",  code & 0x2);
+	serial_printf("%d - ", code & 0x1);
+	serial_string(page_table_errors[code & 0x7]);
+	serial_string("\n");
+	unsigned int cr2 = read_cr2();
+	serial_printf("Address: %X\n", cr2);
+	serial_printf("Page Directory Entry: %d\n", (cr2 >> 22));
+	serial_printf("Page Table Entry:     %d\n", (cr2 >> 12) & 0x3FF);
+
+	_kpanic("Paging", "Page fault handling not fully implemented!", 0);
 }

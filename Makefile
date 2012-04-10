@@ -9,10 +9,10 @@
 #
 # User supplied files
 #
-U_C_SRC = clock.c klibc.c pcbs.c queues.c scheduler.c sio.c stacks.c syscalls.c system.c ulibc.c users.c serial.c paging.c physical.c
-U_C_OBJ = clock.o klibc.o pcbs.o queues.o scheduler.o sio.o stacks.o syscalls.o system.o ulibc.o users.o serial.o paging.o physical.o 
-U_S_SRC = klibs.S ulibs.S
-U_S_OBJ = klibs.o ulibs.o
+U_C_SRC = clock.c klibc.c pcbs.c queues.c scheduler.c sio.c stacks.c syscalls.c system.c ulibc.c users.c serial.c paging.c physical.c kmallo.c
+U_C_OBJ = clock.o klibc.o pcbs.o queues.o scheduler.o sio.o stacks.o syscalls.o system.o ulibc.o users.o serial.o paging.o physical.o kmalloc.o
+U_S_SRC = klibs.S ulibs.S memory.S
+U_S_OBJ = klibs.o ulibs.o memory.o
 U_LIBS	=
 
 #

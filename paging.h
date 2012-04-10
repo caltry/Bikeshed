@@ -19,6 +19,7 @@ typedef struct Page
 #define USER 		0x4
 #define WRITE_THRU	0x8
 #define CACHE_DISABLE 0x10
+#define INT_VEC_PAGE_FAULT 14
 
 typedef struct Page 
 {
@@ -50,5 +51,17 @@ void* __virt_get_phys_addr(void *virtual_addr);
 void __virt_map_page(void *physical_addr, void *virtual_addr, uint32 flags);
 
 void __virt_unmap_page(void *virtual_addr);
+
+void _isr_page_fault(int vector, int code);
+
+/* Defined in memory.S */
+Uint32 read_cr0(void);
+void write_cr0(Uint32 address);
+
+Uint32 read_cr3(void);
+void write_cr3(Uint32 address);
+
+/* Used by the page fault handler to get the offending address */
+Uint32 read_cr2(void);
 
 #endif
