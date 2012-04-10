@@ -14,10 +14,10 @@ USER_OPTIONS = -DCLEAR_BSS_SEGMENT -DSP2_CONFIG -DISR_DEBUGGING_CODE
 # Compilation/assembly control
 #
 
-#
-# We only want to include from the current directory and ~wrc/include
-#
 INCLUDES = -I.
+
+DYN_SRC_FILES = $(shell ls *.[chsS])
+DYN_OBJ_FILES = $(shell ls *.[csS] | sed 's/\(.*\).[csS]/\1.o/g')
 
 #
 # Compilation/assembly/linking commands and options
