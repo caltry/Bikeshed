@@ -6,7 +6,7 @@
 # 4003-506 (with appropriate tweaking).
 #
 
-MODULES := applications/ boot/ kernel/lib/ kernel/ serial/ ulib/
+MODULES := applications/ boot/ kernel/lib/ kernel/ serial/ ulib/ kernel/memory/
 
 # That's right, there's no default support for newlines in Make.
 define NL
@@ -70,10 +70,10 @@ prog.out: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o prog.out $(OBJECTS)
 
 prog.o:	$(OBJECTS) make_modules
-	$(LD) $(LDFLAGS) -o prog.o -Ttext 0x10000 $(OBJECTS) $(U_LIBS) $(U_LIBS)
+	$(LD) $(LDFLAGS) -o prog.o -Tlinker.ld $(OBJECTS) $(U_LIBS) $(U_LIBS)
 
 prog.b:	prog.o
-	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext 0x10000 prog.o
+	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Tlinker.ld prog.o
 
 
 Offsets:	Offsets.c

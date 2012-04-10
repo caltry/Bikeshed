@@ -24,9 +24,9 @@
 
 // TODO XXX ADDED REMOVE
 #include "bootstrap.h"
-#include "physical.h"
-#include "paging.h"
-#include "kmalloc.h"
+#include "memory/physical.h"
+#include "memory/paging.h"
+#include "memory/kmalloc.h"
 
 // need init() address
 #include "users.h"
