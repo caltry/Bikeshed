@@ -12,7 +12,9 @@ boot.ar: $(OBJ_FILES)
 clean:
 	$(RM) *.lst *.b *.o *.ar
 
-make depend:
-	makedepend -- $(CFLAGS) -- $(SRC_FILES)
-	rm Makefile.bak
-# DO NOT DELETE THIS LINE -- make depend depends on it.
+.PHONY: depend
+depend: makedepends.mk
+makedepends.mk: $(SRC_FILES)
+	makedepend -f- -- $(CFLAGS) -- $(SRC_FILES) > makedepends.mk
+
+include makedepends.mk
