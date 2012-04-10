@@ -257,7 +257,7 @@ void _init( void ) {
 	c_printf("CFG Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_CFG_HI));
 	__phys_initialize_bitmap();
 	__virt_initialize_paging();
-	//__kmem_init_kmalloc();
+	__kmem_init_kmalloc();
 
 	/*
 	** Create the initial process

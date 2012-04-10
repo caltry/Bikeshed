@@ -19,7 +19,6 @@ typedef struct Page
 #define USER 		0x4
 #define WRITE_THRU	0x8
 #define CACHE_DISABLE 0x10
-#define INT_VEC_PAGE_FAULT 14
 
 typedef struct Page 
 {

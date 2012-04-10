@@ -2,6 +2,7 @@
 #include "physical.h"
 #include "serial.h"
 
+#include "x86arch.h"
 #include "klib.h"
 #include "c_io.h"
 
@@ -111,18 +112,43 @@ void __virt_unmap_page(void *virtual_addr)
 	
 	// Here check if the PD entry is present
 	// When it's not present, we're done
+	if ((pd[page_dir_index] & PRESENT) == 0)
+	{
+		return;
+	}
 
 	uint32 *pt = ((uint32 *)0xFFC00000) + (0x400 * page_dir_index);
 	// Here need to check whether the PT entry is present
 	// When it is, then we need to unmap it
+	if ((pt[page_tbl_index] & PRESENT) > 0)
+	{
+		// Unmap the physical address 
+		__phys_unset_bit((void *)pt[page_tbl_index]);
+	}
 
 	pt[page_tbl_index] = 0;
 
-	// TODO check if Page Table is empty, and mark the Page Directory entry
+	// check if Page Table is empty, and mark the Page Directory entry
 	// as empty
+	Uint32 i = 0;
+	for (; i < 1024; ++i)
+	{
+		if ((pt[i] & PRESENT) > 0)
+		{
+			break;
+		}
+	}
+
+	if (i == 1024)
+	{
+		pd[page_dir_index] &= ~PRESENT;
+		__phys_unset_bit((void *)pd[page_dir_index]);
+	}
 
 	// Now you need to flush the entry in the TBL
 	// or you might not notice the change
+	// Is this the virtual address or the physical address?
+	asm volatile("invlpg %0"::"m" (*(char *)virtual_addr));	
 }
 
 void __virt_map_page(void *physical_addr, void *virtual_addr, uint32 flags)
@@ -134,16 +160,38 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, uint32 flags)
 
 	uint32 *pd = (uint32 *)0xFFFFF000;
 
-	// TODO Here check if the PD entry is present
+	serial_string("Mapping page 1/4\n");
+	serial_printf("Phys: %x\n", (Uint32)physical_addr);
+	serial_printf("Virt: %x\n", (Uint32)virtual_addr);
+	serial_printf("Dir Index: %d\n", page_dir_index);
+	serial_printf("Tbl Index: %d\n", page_tbl_index);
+
+	// Here check if the PD entry is present
 	// When it's not present, create a new empty PT and adjust the PDE accordingly
+	serial_printf("Page dir value: %x\n", pd[page_dir_index]);
+	if ((pd[page_dir_index] & PRESENT) == 0)
+	{
+		serial_string("Page directory entry not present!\n");		
+		pd[page_dir_index] = (Uint32)__phys_get_free_4k();
+		_kmemset(&pd[page_dir_index], 0, 4096);
+		pd[page_dir_index] |= READ_WRITE | PRESENT;
+	}
 	
 	uint32 *pt = ((uint32 *)0xFFC00000) + (0x400 * page_dir_index); 
-	// TODO Here need to check whether the PT entry is present
+	serial_string("Mapping page 2/4\n");
+	// Here need to check whether the PT entry is present
 	// When it is, then there is already a mapping present, what do you do?
+	if ((pt[page_tbl_index] & PRESENT) > 0)
+	{
+		// Uh-oh... This shouldn't happen!
+		_kpanic("Paging", "A page has already been mapped here!\n", 0);
+	}
 	
+	serial_string("Mapping page 3/4\n");
 	pt[page_tbl_index] = ((uint32)physical_addr) | (flags & 0xFFF) | PRESENT; // Present
 
-	// TODO Now you need to flush the entry in the TBL
+	serial_string("Mapping page 4/4\n");
+	// Now you need to flush the entry in the TBL
 	// or you might not notice the change
 	// Is this the virtual address or the physical address?
 	asm volatile("invlpg %0"::"m" (*(char *)virtual_addr));	
