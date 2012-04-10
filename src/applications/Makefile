@@ -1,6 +1,6 @@
 include ../defs.mk
 
-CFLAGS += -I../include -I../ulib/ -I../kernel
+CFLAGS += -I../include -I../ulib/ -I../kernel -I../kernel/video
 
 OBJ_FILES := users.o
 
