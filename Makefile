@@ -9,8 +9,8 @@
 #
 # User supplied files
 #
-U_C_SRC = clock.c klibc.c pcbs.c queues.c scheduler.c sio.c stacks.c syscalls.c system.c ulibc.c users.c 
-U_C_OBJ = clock.o klibc.o pcbs.o queues.o scheduler.o sio.o stacks.o syscalls.o system.o ulibc.o users.o
+U_C_SRC = clock.c klibc.c pcbs.c queues.c scheduler.c sio.c stacks.c syscalls.c system.c ulibc.c users.c serial.c paging.c physical.c
+U_C_OBJ = clock.o klibc.o pcbs.o queues.o scheduler.o sio.o stacks.o syscalls.o system.o ulibc.o users.o serial.o paging.o physical.o 
 U_S_SRC = klibs.S ulibs.S
 U_S_OBJ = klibs.o ulibs.o
 U_LIBS	=
@@ -44,10 +44,10 @@ CPP = cpp
 CPPFLAGS = $(USER_OPTIONS) -nostdinc $(INCLUDES)
 
 CC = gcc
-CFLAGS = -fno-stack-protector -fno-builtin -Wall -Wstrict-prototypes -m32 $(CPPFLAGS)
+CFLAGS = -g -ggdb -fno-stack-protector -fno-builtin -Wall -Wstrict-prototypes -m32 $(CPPFLAGS)
 
 AS = as
-ASFLAGS = --32 -n32 
+ASFLAGS = -ggdb --32 -n32 
 
 LD = ld
 LDFLAGS = -m elf_i386
@@ -122,10 +122,12 @@ prog.out: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o prog.out $(OBJECTS)
 
 prog.o:	$(OBJECTS)
-	$(LD) $(LDFLAGS) -o prog.o -Ttext 0x10000 $(OBJECTS) $(U_LIBS)
+	#$(LD) $(LDFLAGS) -o prog.o -Ttext 0x10000 $(OBJECTS) $(U_LIBS)
+	$(LD) $(LDFLAGS) -o prog.o -Tlinker.ld $(OBJECTS) $(U_LIBS)
 
 prog.b:	prog.o
-	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext 0x10000 prog.o
+	#$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext 0x10000 prog.o
+	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Tlinker.ld prog.o
 
 #
 # Targets for copying bootable image onto boot devices
@@ -139,7 +141,7 @@ usb:	usb.image
 
 # Run the OS in qemu
 qemu:	usb.image
-	qemu-system-x86_64 usb.image -serial stdio
+	qemu-system-x86_64 -s -m 256 usb.image -serial stdio
 
 #
 # Special rule for creating the modification and offset programs

@@ -29,15 +29,25 @@
 /* 
  ** SETUP VIRTUAL MEMORY
  */
-KERNEL_VIRTUAL_BASE equ 0xC0000000					; Our kernel is loaded at the 3GB line
-KERNEL_PAGE_NUMBER equ (KERNEL_VIRTUAL_BASE >> 22)	; Page directory in 4MB mode
+#define KERNEL_VIRTUAL_BASE 0x00010000					/* Our kernel is loaded at the 3GB line */
+#define KERNEL_PAGE_NUMBER (KERNEL_VIRTUAL_BASE >> 22)	/* Page directory in 4MB mode */
 
-section .data
-align 4096
-global base_page_directory
-base_page_directory: 	; We use this to identity map the first 1MB
-						; of memory and the kernel at the 3GB line
+#define PAGE_PRESENT 0x1 
+#define PAGE_READ_WRITE 0x2
+#define PAGE_4MB 0x80
 
+.section .data
+.align 4096
+.globl boot_page_directory
+boot_page_directory:	/* We use this to identity map the first 1MB */
+	.long 0x00000083		/* of memory and the kernel at the 3GB line */
+	/*times (KERNEL_PAGE_NUMBER - 1) dd 0*/ /* Pages before kernel */
+	.fill (KERNEL_PAGE_NUMBER - 1), 4, 0 
+	/* This page directory defines the 4MB page containing the kernel */
+	.long 0x00000083 
+	/*times (1024 - KERNEL_PAGE_NUMBER - 1) dd 0 */ /* Pages after the kernel */
+	.fill (1024 - KERNEL_PAGE_NUMBER - 1), 4, 0
+	/*.fill 1023, 4, 0*/
 
 /*
 ** A symbol for locating the beginning of the code.
@@ -57,8 +67,26 @@ _start:
 	movb	$0x00, %al	/* re-enable NMIs (bootstrap */
 	outb	$0x70		/*   turned them off) */
 
-/*
-** Set the data and stack segment registers (code segment register
+/* SETUP VIRTUAL MEMORY FOR THE HIGHER HALF KERNEL */
+	mov $boot_page_directory, %ecx
+	mov %ecx, %cr3	/* Load the Page Directory Base Register */
+
+	mov %cr4, %ecx	/* Set the PSE bit in CR4 to enabled 4MB Pages */
+	or $0x00000010, %ecx
+	mov %ecx, %cr4
+
+	mov %cr0, %ecx	/* Set PG bit in CR0 to enable paging  */
+	or $0x80000000, %ecx
+	mov %ecx, %cr0
+	
+	/* Start fetching instructions after paging has been enabled */
+	lea enable_paging, %ecx
+	jmp *%ecx
+enable_paging:
+
+
+	/*
+	 ** Set the data and stack segment registers (code segment register
 ** was set by the long jump that switched us into protected mode).
 */
 	xorl	%eax, %eax	/* clear EAX */
@@ -91,7 +119,7 @@ clearbss:
 	jb	clearbss
 
 #endif
-
+	
 #ifdef SP2_CONFIG
 
 /*
@@ -109,6 +137,7 @@ clearbss:
 	jmp	__isr_restore   // defined in isr_stubs.S
 
 #else
+
 
 /*
 ** Initialize various devices

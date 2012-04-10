@@ -1,0 +1,2 @@
+usb_uhci: enabled=1, port1=mouse, port2=disk:usb.image
+cpu: count=1, ips=1000000

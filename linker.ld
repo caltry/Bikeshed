@@ -1,8 +1,8 @@
-ENTRY (loader)
+ENTRY (_start)
 
 SECTIONS {
-	virt = 0xC0100000;
-	phys = 0x00100000;
+	virt = 0x0010000;/*0xC0100000;*/
+	phys = 0x0010000;
 	
 	.text virt : AT(phys) {
 		code = .;
@@ -24,10 +24,12 @@ SECTIONS {
 
 	.bss ALIGN(0x1000) : AT(phys + (bss - code)) {
 		bss = .;
+		__bss_start = .;
 		sbss = .;
 		*(COMMON)
 		*(.bss)
 		ebss = .;
+		_end = .;
 		KERNEL_END = .;
 	}
 }
