@@ -2,9 +2,9 @@ include ../defs.mk
 
 CFLAGS += -I../include -I../ulib -I../kernel -I../kernel/lib -I../kernel/video -I../boot
 CFLAGS += -I../serial -I../applications
-CPPFLAGS += -I../boot
+CPPFLAGS += -I../boot -I../kernel/video
 
-OBJ_FILES := clock.o isr_stubs.o pcbs.o queues.o scheduler.o stacks.o syscalls.o system.o
+OBJ_FILES := clock.o isr_stubs.o pcbs.o queues.o scheduler.o stacks.o syscalls.o system.o bios.o
 
 .PHONY: all klib.ar video.ar
 
