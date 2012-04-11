@@ -33,6 +33,7 @@ void __virt_initialize_paging()
 	serial_printf("First table: %x\n", (ul)first_table);
 	serial_printf("Kernel table: %x\n", (ul)kernel_table);
 
+	_kmemset(__virt_kpage_directory, 0, sizeof(page_directory_t));
 	_kmemset(first_table,  0, sizeof(page_table_t));
 	_kmemset(kernel_table, 0, sizeof(page_table_t));
 	
@@ -59,25 +60,47 @@ void __virt_initialize_paging()
 	serial_printf("Kernel end: %d\n", (ul)page_dir_end_index);
 	serial_printf("Page table start: %d\n", (ul)page_table_start);
 	serial_printf("Page table end: %d\n", (ul)page_table_end);
-/*
-	i = page_table_start;
-	address = KERNEL_LOAD_ADDR;
-	for (; i < page_table_end; ++i)
+
+	/* We don't want to overwrite our 1MB identity mapping
+	 */
+	i = 0;//page_table_start;
+	address = 0x0;//KERNEL_LOAD_ADDR;
+	if (page_dir_index != 0)
 	{
-		kernel_table->pages[i].value = address | 3;
-		address += 4096;
-	}*/
+		serial_string("Kernel is not in the lowest 4MB\n");
+		//for (; i < page_table_end; ++i)
+		for (; i < page_table_end+1; ++i)
+		{
+			kernel_table->pages[i].value = address | 3;
+			address += 4096;
+		}
+
+		__virt_kpage_directory->ptables[page_dir_index] = (uint32)kernel_table | 3;
+	} else {
+		serial_string("Kernel is in the lowest 4MB\n");
+		for (; i < page_table_end; ++i)
+		{
+			first_table->pages[i].value = address | 3;
+			address += 4096;
+		}
+
+		__phys_unset_bit((void *)kernel_table);
+	}
+
+	serial_string("Installing page fault handler\n");
 
 	// Install the page fault ISR
 	__install_isr(INT_VEC_PAGE_FAULT, _isr_page_fault);
 
+	serial_string("Setting up page mappings\n");
+	// Add the < 1MB identity mapping
 	__virt_kpage_directory->ptables[0] = (uint32)first_table | 3;
-	//__virt_kpage_directory->ptables[page_dir_index] = (uint32)kernel_table | 3;
+
+	// Map the page directory back to itself for easy modification
+	__virt_kpage_directory->ptables[1023] = (uint32)__virt_kpage_directory | 3;
 
 	// Set the last entry to ourself so we can do fancy reading of the page
 	// directory from inside of virtual memory space
-	__virt_kpage_directory->ptables[1023] = (uint32)__virt_kpage_directory | 3;
-
 	__virt_switch_page_directory(__virt_kpage_directory);
 
 	serial_string("4KB page tables enabled\n");
@@ -199,6 +222,7 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, uint32 flags)
 
 void __virt_switch_page_directory(page_directory_t *page_directory)
 {
+	serial_printf("Switching page directory %x\n", (Uint32)page_directory);
 	// TODO make this a macro?
 	asm volatile("mov %0, %%cr3" :: "b"(page_directory));
 	// TODO this stuff isn't needed once paging is enabled
@@ -206,6 +230,7 @@ void __virt_switch_page_directory(page_directory_t *page_directory)
 	asm volatile("mov %%cr0, %0": "=b"(cr0));
 	cr0 |= 0x80000000;
 	asm volatile("mov %0, %%cr0":: "r"(cr0));
+	serial_string("Done switching page directory\n");
 }
 
 static const char* const page_table_errors[] = {

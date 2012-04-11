@@ -1,7 +1,7 @@
 include ../defs.mk
 
 # Omit bootstrap.b, it's special
-OBJ_FILES := startup.o
+OBJ_FILES := startup.o 
 
 all: bootstrap.b boot.ar
 

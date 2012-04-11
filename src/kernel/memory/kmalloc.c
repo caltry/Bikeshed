@@ -3,6 +3,7 @@
 #include "paging.h"
 #include "physical.h"
 
+#include "../../ulib/c_io.h"
 #include "../lib/klib.h"
 
 typedef struct LinkedNode
@@ -31,6 +32,7 @@ heap_t kernel_heap;
 
 void __kmem_init_kmalloc()
 {
+	serial_string("Kmalloc intializing\n");
 	kernel_heap.start_address = (void*)HEAP_START_LOCATION;
 	kernel_heap.max_address = (void*)HEAP_MAX_LOCATION;
 
@@ -38,7 +40,7 @@ void __kmem_init_kmalloc()
 	int32 i = 0;
 	for (; i < HEAP_INITIAL_PAGES; ++i)
 	{
-		//get_page(start_address, (page_dir_t*)page_directory);
+		serial_string("Kmalloc requesting page\n");
 		__virt_map_page(__phys_get_free_4k(), start_address, READ_WRITE | PRESENT);
 		start_address += 4096;
 	}
@@ -57,6 +59,8 @@ void __kmem_init_kmalloc()
 	serial_printf("Node next:     %X\n", (Uint32)kernel_heap.start_node->next);
 	serial_printf("Node prev:     %X\n", (Uint32)kernel_heap.start_node->prev);
 	serial_printf("Node size:     %d\n", (Uint32)sizeof(linked_node_t));
+
+	c_puts("Kmalloc Initialized\n");
 }
 
 void* __kmalloc(uint32 size)

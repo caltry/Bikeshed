@@ -34,7 +34,7 @@ void __phys_initialize_bitmap()
 
 	// Fill the entire bitmap with 1's and then only mark free what we can
 	uint32 i = 0;
-	for (; i < __phys_bitmap_4k_size; ++i)
+	for (; i < (__phys_bitmap_4k_size / sizeof(Uint32)); ++i)
 	{
 		__phys_bitmap_4k[i] = 0xFFFFFFFF;
 	}
@@ -47,12 +47,31 @@ void __phys_initialize_bitmap()
 	// i = 9.282
 	// Grab those pages that might be free before the next index
 	++i;
-	for (; i < __phys_bitmap_4k_size; ++i)
+	for (; i < (__phys_bitmap_4k_size / sizeof(Uint32)); ++i)
 	{
 		__phys_bitmap_4k[i] = 0;
 	}
 
 	c_puts("Physical Memory Bitmap Initialized\n");
+	serial_printf("Free pages: %d\n", __phys_get_free_page_count());
+}
+
+Uint32 __phys_get_free_page_count()
+{
+	uint32 i = 0;
+	uint32 sum = 0;
+	for (; i < (__phys_bitmap_4k_size / sizeof(Uint32)); ++i)
+	{
+		uint32 val = 0x1;
+		uint32 shift = 0;
+		for (; shift < sizeof(Uint32)*8; ++shift)
+		{
+			sum += (__phys_bitmap_4k[i] & val) == 0;
+			val <<= 1;
+		}
+	}
+
+	return sum;
 }
 
 void __phys_set_bit(void* address)
@@ -82,12 +101,15 @@ void __phys_unset_bit(void* address)
 
 void* __phys_get_free_4k()
 {
+	serial_printf("Getting page, size: %d\n", __phys_bitmap_4k_size);
+	serial_printf("Free pages: %d\n", __phys_get_free_page_count());
 	// Skip 32-bits at a time
 	uint32 i = 0;
-	while (__phys_bitmap_4k[i] == 0xFFFFFFFF && i < __phys_bitmap_4k_size) { ++i; }
+	while (__phys_bitmap_4k[i] == 0xFFFFFFFF && i < (__phys_bitmap_4k_size / sizeof(Uint32))) { ++i; }
 
+	serial_printf("I after loop: %d\n", i);
 	// We ran out of physical memory!
-	if (i >= __phys_bitmap_4k_size)
+	if (i >= (__phys_bitmap_4k_size / sizeof(Uint32)))
 	{
 		serial_string("No more free pages!\n");
 		for (;;) { asm("hlt"); }
@@ -106,6 +128,7 @@ void* __phys_get_free_4k()
 	__phys_bitmap_4k[i] |= bit;
 
 	// (i * sizeof(uint32) + offset) * 4096
+	serial_printf("Phys allocating: %x\n", (void *)(((i * sizeof(uint32)) + offset) << 12));
 	return (void *)(((i * sizeof(uint32)) + offset) << 12);
 }
 
