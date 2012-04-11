@@ -25,7 +25,7 @@ U_C_SRC = clock.c klibc.c pcbs.c queues.c scheduler.c sio.c stacks.c syscalls.c 
 U_C_OBJ = clock.o klibc.o pcbs.o queues.o scheduler.o sio.o stacks.o syscalls.o system.o ulibc.o users.o
 U_S_SRC = klibs.S ulibs.S
 U_S_OBJ = klibs.o ulibs.o
-U_LIBS	= $(shell find $(MODULES) -name *.ar)
+U_LIBS	= $(shell find $(MODULES) \( ! -regex '.*/\..*' \) -type f -name "*.ar")
 
 default:
 	$(MAKE) make_modules
