@@ -116,8 +116,6 @@ prog.dis: prog.o
 #       looking at the #include lines in the source files
 #
 
+.PHONY: depend
 depend:
-	makedepend $(INCLUDES) $(SOURCES)
-
-# DO NOT DELETE THIS LINE -- make depend depends on it.
-
+	$(foreach module, $(MODULES),$(MAKE) -C $(module) $@ $(NL))
