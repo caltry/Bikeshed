@@ -33,7 +33,7 @@
 #define	GDT_STACK		0x0020		/* All of memory, R/W */
 #define GDT_CODE_16		0x0028
 #define GDT_DATA_16		0x0030
-#define GDT_STACK_16	0x0032
+#define GDT_STACK_16	0x0038
 
 
 /*

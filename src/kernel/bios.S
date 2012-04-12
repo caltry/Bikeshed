@@ -50,6 +50,10 @@ switch_to_real_mode:
 	movw	$GDT_STACK_16, %ax
 	movw	%ax, %ss
 
+	ljmp	$GDT_CODE_16, $_not_quite_real
+
+_not_quite_real:
+
 	/* Switch of the protected mode flag */
 	movl	%cr0, %eax			/* get current CR0 */
 	andl	$0xfffffffe, %eax	/* clear the PE bit */
@@ -82,9 +86,10 @@ return_to_protected_mode:
 	/* TODO: Disable interrupts once real mode IDT is in place */
 	
 	/* Long jump to a real mode code segment */
+	.byte	0x66
+	.code32
 	ljmp	$GDT_CODE, $(_protected_mode_segment)
 
-	.code32
 _protected_mode_segment:
 
 	/* Set the protected mode flag */
