@@ -1,16 +1,19 @@
-include ../defs.mk
+include ../../defs.mk
+
+CFLAGS += -I../../include -I../../ulib -I..
 
 SRC_FILES = $(DYN_SRC_FILES)
-# Omit bootstrap.b, it's special
-OBJ_FILES := startup.o 
+OBJ_FILES = $(DYN_OBJ_FILES)
 
-all: bootstrap.b boot.ar
+.PHONY: all
 
-boot.ar: $(OBJ_FILES)
+all: kmem.ar
+
+kmem.ar: $(OBJ_FILES)
 	$(AR) $@ $^
 
 clean:
-	$(RM) *.lst *.b *.o *.ar
+	$(RM) *.o *.lst *.ar
 
 .PHONY: depend
 depend: makedepends.mk

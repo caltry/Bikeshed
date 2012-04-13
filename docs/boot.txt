@@ -1,0 +1,41 @@
+Booting
+=======
+
+We want our bootloader to behave so that after startup, physical memory looks
+like the folowing stack:
+
++---------------+   0x0
+| bootstrap     |
++---------------+   0x4??
+| startup.S     |
++---------------+   0x1???
+| Buffer        |
++---------------+   1MB
+| Kernel        |
+|               |
++---------------+
+| Ramdisk       |
+|               |
++---------------+
+|               |
+| Free Memory   |
+|               |
++---------------+
+
+We don't want to implement a USB driver to load everything above the 1MB line
+in protected mode. So, we'll use the BIOS's routines to load from the USB
+drive, which involves swaping between real and protected mode several times to
+copy things over.
+
+Boot steps
+1. Stage 1: Loads the first 4?? bytes of the bootloader.
+    i) Set up 4m page tables
+2. State 1.5:
+    i) Copy some stuff from the USB drive up to the 1MB line
+   ii) Switch to protected mode and copy the buffer over
+  iii) Drop down to real mode and fetch the next segment for (i)
+   iv) Stop copying when we've copied over a the memory range, defined at
+       build time with a linker script.
+3. Stage 2:
+    i) Enable 4k paging
+   ii) Jump to _kinit()

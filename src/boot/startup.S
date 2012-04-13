@@ -26,6 +26,38 @@
 **	SP2_CONFIG		enable SP2-specific startup variations
 */
 
+/* 
+ ** Setup Virtual Memory
+ ** 
+ ** The boot_page_directory is for switching to our higher 
+ ** half kernel. We need an intermediate page directory because
+ ** the kernel will be linked at the 3GB line, and so all code
+ ** will reference 3GB line addresses. This page directory will
+ ** map the 3GB addresses back to the lower memory area so the
+ ** kernel code can still work.
+ **
+ ** To save on space we're using 4MB pages here so we don't need
+ ** to specify Page Tables. These 4MB pages will be replaced by
+ ** the standard 4KB pages later once the kernel enables virtual
+ ** memory for real.
+ */
+#define KERNEL_VIRTUAL_BASE 0xC0000000					/* Our kernel is loaded at the 3GB line */
+#define KERNEL_PAGE_NUMBER (KERNEL_VIRTUAL_BASE >> 22)	/* Page directory in 4MB mode */
+
+#define PAGE_PRESENT 0x1 
+#define PAGE_READ_WRITE 0x2
+#define PAGE_4MB 0x80
+
+.section .data
+.align 4096
+.globl boot_page_directory
+/* This page directory defines the 4MB page containing the kernel */
+boot_page_directory:	/* We use this to identity map the first 1MB */
+	.long 0x00000083		/* of memory and the kernel at the 3GB line */
+	.fill (KERNEL_PAGE_NUMBER - 1), 4, 0 /* Pages before kernel */
+	.long 0x00000083  /* This entry is the kernel in the higher-half */
+	.fill (1024 - KERNEL_PAGE_NUMBER - 1), 4, 0 /* Pages after the kernel */
+
 /*
 ** A symbol for locating the beginning of the code.
 */
@@ -39,13 +71,14 @@ begtext:
 */
 	.globl	_start
 
+#define VIDEO 0xB8000
 _start:
 	cli			/* seems to be reset on entry to p. mode */
 	movb	$0x00, %al	/* re-enable NMIs (bootstrap */
 	outb	$0x70		/*   turned them off) */
 
-/*
-** Set the data and stack segment registers (code segment register
+	/*
+	 ** Set the data and stack segment registers (code segment register
 ** was set by the long jump that switched us into protected mode).
 */
 	xorl	%eax, %eax	/* clear EAX */
@@ -60,6 +93,61 @@ _start:
 
 	movl	$TARGET_STACK, %ebp	/* set up the system frame pointer */
 	movl	%ebp, %esp	/* and stack pointer */
+
+	xorl %ecx, %ecx
+	mov $0xB8000, %ecx
+	movw $0x0F41, (%ecx)
+
+	/* Move the kernel to the 1MB line */
+	mov $(_end - KERNEL_VIRTUAL_BASE), %ecx
+	mov $(_end - KERNEL_VIRTUAL_BASE + 0x100000), %eax
+
+move_kernel_loop:
+	movb (%ecx), %bl
+	movb %bl, (%eax)
+	dec %eax
+	dec %ecx
+
+	cmp $(0x110000-1), %eax
+	jne move_kernel_loop /* A relative jump, doesn't need to be adjusted */
+
+	mov $0xB8000, %ecx
+	movw $0x0F42, (%ecx)
+
+	/* Jump to our moved code! */
+	mov $(test_value - KERNEL_VIRTUAL_BASE + 0x100000), %ecx
+	push %ecx
+	ret
+test_value:
+	mov $0xB8000, %ecx
+	movw $0x0F44, (%ecx)
+
+/* SETUP VIRTUAL MEMORY FOR THE HIGHER HALF kernel
+ * This section of assembly loads the boot_page_directory as 
+ * the current page directory and enables paging
+ */
+	mov $(boot_page_directory - KERNEL_VIRTUAL_BASE), %ecx
+	mov %ecx, %cr3	/* Load the Page Directory Base Register */
+
+	mov %cr4, %ecx	/* Set the PSE bit in CR4 to enabled 4MB Pages */
+	or $0x00000010, %ecx
+	mov %ecx, %cr4
+
+	mov %cr0, %ecx	/* Set PG bit in CR0 to enable paging  */
+	or $0x80000000, %ecx
+	mov %ecx, %cr0
+ 
+	/* Start fetching instructions after paging has been enabled */
+	lea (enable_paging - KERNEL_VIRTUAL_BASE + 0x100000), %ecx
+	jmp *%ecx
+enable_paging:
+/* Paging is now enabled */
+
+/* Now we need to move to our upper location */
+	mov $(move_to_higher), %ecx
+	push %ecx
+	ret
+move_to_higher:
 
 #ifdef CLEAR_BSS_SEGMENT
 
@@ -79,13 +167,16 @@ clearbss:
 
 #endif
 
+	movw $0x0F46, (%ecx)
+
+	
 #ifdef SP2_CONFIG
 
 /*
 ** Initialize devices
 */
+	mov $_init, %ecx
 	call	_init		// initialize the OS
-
 /*
 ** Restore the first user process context
 **
@@ -96,6 +187,7 @@ clearbss:
 	jmp	__isr_restore   // defined in isr_stubs.S
 
 #else
+
 
 /*
 ** Initialize various devices
