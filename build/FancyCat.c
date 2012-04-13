@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <errno.h>
 
-const char * const usage = "Usage: %s location file {[location] file ...}\n"
+const char * const usage = "Usage: %s location file {[location] file ...}\n";
 
 struct file_header
 {
@@ -18,7 +19,7 @@ int dump_file(FILE *src, FILE *dest)
 	while (!feof(src) && !ferror(src))
 	{
 		read = fread(&buffer, 1, sizeof(buffer), src);
-		if (fwrite(&buffer, read, 1, dest) != 1)
+		if (fwrite(&buffer, 1, read, dest) != read)
 		{
 			return 1;
 		}
@@ -73,7 +74,7 @@ int main(int argc, char *argv[])
 		long int file_size = ftell(fp);
 		if (file_size == -1L)
 		{
-			perror(errno);
+			perror("Couldn't figure out file size\n");
 			fclose(fp);
 			fclose(new_file);
 			return 6;
@@ -104,17 +105,29 @@ int main(int argc, char *argv[])
 			return 9;
 		}
 
+		if ((current_file+1) >= argc)
+		{
+			fclose(fp);
+			break; // We're done
+		}
+
 		// Grab the next parameter, can be a number or file
 		int new_location = 0;
-		if (sscanf(argv[current_file], "%x", &new_location) != 1)
+		if (sscanf(argv[current_file+1], "%x", &new_location) != 1)
 		{
+			printf("Failed to read location\n");
 			load_location += file_size;
 			++current_file;
 		} else {
+			printf("Read location\n");
 			load_location = new_location;
 			current_file += 2;
 		}
+
+		fclose(fp);
 	}
+
+	fclose(new_file);
 
 	return 0;
 }
