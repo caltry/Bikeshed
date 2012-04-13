@@ -25,6 +25,11 @@ int dump_file(FILE *src, FILE *dest)
 		}
 	}
 
+	if (ferror(src))
+	{
+		return 2;
+	}
+
 	return 0;
 }
 
@@ -115,11 +120,9 @@ int main(int argc, char *argv[])
 		int new_location = 0;
 		if (sscanf(argv[current_file+1], "%x", &new_location) != 1)
 		{
-			printf("Failed to read location\n");
 			load_location += file_size;
 			++current_file;
 		} else {
-			printf("Read location\n");
 			load_location = new_location;
 			current_file += 2;
 		}
