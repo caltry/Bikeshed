@@ -57,12 +57,16 @@ int main(int argc, char *argv[])
 		if (fp == NULL)
 		{
 			fprintf(stderr, "Error reading in file %s\n", argv[current_file]);
+			fclose(fp);
+			fclose(new_file);
 			return 4;
 		}
 
 		if (fseek(fp, 0, SEEK_END) != 0)
 		{
 			fprintf(stderr, "Failed to seek to the end of the file %s\n", argv[current_file]);
+			fclose(fp);
+			fclose(new_file);
 			return 5;
 		}
 
@@ -70,12 +74,16 @@ int main(int argc, char *argv[])
 		if (file_size == -1L)
 		{
 			perror(errno);
+			fclose(fp);
+			fclose(new_file);
 			return 6;
 		}
 
 		if (fseek(fp, 0, SEEK_SET) != 0)
 		{
 			fprintf(stderr, "Failed to seek to beginning\n");	
+			fclose(fp);
+			fclose(new_file);
 			return 7;
 		}
 
@@ -83,10 +91,29 @@ int main(int argc, char *argv[])
 		if (fwrite(&hdr, sizeof(hdr), 1, new_file) != 1)
 		{
 			fprintf(stderr, "Failed to write to destination file\n");
+			fclose(fp);
+			fclose(new_file);
 			return 8;
 		}
 
-			
+		if (dump_file(fp, new_file)	!= 0)
+		{
+			fprintf(stderr, "Failed to copy file %s\n", argv[current_file]);
+			fclose(fp);
+			fclose(new_file);
+			return 9;
+		}
+
+		// Grab the next parameter, can be a number or file
+		int new_location = 0;
+		if (sscanf(argv[current_file], "%x", &new_location) != 1)
+		{
+			load_location += file_size;
+			++current_file;
+		} else {
+			load_location = new_location;
+			current_file += 2;
+		}
 	}
 
 	return 0;
