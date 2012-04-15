@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <errno.h>
 
+#define SECTOR_SIZE 512
+
 const char * const usage = "Usage: %s location file {[location] file ...}\n";
 
 struct file_header
@@ -14,7 +16,7 @@ struct file_header
 int dump_file(FILE *src, FILE *dest)
 {
 	char buffer[4096];
-	int read = 0;
+	size_t read = 0;
 
 	while (!feof(src) && !ferror(src))
 	{
@@ -41,7 +43,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	int load_location = 0;
+	unsigned int load_location = 0;
 	if (sscanf(argv[1], "%x", &load_location) != 1)
 	{
 		fprintf(stderr, "Invalid initial location\n");
@@ -110,6 +112,21 @@ int main(int argc, char *argv[])
 			return 9;
 		}
 
+		/* Pad to the next 512 byte location */
+		if ((file_size % SECTOR_SIZE) != 0)
+		{
+			long int pad_amount = SECTOR_SIZE - (file_size % SECTOR_SIZE);
+
+			const char padding[SECTOR_SIZE] = { 0 };
+			if (fwrite(&padding, pad_amount, 1, new_file) != 1)
+			{
+				fprintf(stderr, "Failed to pad output file\n");
+				fclose(fp);
+				fclose(new_file);
+				return 10;
+			}
+		}
+
 		if ((current_file+1) >= argc)
 		{
 			fclose(fp);
@@ -117,7 +134,7 @@ int main(int argc, char *argv[])
 		}
 
 		// Grab the next parameter, can be a number or file
-		int new_location = 0;
+		unsigned int new_location = 0;
 		if (sscanf(argv[current_file+1], "%x", &new_location) != 1)
 		{
 			load_location += file_size;
