@@ -394,10 +394,6 @@ boot_sig:
 ** This code configures the GDT, enters protected mode, and then
 ** transfers to the OS entry point.
 */
-/* Load location = 0x8000 */
-/* local size = 0x80004 */
-load_location: .quad 0x0
-load_size: .quad 0x0
 
 switch:
 	/* Move the kernel */
@@ -406,23 +402,12 @@ switch:
 	buffer_off = 0
 	sector_size = 512
 
-	/*	ax: number of sectors to read 
-		es:bx = starting address for the block
-		movw	$1,%ax		; sector count = 1 
-		movw	$START_SEGMENT,%bx ; read this into memory that 
-		movw	%bx,%es		; immediately follows this code. 
-		movw	$START_OFFSET,%bx
-		call	readprog
-	*/
-	/*
 	movw $104, %ax
 	movw $buffer_seg, %bx
 	movw %bx, %es
 	movw $buffer_off, %bx
 	call readprog
-	*/
 
-	/* REST OF NORMAL CODE */
 	cli
 	movb	$0x80, %al	/* disable NMIs */
 	outb	%al, $0x70
@@ -437,53 +422,13 @@ switch:
 ** use the full offsets from the beginning of the segment (0000:0000);
 ** however, we were loaded at 0000:7c00, so we need to add that in.
 */
-
 	lidt	idt_48 + BOOT_ADDRESS
 	lgdt	gdt_48 + BOOT_ADDRESS
 
-	movl	%cr0, %eax
-	orl	$1, %eax
-	movl	%eax, %cr0
-
-	/* Memcopy the kernel to the right spot! */
-	.byte 0x66
-	.code32
-	ljmp $0x0, $p_mode_mem_copy+0x7c00
-p_mode_mem_copy:
-half:
-	hlt
-	jmp half
-
-	.code16
+	movl	%cr0, %eax	/* get current CR0 */
+	orl	$1, %eax	/* set the PE bit */
+	movl	%eax, %cr0	/* and store it back. */
 	
-	movl $0x10008, %edx /* Source pointer */
-	movl 0x10000, %eax /* Load address/Destination pointer */
-	movl 0x10004, %ecx /* Kernel size */
-copy_kern:
-	movb (%edx), %bl
-	movb %bl, (%eax)
-	dec %ecx
-	inc %eax
-	inc %edx
-	testl %ecx, %ecx
-	jnz copy_kern
-
-
-	/* Change to protected mode GDT */
-	xorl	%eax, %eax	/* clear EAX */
-	movw	$GDT_DATA, %ax	/* GDT entry #3 - data segment */
-	movw	%ax, %ds	/* for all four data segment registers */
-	movw	%ax, %es
-	movw	%ax, %fs
-	movw	%ax, %gs
-
-	movw	$GDT_STACK, %ax	/* entry #4 is the stack segment */
-	movw	%ax, %ss
-
-	movl	$TARGET_STACK, %ebp	/* set up the system frame pointer */
-	movl	%ebp, %esp	/* and stack pointer */
-
-
 	/*
 	** We'll be in protected mode at the start of the user's code
 	** right after this jump executes.
@@ -501,10 +446,52 @@ copy_kern:
 	**	.word	GDT_CODE
 	*/
 
-;	.byte	0x66	/* 32-bit mode prefix */
-;	.code32
-;	ljmp	$GDT_CODE, $TARGET_ADDRESS
-;	.code16
+	.byte	0x66	/* 32-bit mode prefix */
+	.code32
+	ljmp $GDT_CODE, $goto_protected+BOOT_ADDRESS
+goto_protected:
+	cli			/* seems to be reset on entry to p. mode */
+	movb	$0x00, %al	/* re-enable NMIs (bootstrap */
+	outb	$0x70		/*   turned them off) */
+
+	xorl	%eax, %eax	/* clear EAX */
+	movw	$GDT_DATA, %ax	/* GDT entry #3 - data segment */
+	movw	%ax, %ds	/* for all four data segment registers */
+	movw	%ax, %es
+	movw	%ax, %fs
+	movw	%ax, %gs
+
+	movw	$GDT_STACK, %ax	/* entry #4 is the stack segment */
+	movw	%ax, %ss
+
+	movl	$TARGET_STACK, %ebp	/* set up the system frame pointer */
+	movl	%ebp, %esp	/* and stack pointer */
+
+	xorl %ecx, %ecx
+	mov $0xB8000, %ecx
+	movw $0x0F41, (%ecx)
+
+	movl $0x10008, %edx /* Source pointer */
+	movl 0x10000, %eax /* Load address/Destination pointer */
+	movl 0x10004, %ecx /* Kernel size */
+copy_kern:
+	movb (%edx), %bl
+	movb %bl, (%eax)
+	dec %ecx
+	inc %eax
+	inc %edx
+	testl %ecx, %ecx
+	jnz copy_kern
+
+	movl $0x100000, %eax
+	push %eax
+	ret
+
+lable:
+	hlt
+	jmp lable
+	ljmp	$GDT_CODE, $TARGET_ADDRESS
+	.code16
 
 /*
 ** Supporting code.
@@ -634,5 +621,3 @@ gdt_len = end_gdt - start_gdt
 	.org	1024-2
 firstcount:
 	.word	0	/* n_sectors for 1st module will go here */
-
-end_of_file:
