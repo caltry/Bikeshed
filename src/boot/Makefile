@@ -10,7 +10,7 @@ boot.ar: $(OBJ_FILES)
 	$(AR) $@ $^
 
 clean:
-	$(RM) *.lst *.b *.o *.ar
+	$(RM) *.lst *.b *.o *.ar *.s
 
 .PHONY: depend
 depend: makedepends.mk
