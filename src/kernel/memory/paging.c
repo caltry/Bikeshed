@@ -63,8 +63,8 @@ void __virt_initialize_paging()
 
 	/* We don't want to overwrite our 1MB identity mapping
 	 */
-	i = 0;//page_table_start;
-	address = 0x0;//KERNEL_LOAD_ADDR;
+	i = page_table_start;
+	address = KERNEL_LOAD_ADDR;
 	if (page_dir_index != 0)
 	{
 		serial_string("Kernel is not in the lowest 4MB\n");
