@@ -27,6 +27,7 @@
 #include "memory/physical.h"
 #include "memory/paging.h"
 #include "memory/kmalloc.h"
+#include "serial.h"
 
 // need init() address
 #include "users.h"

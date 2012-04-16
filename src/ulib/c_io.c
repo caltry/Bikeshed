@@ -250,8 +250,8 @@ void c_clearscreen( void ){
 void c_scroll( unsigned int lines ){
 	unsigned short *from;
 	unsigned short *to;
-	int	nchars = scroll_max_x - scroll_min_x + 1;
-	int	line, c;
+	unsigned int	nchars = scroll_max_x - scroll_min_x + 1;
+	unsigned int	line, c;
 
 	/*
 	** If # of lines is the whole scrolling region or more, just clear.
@@ -620,10 +620,13 @@ static void __c_input_scan_code( int code ){
 	}
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 static void __c_keyboard_isr( int vector, int code ){
 	__c_input_scan_code( __inb( KEYBOARD_DATA ) );
 	__outb( PIC_MASTER_CMD_PORT, PIC_EOI );
 }
+#pragma GCC diagnostic pop
 
 int c_getchar( void ){
 	char	c;
