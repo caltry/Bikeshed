@@ -36,6 +36,7 @@ START_SEGMENT	= 0x0000	/* where we'll put the startup code */
 START_OFFSET	= 0x00007E00
 SECTOR_SIZE	= 0x200		/* typical sector size for floppy & HD */
 OFFSET_LIMIT	= 65536 - SECTOR_SIZE
+MAX_VALID_RAM 	= 0x9FC00
 
 /*
 ** Symbol for locating the beginning of the code.
@@ -394,20 +395,40 @@ boot_sig:
 ** This code configures the GDT, enters protected mode, and then
 ** transfers to the OS entry point.
 */
+kernel_location: .quad 0x0
+load_location: .quad 0x0
+load_size: .quad 0x0
 
 switch:
 	/* Move the kernel */
-	buffer_size = (0x100000 - 0x8000)
-	buffer_seg = 0x1000
-	buffer_off = 0
-	sector_size = 512
+	BUFFER_START = 0x10000
+	BUFFER_SIZE = (MAX_VALID_RAM - BUFFER_START)
+	BUFFER_SEG = 0x1000
+	BUFFER_OFF = 0
+	BUFFER_SECTORS = BUFFER_SIZE / SECTOR_SIZE - 1 /* Because we can read at least one */
+	BUFFER_START_PROTECTED_MODE = 0x10008
 
-	movw $104, %ax
-	movw $buffer_seg, %bx
+	/* Read the first block, so we can grab the location and size */
+	movw $1, %ax
+	movw $BUFFER_SEG, %bx
 	movw %bx, %es
-	movw $buffer_off, %bx
+	movw $BUFFER_OFF, %bx
 	call readprog
 
+	/* Figure out how many more blocks to read, and whether
+	 * or not we can fit this in one go
+	 */
+	movl %es:(0), %eax /* Save the current destination */
+	movl %eax, load_location
+	movl %es:(4), %eax /* Get the current block size */
+	movl %eax, load_size
+	add $8, %eax /* Adjust for the extra info at the beginning */
+	shr $9, %eax /* Change the size to # of sectors (divide size by 512) */
+	dec %eax /* We already loaded one sector */
+	/* TODO Check if the sector count is too large */
+	call readprog
+
+	/* Okay we're good, copy the block to the right address */
 	cli
 	movb	$0x80, %al	/* disable NMIs */
 	outb	%al, $0x70
@@ -454,6 +475,7 @@ goto_protected:
 	movb	$0x00, %al	/* re-enable NMIs (bootstrap */
 	outb	$0x70		/*   turned them off) */
 
+	/* SETUP PROTECTED MODE GDT */
 	xorl	%eax, %eax	/* clear EAX */
 	movw	$GDT_DATA, %ax	/* GDT entry #3 - data segment */
 	movw	%ax, %ds	/* for all four data segment registers */
@@ -466,14 +488,16 @@ goto_protected:
 
 	movl	$TARGET_STACK, %ebp	/* set up the system frame pointer */
 	movl	%ebp, %esp	/* and stack pointer */
+	/* END PROTECTED MODE GDT SETUP */
 
 	xorl %ecx, %ecx
 	mov $0xB8000, %ecx
 	movw $0x0F41, (%ecx)
 
-	movl $0x10008, %edx /* Source pointer */
-	movl 0x10000, %eax /* Load address/Destination pointer */
-	movl 0x10004, %ecx /* Kernel size */
+	movl $BUFFER_START_PROTECTED_MODE, %edx /* Source pointer */
+	movl load_location+BOOT_ADDRESS, %eax /* Load address/Destination pointer */
+	movl load_size+BOOT_ADDRESS, %ecx /* Kernel size */
+
 copy_kern:
 	movb (%edx), %bl
 	movb %bl, (%eax)
@@ -483,9 +507,9 @@ copy_kern:
 	testl %ecx, %ecx
 	jnz copy_kern
 
-	movl $0x100000, %eax
+	movl load_location+BOOT_ADDRESS, %eax /* First item is always assumed to be the kernel */
 	push %eax
-	ret
+	ret /* Jump to the kernel code */
 
 lable:
 	hlt
