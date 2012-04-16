@@ -14,7 +14,7 @@ void _kmemset(void *ptr, unsigned char value, uint32 num)
 	while (num > 0)
 	{
 		*p = value;
-		++ptr;
+		++p;
 		--num;
 	}
 }
