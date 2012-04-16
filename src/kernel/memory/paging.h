@@ -64,7 +64,7 @@ extern page_directory_t boot_page_directory;
  *  768   |    R/W S P    | -> [16-K_END] == 0x100000 - KERNEL_SIZE R/W S, [KERNEL_SIZE-1023] == 0
  *        +---------------+
  * 769-   |  Not Mapped   |
- * 1023	  |               |
+ * 1023   |               |
  *        +---------------+
  */
 void __virt_initialize_paging(void);
