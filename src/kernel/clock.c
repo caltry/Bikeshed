@@ -97,6 +97,8 @@ void _clock_init( void ) {
 ** clock ISR
 */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 void _isr_clock( int vector, int code ) {
 	Pcb *pcb;
 	Key key;
@@ -182,3 +184,4 @@ void _isr_clock( int vector, int code ) {
 	__outb( PIC_MASTER_CMD_PORT, PIC_EOI );
 
 }
+#pragma GCC diagnostic pop // -Wunused-parameter

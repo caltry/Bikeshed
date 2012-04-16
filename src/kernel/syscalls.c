@@ -618,8 +618,12 @@ void _syscall_init( void ) {
 ** The second-level routine is invoked with a pointer to
 ** the PCB for the process.  It is the responsibility of
 ** that routine to assign all return values for the call.
+**
+** WRT pragma: We ignore the vector and code for now; don't warn us about it.
 */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 void _isr_syscall( int vector, int code ) {
 	Uint num;
 
@@ -656,3 +660,4 @@ void _isr_syscall( int vector, int code ) {
 	__outb( PIC_MASTER_CMD_PORT, PIC_EOI );
 
 }
+#pragma GCC diagnostic pop
