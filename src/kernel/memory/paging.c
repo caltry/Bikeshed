@@ -192,15 +192,17 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, uint32 flags)
 	// Here check if the PD entry is present
 	// When it's not present, create a new empty PT and adjust the PDE accordingly
 	serial_printf("Page dir value: %x\n", pd[page_dir_index]);
+	uint32 *pt = ((uint32 *)0xFFC00000) + (0x400 * page_dir_index); 
 	if ((pd[page_dir_index] & PRESENT) == 0)
 	{
 		serial_string("Page directory entry not present!\n");		
 		pd[page_dir_index] = (Uint32)__phys_get_free_4k();
-		_kmemset(&pd[page_dir_index], 0, 4096);
 		pd[page_dir_index] |= READ_WRITE | PRESENT;
+		serial_printf("Page dir value 2: %x\n", pd[page_dir_index]);
+		serial_printf("Page dir addr  3: %x\n", &pd[page_dir_index]);
+		_kmemset(pt, 0, sizeof(page_table_t));
 	}
 	
-	uint32 *pt = ((uint32 *)0xFFC00000) + (0x400 * page_dir_index); 
 	serial_string("Mapping page 2/4\n");
 	// Here need to check whether the PT entry is present
 	// When it is, then there is already a mapping present, what do you do?
