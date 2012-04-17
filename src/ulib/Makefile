@@ -14,7 +14,7 @@ ulib.ar: $(OBJ_FILES)
 	$(AR) $@ $^
 
 clean:
-	$(RM) *.o *.lst *.ar
+	$(RM) *.o *.lst *.ar *.s
 
 .PHONY: depend
 depend: makedepends.mk
