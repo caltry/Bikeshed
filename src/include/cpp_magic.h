@@ -8,7 +8,7 @@
 /*
  * Compile time error checking, from the Linux kernel.
  */
-#define COMPILE_ERROR_ON( condition ) ((void)sizeof(char[1 - 2*!!(condition)]))
+#define COMPILE_ERROR_IF( condition ) ((void)sizeof(char[1 - 2*!!(condition)]))
 
 /*
  * Hint to the optimizer that we're likely to take this branch.
