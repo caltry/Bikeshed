@@ -5,9 +5,25 @@
 
 #include "../lib/klib.h"
 
+struct Page 
+{
+	Uint32 value;
+};
+
+struct PageTable
+{
+	page_t pages[1024];
+};
+
+union PageDirectory
+{
+	page_table_t *tables[1024];
+	Uint32 ptables[1024];
+};
+
 typedef long unsigned int ul;
 
-void _kmemset(void *ptr, unsigned char value, uint32 num)
+void _kmemset(void *ptr, unsigned char value, Uint32 num)
 {
 	unsigned char *p = (unsigned char *)ptr;
 	while (num > 0)
@@ -37,8 +53,8 @@ void __virt_initialize_paging()
 	_kmemset(kernel_table, 0, sizeof(page_table_t));
 	
 	// Identity map the lower 1MB of pages
-	uint32 i = 0;
-	uint32 address = 0;
+	Uint32 i = 0;
+	Uint32 address = 0;
 	for (; i < 256; ++i)
 	{
 		first_table->pages[i].value = address | 3;
@@ -47,12 +63,12 @@ void __virt_initialize_paging()
 
 	// Map the kernel
 	//address = KERNEL_LOAD_ADDR;
-	uint32 pages = KERNEL_SIZE / 4096;
-	uint32 page_dir_index = KERNEL_LINK_ADDR / (4096 * 1024);
-	uint32 page_dir_end_index = (KERNEL_LINK_ADDR + KERNEL_SIZE) / (4096 * 1024);
+	Uint32 pages = KERNEL_SIZE / 4096;
+	Uint32 page_dir_index = KERNEL_LINK_ADDR / (4096 * 1024);
+	Uint32 page_dir_end_index = (KERNEL_LINK_ADDR + KERNEL_SIZE) / (4096 * 1024);
 
-	uint32 page_table_start = (KERNEL_LINK_ADDR >> 12) % 4096;
-	uint32 page_table_end = ((KERNEL_LINK_ADDR + KERNEL_SIZE) >> 12) % 4096;
+	Uint32 page_table_start = (KERNEL_LINK_ADDR >> 12) % 4096;
+	Uint32 page_table_end = ((KERNEL_LINK_ADDR + KERNEL_SIZE) >> 12) % 4096;
 
 	serial_printf("Kernel pages: %d\n", (ul)pages);
 	serial_printf("Kernel page_dir_index: %d\n", (ul)page_dir_index);
@@ -74,7 +90,7 @@ void __virt_initialize_paging()
 			address += 4096;
 		}
 
-		__virt_kpage_directory->ptables[page_dir_index] = (uint32)kernel_table | 3;
+		__virt_kpage_directory->ptables[page_dir_index] = (Uint32)kernel_table | 3;
 	} else {
 		serial_string("Kernel is in the lowest 4MB\n");
 		for (; i < page_table_end; ++i)
@@ -93,10 +109,10 @@ void __virt_initialize_paging()
 
 	serial_string("Setting up page mappings\n");
 	// Add the < 1MB identity mapping
-	__virt_kpage_directory->ptables[0] = (uint32)first_table | 3;
+	__virt_kpage_directory->ptables[0] = (Uint32)first_table | 3;
 
 	// Map the page directory back to itself for easy modification
-	__virt_kpage_directory->ptables[1023] = (uint32)__virt_kpage_directory | 3;
+	__virt_kpage_directory->ptables[1023] = (Uint32)__virt_kpage_directory | 3;
 
 	// Set the last entry to ourself so we can do fancy reading of the page
 	// directory from inside of virtual memory space
@@ -104,17 +120,17 @@ void __virt_initialize_paging()
 
 	serial_string("4KB page tables enabled\n");
 
-	//uint32* data = (uint32 *)__phys_get_free_4k();
+	//Uint32* data = (uint32 *)__phys_get_free_4k();
 	//_kmemset(data, 0, 4096);
 	c_puts("Paging Enabled\n");
 }
 
 void* __virt_get_phys_addr(void *virtual_addr)
 {
-	uint32 page_dir_index = (uint32)virtual_addr >> 22;
-	uint32 page_tbl_index = (uint32)virtual_addr >> 12 & 0x03FF;
+	Uint32 page_dir_index = (uint32)virtual_addr >> 22;
+	Uint32 page_tbl_index = (uint32)virtual_addr >> 12 & 0x03FF;
 
-	uint32 *pd = (uint32 *)0xFFFFF000;
+	Uint32 *pd = (uint32 *)0xFFFFF000;
 
 	// TODO Check whether or not the page directory is present
 	if ((pd[page_dir_index] & PRESENT) > 0)
@@ -123,18 +139,18 @@ void* __virt_get_phys_addr(void *virtual_addr)
 	}
 	
 
-	uint32 *pt = ((uint32*)0xFFC00000) + (0x400 * page_dir_index);
+	Uint32 *pt = ((uint32*)0xFFC00000) + (0x400 * page_dir_index);
 	// TODO Here check whether the PT is present
 	
-	return (void *)((pt[page_tbl_index] & ~0xFFF) + ((uint32)virtual_addr & 0xFFF));
+	return (void *)((pt[page_tbl_index] & ~0xFFF) + ((Uint32)virtual_addr & 0xFFF));
 }
 
 void __virt_unmap_page(void *virtual_addr)
 {
-	uint32 page_dir_index = (uint32)virtual_addr >> 22;
-	uint32 page_tbl_index = (uint32)virtual_addr >> 12 & 0x03FF;
+	Uint32 page_dir_index = (uint32)virtual_addr >> 22;
+	Uint32 page_tbl_index = (uint32)virtual_addr >> 12 & 0x03FF;
 
-	uint32 *pd = (uint32 *)0xFFFFF000;
+	Uint32 *pd = (uint32 *)0xFFFFF000;
 	
 	// Here check if the PD entry is present
 	// When it's not present, we're done
@@ -143,7 +159,7 @@ void __virt_unmap_page(void *virtual_addr)
 		return;
 	}
 
-	uint32 *pt = ((uint32 *)0xFFC00000) + (0x400 * page_dir_index);
+	Uint32 *pt = ((uint32 *)0xFFC00000) + (0x400 * page_dir_index);
 	// Here need to check whether the PT entry is present
 	// When it is, then we need to unmap it
 	if ((pt[page_tbl_index] & PRESENT) > 0)
@@ -177,14 +193,14 @@ void __virt_unmap_page(void *virtual_addr)
 	asm volatile("invlpg %0"::"m" (*(char *)virtual_addr));	
 }
 
-void __virt_map_page(void *physical_addr, void *virtual_addr, uint32 flags)
+void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
 {
 	// Make sure both addresses are page aligned
 	
-	uint32 page_dir_index = (uint32)virtual_addr >> 22;
-	uint32 page_tbl_index = (uint32)virtual_addr >> 12 & 0x03FF;
+	Uint32 page_dir_index = (uint32)virtual_addr >> 22;
+	Uint32 page_tbl_index = (uint32)virtual_addr >> 12 & 0x03FF;
 
-	uint32 *pd = (uint32 *)0xFFFFF000;
+	Uint32 *pd = (uint32 *)0xFFFFF000;
 
 	serial_string("Mapping page 1/4\n");
 	serial_printf("Phys: %x\n", (Uint32)physical_addr);
@@ -195,14 +211,14 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, uint32 flags)
 	// Here check if the PD entry is present
 	// When it's not present, create a new empty PT and adjust the PDE accordingly
 	serial_printf("Page dir value: %x\n", pd[page_dir_index]);
-	uint32 *pt = ((uint32 *)0xFFC00000) + (0x400 * page_dir_index); 
+	Uint32 *pt = ((uint32 *)0xFFC00000) + (0x400 * page_dir_index); 
 	if ((pd[page_dir_index] & PRESENT) == 0)
 	{
 		serial_string("Page directory entry not present!\n");		
 		pd[page_dir_index] = (Uint32)__phys_get_free_4k();
 		pd[page_dir_index] |= READ_WRITE | PRESENT;
-		serial_printf("Page dir value 2: %x\n", (uint32)pd[page_dir_index]);
-		serial_printf("Page dir addr  3: %x\n", (uint32)&pd[page_dir_index]);
+		serial_printf("Page dir value 2: %x\n", (Uint32)pd[page_dir_index]);
+		serial_printf("Page dir addr  3: %x\n", (Uint32)&pd[page_dir_index]);
 		_kmemset(pt, 0, sizeof(page_table_t));
 	}
 	
@@ -216,7 +232,7 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, uint32 flags)
 	}
 	
 	serial_string("Mapping page 3/4\n");
-	pt[page_tbl_index] = ((uint32)physical_addr) | (flags & 0xFFF) | PRESENT; // Present
+	pt[page_tbl_index] = ((Uint32)physical_addr) | (flags & 0xFFF) | PRESENT; // Present
 
 	serial_string("Mapping page 4/4\n");
 	// Now you need to flush the entry in the TBL

@@ -5,13 +5,13 @@
 /*
 typedef struct Page
 {
-	uint32 present 		: 1;
-	uint32 read_write 	: 1;
-	uint32 user 		: 1;
-	uint32 accessed 	: 1;
-	uint32 dirty 		: 1;
-	uint32 unused 		: 7;
-	uint32 frame 		: 20;
+	Uint32 present 		: 1;
+	Uint32 read_write 	: 1;
+	Uint32 user 		: 1;
+	Uint32 accessed 	: 1;
+	Uint32 dirty 		: 1;
+	Uint32 unused 		: 7;
+	Uint32 frame 		: 20;
 } page_t;
 */
 #define PRESENT 	0x1
@@ -20,23 +20,16 @@ typedef struct Page
 #define WRITE_THRU	0x8
 #define CACHE_DISABLE 0x10
 
-typedef struct Page 
-{
-	uint32 value;
-} page_t;
+struct Page;
+typedef struct Page page_t;
 
-typedef struct PageTable
-{
-	page_t pages[1024];
-} page_table_t;
+struct PageTable;
+typedef struct PageTable page_table_t;
 
-typedef union PageDirectory
-{
-	page_table_t *tables[1024];
-	uint32 ptables[1024];
-} page_directory_t;
+union PageDirectory;
+typedef union PageDirectory page_directory_t;
 
-page_directory_t *__virt_kpage_directory;
+extern page_directory_t *__virt_kpage_directory;
 extern page_directory_t boot_page_directory;
 
 /* Initializes paging for our operating system. It identity maps the
@@ -82,7 +75,7 @@ void __virt_switch_page_directory(page_directory_t *page_directory);
 void* __virt_get_phys_addr(void *virtual_addr);
 
 // Taken from OS Dev wiki
-void __virt_map_page(void *physical_addr, void *virtual_addr, uint32 flags);
+void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags);
 
 /* Do the reverse of __virt_map_page(). If there is an entry present
  * it will set it to not present and if all the page table entries are

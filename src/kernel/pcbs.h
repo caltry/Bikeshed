@@ -117,7 +117,7 @@ typedef struct pcb {
 	Context		*context;	// process context
 	Stack		*stack;		// this process' stack
 	Time		wakeup;		// wakeup time for sleeping process
-	page_directory_t *page_directory; // Page directory for current process
+	union PageDirectory *page_directory; // Page directory for current process
 	// two-byte fields
 	Pid		pid;		// our processid
 	Pid		ppid;		// who created us
