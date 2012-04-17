@@ -29,14 +29,6 @@
 ** PRIVATE GLOBAL VARIABLES
 */
 
-// User stacks
-
-static Stack _stacks[ N_STACKS ];
-
-// Available Stack queue
-
-static Queue *_stack_free_queue;
-
 /*
 ** PUBLIC GLOBAL VARIABLES
 */
@@ -61,13 +53,7 @@ Uint32 *_system_esp;	// OS stack pointer
 */
 
 Stack *_stack_alloc( void ) {
-	Stack *stack;
-
-	if( _q_remove( _stack_free_queue, (void **) &stack ) != SUCCESS ) {
-		stack = NULL;
-	}
-
-	return( stack );
+	return (Stack *)__kmalloc(sizeof(Stack));
 }
 
 /*
@@ -79,16 +65,14 @@ Stack *_stack_alloc( void ) {
 */
 
 Status _stack_dealloc( Stack *stack ) {
-	Key key;
-
 	// Is it OK to deallocate a NULL stack?
 	if( stack == NULL ) {
 		return( BAD_PARAM );
 	}
 
-	key.i = 0;
-	return( _q_insert( _stack_free_queue, (void *)stack, key ) );
+	__kfree(stack);
 
+	return SUCCESS;
 }
 
 /*
@@ -98,26 +82,6 @@ Status _stack_dealloc( Stack *stack ) {
 */
 
 void _stack_init( void ) {
-	int i;
-	Status status;
-
-	// init stacks
-
-	status = _q_alloc( &_stack_free_queue, NULL );
-	if( status != SUCCESS ) {
-		_kpanic( "_stack_init",
-			 "Stack queue alloc status %s",
-			 	 status );
-	}
-
-	for( i = 0; i < N_STACKS; ++i ) {
-		status = _stack_dealloc( &_stacks[i] );
-		if( status != SUCCESS ) {
-			_kpanic( "_stack_init",
-				 "Stack free queue insert status %s",
-				  status );
-		}
-	}
 
 	// report that we have finished
 
