@@ -203,18 +203,6 @@ void _init( void ) {
 
 	__init_interrupts();	// IDT and PIC initialization
 
-	/* Setup virtual memory
-	 */
-	c_printf("System end: %x\n", (Uint32)&KERNEL_END);
-	c_printf("Memory 1M-16M: %x\n", *((Uint16*)MMAP_EXT_LO));
-	c_printf("Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_EXT_HI));
-	c_printf("CFG Memory 1M-16M: %x\n", *((Uint16*)MMAP_CFG_LO));
-	c_printf("CFG Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_CFG_HI));
-	__phys_initialize_bitmap();
-	__virt_initialize_paging();
-
-	__kmem_init_kmalloc();
-
 	/*
 	** Console I/O system.
 	*/
@@ -235,7 +223,6 @@ void _init( void ) {
 
 	_q_init();		// must be first
 	_pcb_init();
-	_stack_init();
 	_sio_init();
 	_syscall_init();
 	_sched_init();
@@ -251,6 +238,20 @@ void _init( void ) {
 	*/
 
 	_system_esp = ((Uint32 *) ( (&_system_stack) + 1)) - 2;
+
+	/* Setup virtual memory
+	 */
+	c_printf("System end: %x\n", (Uint32)&KERNEL_END);
+	c_printf("Memory 1M-16M: %x\n", *((Uint16*)MMAP_EXT_LO));
+	c_printf("Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_EXT_HI));
+	c_printf("CFG Memory 1M-16M: %x\n", *((Uint16*)MMAP_CFG_LO));
+	c_printf("CFG Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_CFG_HI));
+	__phys_initialize_bitmap();
+	__virt_initialize_paging();
+
+	__kmem_init_kmalloc();
+
+	_stack_init();
 
 	/*
 	** Install the ISRs
