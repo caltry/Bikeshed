@@ -1,10 +1,11 @@
 #include "kmalloc.h"
 #include "../serial.h"
-#include "paging.h"
-#include "physical.h"
 
 #include "../../ulib/c_io.h"
 #include "../lib/klib.h"
+
+#include "paging.h"
+#include "physical.h"
 
 typedef struct LinkedNode
 {
