@@ -15,13 +15,23 @@
 #define _EXT2_H
 
 #include "types.h"
+#include "cpp_magic.h"
 
 // Magic number for ext2 filesystems
 #define EXT2_SUPER_MAGIC 0xEF53
 
+#define EXT2_INODE_DIRECT_BLOCKS	12
+#define EXT2_INODE_INDIRECT_BLOCKS	1
+#define EXT2_INODE_DOUBLE_INDIRECT_BLOCKS	1
+#define EXT2_INODE_TRIPLE_INDIRECT_BLOCKS	1
+#define EXT2_INODE_TOTAL_BLOCKS (EXT2_INODE_DIRECT_BLOCKS \
+				+ EXT2_INODE_INDIRECT_BLOCKS \
+				+ EXT2_INODE_DOUBLE_INDIRECT_BLOCKS \
+				+ EXT2_INODE_TRIPLE_INDIRECT_BLOCKS)
+
 typedef Uint32 BlockNumber;
 
-struct ext2_superblock{
+struct ext2_superblock {
 	// Total number of inodes in the FS.
 	Uint32 inodes_count;
 
@@ -193,7 +203,7 @@ struct ext2_superblock{
 
 struct ext2_group_descriptor {
 	// Block number of the block allocation bitmap for this block group
-	BlockNumber blocks_bitmap;
+	BlockNumber block_bitmap;
 
 	// Block where the inode allocation bitmap for this block group is.
 	BlockNumber inode_bitmap;
@@ -202,24 +212,155 @@ struct ext2_group_descriptor {
 	// block group
 	BlockNumber inode_table_start;
 
-	unsigned int free_blocks_count;
-	unsigned int free_inodes_count;
-	unsigned int used_directory_count;
+	// Number of free blocks in this block group
+	Uint16 free_blocks_count;
+
+	// Number of free indoes in this block group
+	Uint16 free_inodes_count;
+
+	// Number of inodes allocated to directories in this block group
+	Uint16 used_directory_count;
+
+	// Padding to put this structure on a 32bit boundary.
+	Uint16 padding;
+
+	// 12 bytes of space reserved for future revisions.
+	Uint8 reserved[12];
 };
+
+typedef enum {
+	/*
+	 * File type
+	 */
+	socket	= 0xC000,	// This is a socket
+	symlink	= 0xA000,
+	regular	= 0x8000,
+	block	= 0x6000,
+	directory	= 0x4000,
+	character	= 0x2000,	// Character device
+	fifo	= 0x1000,	// Named pipe
+
+	/*
+	 * Special permission override bits
+	 */
+	suid	= 0x0800,
+	sgid	= 0x0400,
+	sticky	= 0x0200,
+
+	/*
+	 * Access rights
+	 */
+	user_read	= 0x0100,
+	user_write	= 0x0080,
+	user_exec	= 0x0040,
+	group_read	= 0x0020,
+	group_write	= 0x0010,
+	group_exec	= 0x0008,
+	other_read	= 0x0004,
+	other_write	= 0x0002,
+	other_exec	= 0x0001
+} FileModeBitmasks;
+
+typedef enum {
+	secure_deletion	= 0x1,
+	undelete	= 0x2,	// Record for undelete
+	compressed	= 0x4,	// File is compressed
+	sync_updates	= 0x8,	// Sync writes to disk immediately
+	blocks_immutable= 0x10,	// Blocks for this file will not change
+	append_only	= 0x20, // Writing can only append to the file
+	do_not_delete	= 0x40, // Never delete this file
+	no_atime	= 0x80,	// Never update the atime for this file
+	// Reserved for compression
+	dirty		= 0x100,
+	compressed_blks	= 0x200, // One or more blocks are compressed
+	no_uncompress	= 0x400, // Do not uncompress compressed data
+	compression_err	= 0x800, // An error was detected during decompression
+	// End of compression flags
+	b_tree_dir	= 0x1000, // Directory formatted as a b-tree
+	index		= 0x1000, // hash-indexed directory
+	imagic_fl	= 0x2000, // AFS directory
+	journal_data	= 0x4000, // Journal file data
+	reserved	= 0x80000000
+} inode_flags;
 
 struct ext2_inode {
-	// Owner
-	// Size
-	// Mode
-	// Timestamps
-	// Direct blocks
-	// Indirect blocks
-	// Double indirect
-	// Treble indirect block
-};
+	// File mode bitmasks
+	Uint16 mode;
 
-struct ext2_data_block {
-	// XXX
+	// Owner
+	Uint16 uid;
+
+	// File size in bytes
+	Uint32 size;
+
+	// UNIX time since this inode was accessed
+	Int32 atime;
+
+	// UNIX creation time
+	Int32 ctime;
+
+	// Last modification time
+	Int32 mtime;
+
+	// Time when the file was deleted
+	Int32 dtime;
+
+	// POSIX group for this file
+	Uint16 gid;
+
+	// Number of times this inode is referred to.
+	Uint16 incident_links;
+
+	// Number of 512 byte data blocks
+	Uint32 num_blocks;
+
+	// File flags (see the inode_flags enum)
+	Uint32 flags;
+
+	// First OS dependent value
+	Uint32 osdependent1;
+
+	// The first 12 are (pointers to) direct blocks.
+	// blocks[12] is a block containing an array of block ids.
+	// blocks[13] is a double-indirect block: pointing to a block with an
+	// 	index of indirect blocks.
+	// blocks[14] is a triple-indirect block: pointing to a block with an
+	// 	index of double-indirect blocks.
+	Uint32 blocks[EXT2_INODE_TOTAL_BLOCKS];
+
+	// Used by NFS
+	Uint32 file_version;
+
+	// Block number containing the extended attributes.
+	Uint32 file_acl;
+
+	union {
+	    // Block number containing extended attributes
+	    Uint32 dir_acl;
+
+	    // high 32 bits of the 64 bit file size
+	    Uint32 upper_file_size;
+	};
+
+	// Location of the file fragment. Always 0.
+	Uint32 file_fragment;
+
+	union {
+	    struct {
+		// Always 0
+		Uint8 frag;
+		Uint8 frag_size;
+
+		Uint16 reserved1;
+
+		// High bytes of UID and GID
+		Uint16 high_uid;
+		Uint16 high_gid;
+
+		Uint32 reserved2;
+	    } Linux2;
+	} osdependent2;
+
 };
 
 struct ext2_directory_entry {
