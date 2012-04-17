@@ -1,10 +1,9 @@
 #include "paging.h"
 #include "physical.h"
 #include "serial.h"
-
 #include "x86arch.h"
+
 #include "../lib/klib.h"
-#include "../../ulib/c_io.h"
 
 typedef long unsigned int ul;
 
@@ -118,6 +117,10 @@ void* __virt_get_phys_addr(void *virtual_addr)
 	uint32 *pd = (uint32 *)0xFFFFF000;
 
 	// TODO Check whether or not the page directory is present
+	if ((pd[page_dir_index] & PRESENT) > 0)
+	{
+		return (void *)0xFFFFFFFF;
+	}
 	
 
 	uint32 *pt = ((uint32*)0xFFC00000) + (0x400 * page_dir_index);
@@ -198,8 +201,8 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, uint32 flags)
 		serial_string("Page directory entry not present!\n");		
 		pd[page_dir_index] = (Uint32)__phys_get_free_4k();
 		pd[page_dir_index] |= READ_WRITE | PRESENT;
-		serial_printf("Page dir value 2: %x\n", pd[page_dir_index]);
-		serial_printf("Page dir addr  3: %x\n", &pd[page_dir_index]);
+		serial_printf("Page dir value 2: %x\n", (uint32)pd[page_dir_index]);
+		serial_printf("Page dir addr  3: %x\n", (uint32)&pd[page_dir_index]);
 		_kmemset(pt, 0, sizeof(page_table_t));
 	}
 	
@@ -248,6 +251,7 @@ static const char* const page_table_errors[] = {
 
 void _isr_page_fault(int vector, int code)
 {
+	UNUSED(vector);
 	serial_string("US RW P - Description\n");
 	serial_printf("%d  ",  code & 0x4);
 	serial_printf("%d  ",  code & 0x2);

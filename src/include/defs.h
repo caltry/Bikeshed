@@ -15,6 +15,8 @@
 
 #include "headers.h"
 
+#define UNUSED(X) ((void)X)
+
 /*
 ** General (C and/or assembly) definitions
 */

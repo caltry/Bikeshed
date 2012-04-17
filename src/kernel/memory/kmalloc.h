@@ -1,7 +1,7 @@
 #ifndef __KMALLOC_H__
 #define __KMALLOC_H__
 
-#include "../../include/defs.h"
+#include "headers.h"
 
 /* Initialize the kernel virtual memory allocator. 
  *
