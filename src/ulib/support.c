@@ -73,6 +73,8 @@ static void __default_unexpected_handler( int vector, int code ){
 ** Description: Default handler for interrupts we expect may occur but
 **		are not handling (yet).  Just reset the PIC and return.
 */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 static void __default_expected_handler( int vector, int code ){
 	if( vector >= 0x20 && vector < 0x30 ){
 		__outb( PIC_MASTER_CMD_PORT, PIC_EOI );
@@ -89,6 +91,7 @@ static void __default_expected_handler( int vector, int code ){
 		__panic( "Unexpected \"expected\" interrupt!" );
 	}
 }
+#pragma GCC diagnostic pop
 
 /*
 ** Name:	__default_mystery_handler
@@ -101,6 +104,8 @@ static void __default_expected_handler( int vector, int code ){
 **		comes through vector 0x27.  This is a non-repeatable
 **		interrupt whose source has not been identified.
 */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 static void __default_mystery_handler( int vector, int code ){
 
 #ifdef REPORT_MYSTERY_INTS
@@ -111,6 +116,7 @@ static void __default_mystery_handler( int vector, int code ){
 	__outb( PIC_MASTER_CMD_PORT, PIC_EOI );
 
 }
+#pragma GCC diagnostic pop
 
 /*
 ** Name:	init_pic

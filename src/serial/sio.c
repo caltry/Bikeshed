@@ -110,6 +110,8 @@ Queue *_reading;
 ** _isr_sio - serial i/o ISR
 */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 void _isr_sio( int vector, int code ) {
 	Pcb *pcb;
 	int eir, lsr, msr;
@@ -228,6 +230,7 @@ void _isr_sio( int vector, int code ) {
 	_kpanic( "_isr_sio", "infinite loop ended???", 0 );
 
 }
+#pragma GCC diagnostic pop
 
 /*
 ** _sio_init()
@@ -582,7 +585,7 @@ int _sio_writes( char *buffer, int length ) {
 */
 
 void _sio_dump( void ) {
-	int n;
+	Uint32 n;
 	char *ptr;
 
 	c_printf( "SIO buffers:  in %d ot %d\n", _incount, _outcount );
