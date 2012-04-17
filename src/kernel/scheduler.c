@@ -138,6 +138,7 @@ void _dispatch( void ) {
 
 			_current->state = RUNNING;
 			_current->quantum = STD_QUANTUM;
+			__virt_switch_page_directory(_current->page_directory);
 			return;
 		} else {
 			_kpanic( "_dispatch", "readyq deque status %s",

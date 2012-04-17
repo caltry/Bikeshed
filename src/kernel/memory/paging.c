@@ -243,15 +243,7 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
 
 void __virt_switch_page_directory(page_directory_t *page_directory)
 {
-	serial_printf("Switching page directory %x\n", (Uint32)page_directory);
-	// TODO make this a macro?
 	asm volatile("mov %0, %%cr3" :: "b"(page_directory));
-	// TODO this stuff isn't needed once paging is enabled
-	unsigned int cr0;
-	asm volatile("mov %%cr0, %0": "=b"(cr0));
-	cr0 |= 0x80000000;
-	asm volatile("mov %0, %%cr0":: "r"(cr0));
-	serial_string("Done switching page directory\n");
 }
 
 static const char* const page_table_errors[] = {
