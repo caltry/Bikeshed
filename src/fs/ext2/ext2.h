@@ -15,10 +15,14 @@
 #define _EXT2_H
 
 #include "types.h"
-#include "cpp_magic.h"
 
 // Magic number for ext2 filesystems
 #define EXT2_SUPER_MAGIC 0xEF53
+
+// Structure sizes, in bytes
+#define EXT2_SUPERBLOCK_SIZE 1024
+#define EXT2_BLOCK_GROUP_DESCRIPTOR_SIZE 32
+#define EXT2_INODE_SIZE 128
 
 #define EXT2_INODE_DIRECT_BLOCKS	12
 #define EXT2_INODE_INDIRECT_BLOCKS	1
@@ -80,10 +84,10 @@ struct ext2_superblock {
 	Int32 w_time;
 
 	// Number of times the filesystem was mounted since last fsck.
-	Uint32 mnt_count;
+	Uint16 mnt_count;
 
 	// Number of times the filesystem may be mounted before a fsck is forced.
-	Uint32 max_mnt_count;
+	Uint16 max_mnt_count;
 
 	// Magic number identifying the filesystem as ext2
 	Uint16 magic_number;
@@ -172,8 +176,11 @@ struct ext2_superblock {
 	// Number of blocks that should be pre-allocated when creating a directory.
 	Uint8 prealloc_dir_blocks;
 
+	// Make sure we're aligned properly.
+	Uint16 padding1;
+
 	// UUID of the (ext3) journal superblock.
-	Uint16 journal_uuid;
+	Uint8 journal_uuid[16];
 
 	// Inode number for the (ext3) journal file.
 	Uint32 journal_inode;
@@ -190,11 +197,17 @@ struct ext2_superblock {
 	// Default hash version for directory indexing.
 	Uint8 hash_version;
 
+	// More padding
+	Uint8 reserved_char_pad;
+	Uint16 reserved_word_pad;
+
 	// Default mount options for the filesystem
 	Uint32 default_mount_options;
 
 	// Block group ID of the first meta block group. (ext3).
 	Uint32 first_meta_blockgroup;
+
+	Uint8 reserved[760];
 };
 
 
