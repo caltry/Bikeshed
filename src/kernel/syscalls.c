@@ -16,6 +16,7 @@
 
 #include "pcbs.h"
 #include "scheduler.h"
+#include "semaphores.h"
 #include "sio.h"
 #include "syscalls.h"
 #include "system.h"
@@ -555,6 +556,7 @@ static void _sys_exec( Pcb *pcb ) {
 ** _sys_sem_init - Initializes a semaphore
 */
 static void _sys_sem_init( Pcb *pcb ) {
+	*((Sem*) ARG(pcb)[1]) = _sem_new();
 	RET(pcb) = SUCCESS;
 }
 
@@ -562,6 +564,7 @@ static void _sys_sem_init( Pcb *pcb ) {
 ** _sys_sem_destroy - Destroys a semaphore
 */
 static void _sys_sem_destroy( Pcb *pcb ) {
+	_sem_destroy(*((Sem*) ARG(pcb)[1]));
 	RET(pcb) = SUCCESS;
 }
 
@@ -569,6 +572,7 @@ static void _sys_sem_destroy( Pcb *pcb ) {
 ** _sys_sem_post - Increments a semaphore
 */
 static void _sys_sem_post( Pcb *pcb ) {
+	_sem_post(*((Sem*) ARG(pcb)[1]));
 	RET(pcb) = SUCCESS;
 }
 
@@ -576,14 +580,27 @@ static void _sys_sem_post( Pcb *pcb ) {
 ** _sys_sem_wait - Waits for a semaphore
 */
 static void _sys_sem_wait( Pcb *pcb ) {
-	RET(pcb) = SUCCESS;
+	Sem sem = *((Sem*) ARG(pcb)[1]);
+	if(_sem_get_value(sem) > 0) {
+		_sem_decrement(sem);
+		RET(pcb) = SUCCESS;
+	} else {
+		//
+		RET(pcb) = FAILURE;
+	}
 }
 
 /*
 ** _sys_sem_try_wait - Attempts to decrement a semaphore. If it can't then it returns false.
 */
 static void _sys_sem_try_wait( Pcb *pcb ) {
-	RET(pcb) = SUCCESS;
+	Sem sem = *((Sem*) ARG(pcb)[1]);
+	if(_sem_get_value(sem) > 0) {
+		_sem_decrement(sem);
+		RET(pcb) = SUCCESS;
+	} else {
+		RET(pcb) = FAILURE;
+	}
 }
 
 
@@ -634,7 +651,7 @@ void _syscall_init( void ) {
 	_syscall_tbl[ SYS_set_priority ]  = _sys_set_priority;
 	_syscall_tbl[ SYS_set_time ]      = _sys_set_time;
 	_syscall_tbl[ SYS_sem_init ]      = _sys_sem_init;
-	_syscall_tbl[ SYS_sem_destroy ]      = _sys_sem_init;
+	_syscall_tbl[ SYS_sem_destroy ]      = _sys_sem_destroy;
 	_syscall_tbl[ SYS_sem_post ]      = _sys_sem_post;
 	_syscall_tbl[ SYS_sem_wait ]      = _sys_sem_wait;
 	_syscall_tbl[ SYS_sem_try_wait ]      = _sys_sem_try_wait;
