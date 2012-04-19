@@ -96,7 +96,13 @@ int main(int argc, char *argv[])
 			return 7;
 		}
 
-		struct file_header hdr = { load_location, file_size };
+		int number_of_sectors = file_size + sizeof(struct file_header) + 
+				(SECTOR_SIZE - ((file_size + sizeof(struct file_header)) % SECTOR_SIZE));
+
+		number_of_sectors /= SECTOR_SIZE;
+		
+
+		struct file_header hdr = { load_location, number_of_sectors };
 		if (fwrite(&hdr, sizeof(hdr), 1, new_file) != 1)
 		{
 			fprintf(stderr, "Failed to write to destination file\n");

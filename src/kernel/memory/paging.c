@@ -270,6 +270,10 @@ void _isr_page_fault(int vector, int code)
 	serial_printf("Address: %X\n", cr2);
 	serial_printf("Page Directory Entry: %d\n", (cr2 >> 22));
 	serial_printf("Page Table Entry:     %d\n", (cr2 >> 12) & 0x3FF);
+	c_printf("Address: %X\n", cr2);
+	c_printf("Page Directory Entry: %d\n", (cr2 >> 2));
+	c_printf("Page Table Entry: %d\n", (cr2 >> 12) & 0x3FF);
+	c_printf("%s\n", page_table_errors[code & 0x7]);
 
 	_kpanic("Paging", "Page fault handling not fully implemented!", 0);
 }

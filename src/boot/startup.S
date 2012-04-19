@@ -75,7 +75,8 @@ begtext:
 _start:
 	xorl %ecx, %ecx
 	mov $0xB8000, %ecx
-	movw $0x0F41, (%ecx)
+	movw $0x0F48, (%ecx)
+
 
 /* SETUP VIRTUAL MEMORY FOR THE HIGHER HALF kernel
  * This section of assembly loads the boot_page_directory as 

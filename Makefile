@@ -41,7 +41,7 @@ usb:	usb.image
 
 # Run the OS in qemu
 qemu:	usb.image
-	qemu-system-x86_64 usb.image -serial /dev/pts/2 -monitor stdio
+	qemu-system-x86_64 usb.image -serial /dev/pts/1 -monitor stdio
 
 #
 # Special rule for creating the modification and offset programs
