@@ -28,6 +28,7 @@
 #include "memory/paging.h"
 #include "memory/kmalloc.h"
 #include "serial.h"
+#include "fs/ext2/ext2.h"
 
 // need init() address
 #include "users.h"
@@ -229,6 +230,7 @@ void _init( void ) {
 	_syscall_init();
 	_sched_init();
 	_clock_init();
+	_fs_ext2_init();
 
 	c_puts( "\n" );
 

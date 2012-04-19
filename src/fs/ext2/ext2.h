@@ -24,6 +24,9 @@
 #define EXT2_BLOCK_GROUP_DESCRIPTOR_SIZE 32
 #define EXT2_INODE_SIZE 128
 
+// Important locations, relative to the start of the filesystem
+#define EXT2_SUPERBLOCK_LOCATION 0x400
+
 #define EXT2_INODE_DIRECT_BLOCKS	12
 #define EXT2_INODE_INDIRECT_BLOCKS	1
 #define EXT2_INODE_DOUBLE_INDIRECT_BLOCKS	1
@@ -32,6 +35,11 @@
 				+ EXT2_INODE_INDIRECT_BLOCKS \
 				+ EXT2_INODE_DOUBLE_INDIRECT_BLOCKS \
 				+ EXT2_INODE_TRIPLE_INDIRECT_BLOCKS)
+
+/*
+ * A hook for the kernel to call when enabling ext2.
+ */
+void _fs_ext2_init(void);
 
 typedef Uint32 BlockNumber;
 
@@ -376,11 +384,32 @@ struct ext2_inode {
 
 };
 
+typedef enum {
+	FT_UNKNOWN	= 0,
+	FT_REGULAR	= 1,
+	FT_DIR		= 2,
+	FT_CHARACTER	= 3,	// Character device
+	FT_BLOCK	= 4,	// Block device
+	FT_FIFO		= 5,
+	FT_SOCKET	= 6,
+	FT_SYMLINK	= 7
+} DirectoryEntryFiletype;
+
 struct ext2_directory_entry {
-	unsigned int inode_number;
-	unsigned int entry_length;
-	unsigned int name_length;
-	char* filename;
+	// Inode where this directory entry is located.
+	Uint32 inode_number;
+
+	// Displacement to the next directory entry.
+	Uint16 entry_length;
+
+	// Number of characters are in the name
+	Uint8 name_length;
+
+	// The DirectoryEntryFiletype
+	Uint8 file_type;
+
+	// Name of the file
+	char filename[];
 };
 
 #endif // _EXT2_H

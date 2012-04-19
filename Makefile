@@ -7,11 +7,11 @@ BUILDIMAGE = build/BuildImage
 # Default target:  usb.image
 #
 
-usb.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE)
-	$(BUILDIMAGE) -d usb -o usb.image -b src/boot/bootstrap.b src/prog.b 0x10000
+usb.image: src/boot/bootstrap.b src/prog.b bikeshed_fs $(BUILDIMAGE)
+	$(BUILDIMAGE) -d usb -o usb.image -b src/boot/bootstrap.b src/prog.b 0x10000 bikeshed_fs 0x80000
 
-floppy.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE)
-	$(BUILDIMAGE) -d floppy -o floppy.image -b src/boot/bootstrap.b src/prog.b 0x10000
+floppy.image: src/boot/bootstrap.b src/prog.b bikeshed_fs $(BUILDIMAGE)
+	$(BUILDIMAGE) -d floppy -o floppy.image -b src/boot/bootstrap.b src/prog.b 0x10000 bikeshed_fs 0x80000
 
 #
 # Additional dependencies to make sure that bootstrap.b and prog.b are made
@@ -34,9 +34,13 @@ floppy:	floppy.image
 usb:	usb.image
 	dd if=usb.image of=/local/devices/disk
 
+bikeshed_fs: src/prog.b
+	dd if=/dev/zero of=bikeshed_fs bs=1K count=120
+	yes | mke2fs -L bikeshed bikeshed_fs
+
 # Run the OS in qemu
 qemu:	usb.image
-	qemu-system-x86_64 usb.image -serial /dev/pts/3 -monitor stdio
+	qemu-system-x86_64 usb.image -serial stdio
 
 #
 # Special rule for creating the modification and offset programs
@@ -51,6 +55,7 @@ $(BUILDIMAGE):
 clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C build clean
+	$(RM) bikeshed_fs
 
 realclean: clean
 	$(RM) usb.image floppy.image
