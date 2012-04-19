@@ -259,6 +259,47 @@ Status spawn( Pid *pid, void (*entry)(void) );
 
 Status spawnp( Pid *pid, Prio prio, void (*entry)(void) );
 
+
+/*
+** sem_init - Initializes a semaphore
+**
+** usage:	status = sem_init(&sem);
+*/
+
+void sem_init( Sem *sem );
+
+/*
+** sem_destroy - Destroys a semaphore
+**
+** usage:	status = sem_destroy(&sem);
+*/
+
+void sem_destroy( Sem *sem );
+
+/*
+** sem_post - Increments a semaphore
+**
+** usage:	status = sem_post(&sem);
+*/
+
+void sem_post( Sem *sem );
+
+/*
+** sem_wait - Waits and decrements a semaphore
+**
+** usage:	status = sem_wait(&sem);
+*/
+
+void sem_wait( Sem *sem );
+
+/*
+** sem_try_wait - Attempts to decrement a semaphore
+**
+** usage:	status = sem_try_wait(&sem);
+*/
+
+void sem_try_wait( Sem *sem );
+
 #endif
 
 #endif

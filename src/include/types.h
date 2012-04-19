@@ -62,6 +62,10 @@ typedef	Uint16		Pid;
 
 typedef	Uint32		Time;
 
+//Semaphore
+
+typedef Uint32		Sem;
+
 #endif
 
 #endif
