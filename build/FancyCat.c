@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <errno.h>
+#include <string.h>
 
 #define SECTOR_SIZE 512
 
@@ -113,18 +114,22 @@ int main(int argc, char *argv[])
 		}
 
 		/* Pad to the next 512 byte location */
-		if ((file_size % SECTOR_SIZE) != 0)
+		if (((file_size + sizeof(struct file_header)) % SECTOR_SIZE) != 0)
 		{
-			long int pad_amount = SECTOR_SIZE - (file_size % SECTOR_SIZE);
+			long int pad_amount = SECTOR_SIZE - 
+				((file_size + sizeof(struct file_header)) % SECTOR_SIZE);
 
-			const char padding[SECTOR_SIZE] = { 0 };
-			if (fwrite(&padding, pad_amount, 1, new_file) != 1)
+			char* padding = (char *)malloc(pad_amount);
+			memset(padding, 0x22, pad_amount);
+			if (fwrite(padding, pad_amount, 1, new_file) != 1)
 			{
+				free(padding);
 				fprintf(stderr, "Failed to pad output file\n");
 				fclose(fp);
 				fclose(new_file);
 				return 10;
 			}
+			free(padding);
 		}
 
 		if ((current_file+1) >= argc)
@@ -146,6 +151,18 @@ int main(int argc, char *argv[])
 
 		fclose(fp);
 	}
+
+	// Put the end byte marker
+	char end[SECTOR_SIZE];	
+	memset(&end[0], 0, sizeof(end));
+	end[0] = end[1] = end[2] = end[3] = 0xFF;
+	end[4] = end[5] = end[6] = end[7] = 0xFF;
+	if (fwrite(&end, sizeof(end), 1, new_file) != 1)
+	{
+		fprintf(stderr, "Failed to put end marker\n");
+		fclose(new_file);
+		return 11;
+	}	
 
 	fclose(new_file);
 
