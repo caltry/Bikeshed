@@ -71,12 +71,7 @@ begtext:
 */
 	.globl	_start
 
-#define VIDEO 0xB8000
 _start:
-	xorl %ecx, %ecx
-	mov $0xB8000, %ecx
-	movw $0x0F48, (%ecx)
-
 
 /* SETUP VIRTUAL MEMORY FOR THE HIGHER HALF kernel
  * This section of assembly loads the boot_page_directory as 
@@ -122,12 +117,7 @@ clearbss:
 	jb	clearbss
 
 #endif
-
-	movw $0x0F46, (%ecx)
-
 	
-#ifdef SP2_CONFIG
-
 /*
 ** Initialize devices
 */
@@ -141,20 +131,6 @@ clearbss:
 ** an interrupt!!!
 */
 	jmp	__isr_restore   // defined in isr_stubs.S
-
-#else
-
-
-/*
-** Initialize various devices
-*/
-	call	__init_interrupts	/* initialize the interrupt system */
-	call	c_io_init	/* initialize the console I/O routines */
-
-/*
-** Call the user's main program
-*/
-	call	main
 
 /*
 ** Returned from the main function!  Stop execution.
@@ -171,8 +147,6 @@ die:	hlt			// Stop.
 
 message: .string "     ***** Returned from main! *****     "
 messagelen = . - message - 1
-
-#endif
 
 /*
 ** Support routines needed for boot up and the console.
