@@ -162,6 +162,17 @@ Status _q_remove( Queue *, void ** );
 Status _q_remove_by_key( Queue *, void **, Key );
 
 /*
+** _q_get_by_key(queue,data,key)
+**
+** gets the first element in the queue which has the supplied key,
+** returning the pointer to it through the second parameter
+**
+** returns the status of the get attempt
+*/
+
+Status _q_get_by_key( Queue *, void **, Key );
+
+/*
 ** _q_remove_selected(queue,data,compare,lookfor)
 **
 ** scan a queue looking for a particular entry (specified by the lookfor

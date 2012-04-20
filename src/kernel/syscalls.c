@@ -572,8 +572,7 @@ static void _sys_sem_destroy( Pcb *pcb ) {
 ** _sys_sem_post - Increments a semaphore
 */
 static void _sys_sem_post( Pcb *pcb ) {
-	_sem_post(*((Sem*) ARG(pcb)[1]));
-	RET(pcb) = SUCCESS;
+	RET(pcb) = _sem_post(*((Sem*) ARG(pcb)[1]));
 }
 
 /*
@@ -581,11 +580,10 @@ static void _sys_sem_post( Pcb *pcb ) {
 */
 static void _sys_sem_wait( Pcb *pcb ) {
 	Sem sem = *((Sem*) ARG(pcb)[1]);
-	if(_sem_get_value(sem) > 0) {
-		_sem_decrement(sem);
+	if(_sem_wait(sem, pcb)) {
 		RET(pcb) = SUCCESS;
 	} else {
-		//
+		
 		RET(pcb) = FAILURE;
 	}
 }
@@ -596,7 +594,6 @@ static void _sys_sem_wait( Pcb *pcb ) {
 static void _sys_sem_try_wait( Pcb *pcb ) {
 	Sem sem = *((Sem*) ARG(pcb)[1]);
 	if(_sem_get_value(sem) > 0) {
-		_sem_decrement(sem);
 		RET(pcb) = SUCCESS;
 	} else {
 		RET(pcb) = FAILURE;

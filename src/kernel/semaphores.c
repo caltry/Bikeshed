@@ -14,33 +14,54 @@
 #include "semaphores.h"
 #include "scheduler.h"
 #include "queues.h"
+#include "klibc.c"
 
 /*
 ** PRIVATE DEFINITIONS
 */
 
-#define MAX_SEMAPHORES 10
+
 
 /*
 ** PRIVATE DATA TYPES
 */
+
+typedef struct semaphore
+{
+	Sem sem;
+	Uint32 value;
+	Queue *waiting;
+} Semaphore;
 
 /*
 ** PRIVATE GLOBAL VARIABLES
 */
 
 Uint32 _sem_count = 0;
+Semaphore _sems[MAX_SEMAPHORES];
 Queue *_semaphores;
+Queue *_available_semaphores;
+
 
 /*
 ** PUBLIC GLOBAL VARIABLES
 */
 
-
-
 /*
 ** PRIVATE FUNCTIONS
 */
+
+void _sem_sched_waiting( Semaphore *s ) {
+	Status status = SUCCESS;
+	while( s->value > 0 && status == SUCCESS) {
+		Pcb *pcb;
+		status = _q_remove( s->waiting, &pcb );
+		if ( status == SUCCESS ) {
+			_sched(pcb);
+			s->value--;
+		}
+	}
+}
 
 /*
 ** PUBLIC FUNCTIONS
@@ -53,6 +74,20 @@ void _sem_init( void ) {
 			 "_semaphores alloc status %s",
 			 status );
 	}
+
+	status = _q_alloc( &_available_semaphores, NULL );
+	if( status != SUCCESS ) {
+		_kpanic( "_sem_init",
+			 "_available_semaphores alloc status %s",
+			 status );
+	}
+
+	int i;
+	for(i = 0; i < MAX_SEMAPHORES; i++) {
+		_q_insert(_available_semaphores, &_sems[i], (Key) i);
+	}
+
+	c_puts( " semaphores" );
 }
 
 /*
@@ -62,7 +97,16 @@ void _sem_init( void ) {
 */
 
 Sem _sem_new( void ) {
-	return 0;
+	Semaphore *s;
+	Status status =	_q_remove(_available_semaphores, &s);
+	if (status == SUCCESS) {
+		s->sem = ++_sem_count;
+		s->value = 0;
+		_q_alloc(&(s->waiting), NULL);
+		_q_insert(_semaphores, s, (Key) s->sem);
+	} else {
+		return 0;
+	}
 }
 
 /*
@@ -74,6 +118,7 @@ Sem _sem_new( void ) {
 */
 
 void _sem_destroy( Sem sem ) {
+	//_semaphores;
 
 }
 
@@ -81,10 +126,34 @@ Uint32 _sem_get_value( Sem sem ) {
 	return 0;
 }
 
-void _sem_post( Sem sem ) {
+Status _sem_post( Sem sem ) {
+	Semaphore *s;
+	Status status = _q_get_by_key(_semaphores, &s, (Key) sem);
 
+	//if we found the semaphore
+	if (status == SUCCESS)
+	{
+		s->value++;
+		_sem_sched_waiting(s);
+		return SUCCESS;
+	} else {
+		return status;
+	}
 }
 
-void _sem_decrement( Sem sem ) {
+Status _sem_wait( Sem sem, Pcb *pcb ) {
+	Semaphore *s;
+	Status status = _q_get_by_key(_semaphores, &s, (Key) sem);
 
+	//if we found the semaphore
+	if (status == SUCCESS)
+	{
+		//if its g
+		if (s->value > 0) {
+			s->value--;
+		}
+		return SUCCESS;
+	} else {
+		return status;
+	}
 }

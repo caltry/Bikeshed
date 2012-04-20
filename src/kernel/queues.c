@@ -16,6 +16,7 @@
 
 #include "pcbs.h"
 #include "stacks.h"
+#include "semaphores.h"
 
 /*
 ** PRIVATE DEFINITIONS
@@ -25,11 +26,11 @@
 //
 // need one per PCB, one per Stack, and a few extra
 
-#define	N_QNODES	(N_PCBS + N_STACKS + 5)
+#define	N_QNODES	(N_PCBS + N_STACKS + MAX_SEMAPHORES + 5)
 
 // Number of queues to allocate
 
-#define	N_QUEUES	10
+#define	N_QUEUES	10 + MAX_SEMAPHORES
 
 /*
 ** PRIVATE DATA TYPES
@@ -463,6 +464,43 @@ Status _q_remove_by_key( Queue *que, void **data, Key key ) {
 	return( _q_delete_node(que,qn) );
 
 }
+
+
+/*
+** _q_get_by_key(queue,data,key)
+**
+** gets the first element in the queue which has the supplied key,
+** returning the pointer to it through the second parameter
+**
+** returns the status of the get attempt
+*/
+
+Status _q_get_by_key( Queue *que, void **data, Key key ) {
+	Qnode *qn;
+
+	if( que == NULL ) {
+		return( BAD_PARAM );
+	}
+
+	if( _q_empty(que) ) {
+		return( EMPTY_QUEUE );
+	}
+
+	qn = que->head;
+	while( qn && qn->key.u != key.u ) {
+		qn = qn->next;
+	}
+
+	if( qn == NULL ) {
+		return( NOT_FOUND );
+	}
+
+	*data = qn->data;
+
+	return( SUCCESS );
+
+}
+
 
 /*
 ** _q_remove_selected(queue,data,compare,lookfor)

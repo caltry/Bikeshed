@@ -26,6 +26,9 @@
 #include "pcbs.h"
 #include "queues.h"
 
+
+#define MAX_SEMAPHORES 10
+
 /*
 ** Types
 */
@@ -64,9 +67,9 @@ void _sem_destroy( Sem sem );
 
 Uint32 _sem_get_value( Sem sem );
 
-void _sem_post( Sem sem );
+Status _sem_post( Sem sem );
 
-void _sem_decrement( Sem sem );
+Status _sem_wait( Sem sem, Pcb *pcb );
 
 #endif
 
