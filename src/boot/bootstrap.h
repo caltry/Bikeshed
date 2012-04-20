@@ -16,9 +16,8 @@
 /*
  * ** The target program itself
  * */
-#define TARGET_SEGMENT	0x00001000	/* 0001:0000 */
-#define TARGET_ADDRESS	0x00010000	/* and upward */
-#define	TARGET_STACK	0x00010000	/* and downward */
+#define TARGET_ADDRESS	0x0000FFFC	/* and upward */
+#define	TARGET_STACK	0x0000FFFC	/* and downward */
 
 /*
  * ** The Global Descriptor Table (0000:0500 - 0000:2500)
@@ -59,10 +58,10 @@
 
 #define	RMTEXT_SEGMENT	0x00000300
 #define	RMTEXT_ADDRESS	0x00003000
-#define REAL_STACK		0x00004000
+#define REAL_STACK		0x00006000
 
-#define RM_SAVED_ESP	0x00004004
-#define RM_SAVED_EBP	0x00004008
+#define RM_SAVED_ESP	0x0000DC04 /* 0x7C00 + 6004 */
+#define RM_SAVED_EBP	0x0000DC08 /* 0x7C00 + 6008 */
 
 #endif
 

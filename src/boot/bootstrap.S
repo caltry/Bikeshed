@@ -36,7 +36,7 @@ START_SEGMENT	= 0x0000	/* where we'll put the startup code */
 START_OFFSET	= 0x00007E00
 SECTOR_SIZE	= 0x200		/* typical sector size for floppy & HD */
 OFFSET_LIMIT	= 65536 - SECTOR_SIZE
-MAX_VALID_RAM 	= 0x9FC00
+MAX_VALID_RAM 	= 0x7FFFF
 
 /*
 ** Symbol for locating the beginning of the code.
@@ -313,7 +313,7 @@ check_mem:
 	movw	$MMAP_SEGMENT, %ax
 	movw	%ax, %ds	  /* Write relative to the memory map start */
 	movw	$0xE801, %ax	  /* Get memory size for >64M configurations */
-	int	$0x15
+	int 	$0x15
 	movw	%ax, MMAP_EXT_LO  /* extended memory between 1M - 16M in K */
 	movw	%bx, MMAP_EXT_HI  /* extended memory > 16M in 64K blocks */
 	movw	%cx, MMAP_CFG_LO  /* configured memory between 1M - 16M in K */
@@ -443,24 +443,22 @@ load_stuff:
 	cmpl $0xFFFFFFFF, %eax /* We need to jump to the kernel */
 	jne dont_jump_to_kernel
 
-
-	mov $3, %dx
 	call switch_to_protected_mode
 	.code32
 
 	/* HUZAH! JUMP TO THE KERNEL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 	movl kernel_location+BOOT_ADDRESS, %eax
-
 	push %eax
 	ret
-
+	/* In case the kernel returns */
 	cli 
+stop_executing:
 	hlt
+	jmp stop_executing
 
 	.code16
 	/* TODO JUMP TO KERNEL */
 dont_jump_to_kernel:
-
 	movl kernel_location, %edx /* Check if we've set the kernel location */
 	testl %edx, %edx
 	jnz skip_kernel_loc
@@ -510,7 +508,6 @@ copy_copy:
 	.code16
 
 	movl remaining, %eax
-
 	testl %eax, %eax
 	jz load_stuff 
 
@@ -521,65 +518,73 @@ copy_copy:
 	movw $BUFFER_OFF, %bx
 	jmp continue_loading
 
-
 /*
 ** Switches from protected mode to real mode
 */
 .code32
 .globl switch_to_real_mode
 switch_to_real_mode:
-cli
-
-/* Save the current ESP and EBP values */
-movl %esp, %eax
-movl %eax, RM_SAVED_ESP
-movl %ebp, RM_SAVED_EBP
-
-/* Set up the real mode stack */
-movl (%esp), %ecx /* copy the return address to the real stack */
-movw %cx, (REAL_STACK+BOOT_ADDRESS)
-
-movl $(REAL_STACK+BOOT_ADDRESS), %eax /* switch to using the real mode stack */
-
-/* Fix esp and ebp */
-subl $BOOT_ADDRESS, %eax
-movl %eax, %ebp
-movl %eax, %esp
-
-
-/* Load the real mode GDT selectors */
-movw $GDT_DATA_16, %ax
-movw %ax, %ds
-movw %ax, %es
-movw %ax, %fs
-movw %ax, %gs
-movw $GDT_STACK_16, %ax
-movw %ax, %ss
-
-push %cx
-
-ljmp $GDT_CODE_16, $_not_quite_real+BOOT_ADDRESS
-
+	cli
+	
+	/* Save the current ESP and EBP values */
+	movl %esp, %eax
+	movl %eax, RM_SAVED_ESP
+	movl %ebp, RM_SAVED_EBP
+	
+	/* Set up the real mode stack */
+	movl (%esp), %ecx /* copy the return address to the real stack */
+	movw %cx, (REAL_STACK+BOOT_ADDRESS)
+	
+	movl $(REAL_STACK+BOOT_ADDRESS), %eax /* switch to using the real mode stack */
+	
+	/* Fix esp and ebp */
+	subl $BOOT_ADDRESS, %eax
+	movl %eax, %ebp
+	movl %eax, %esp
+	
+	/* Load the real mode GDT selectors */
+	movw $GDT_CODE_16, %bx
+	movw $GDT_DATA_16, %ax
+	movw %ax, %ds
+	movw %bx, %es
+	movw %bx, %fs
+	movw %bx, %gs
+	movw $GDT_STACK_16, %ax
+	movw %ax, %ss
+	
+	push %cx
+	
+	/* This sets the code segment register */
+	ljmp $GDT_CODE_16, $_not_quite_real+BOOT_ADDRESS
 _not_quite_real:
-
-/* Switch of the protected mode flag */
-movl %cr0, %eax /* get current CR0 */
-andl $0xfffffffe, %eax /* clear the PE bit */
-movl %eax, %cr0 /* and store it back. */
-
-/* Long jump to a real mode code segment */
-.byte 0x66
-ljmp $0x0, $_real_mode_segment+BOOT_ADDRESS
-
-.code16
+	
+	/* Switch of the protected mode flag */
+	movl %cr0, %eax /* get current CR0 */
+	andl $0xfffffffe, %eax /* clear the PE bit */
+	movl %eax, %cr0 /* and store it back. */
+	
+	/* Long jump to a real mode code segment */
+	.byte 0x66
+	ljmp $0x0, $_real_mode_segment+BOOT_ADDRESS
+	
+	.code16
 _real_mode_segment:
 
-/* Load the real mode IDT */
-lidt (real_idt)
+	/* Setup the real mode segments */
+	movw $0x7c0, %ax
+	movw %ax, %ds
+	movw %ax, %ss
+	/* Clear the general purpose registers */
+	xorw %ax, %ax
+	movw %ax, %es
+	movw %ax, %fs
+	movw %ax, %gs
+	
+	/* Load the real mode IDT */
+	lidt (real_idt)
 
-sti
-ret
-
+	sti
+	ret
 
 
 /*
@@ -588,61 +593,53 @@ ret
 .globl switch_to_protected_mode
 switch_to_protected_mode:
 .code16
-
-cli
-movb $0x08, %al /* Disable NMIs */
-outb %al, $0x70
-
-/* Load the protected mode IDT */
-lidt (idt_48)
-lgdt (gdt_48)
-
-
-/* Set the protected mode flag */
-movl %cr0, %eax /* get current CR0 */
-orb $0x1, %al /* set the PE bit */
-movl %eax, %cr0 /* and store it back. */
-
-
-/* Long jump to a real mode code segment */
-.byte 0x66
-.code32
-ljmp $GDT_CODE, $(_protected_mode_segment + BOOT_ADDRESS)
+	cli
+	movb $0x08, %al /* Disable NMIs */
+	outb %al, $0x70
+	
+	/* Load the protected mode IDT */
+	lidt (idt_48)
+	lgdt (gdt_48)
+	
+	/* Set the protected mode flag */
+	movl %cr0, %eax /* get current CR0 */
+	orb $0x1, %al /* set the PE bit */
+	movl %eax, %cr0 /* and store it back. */
+	
+	/* Long jump to a real mode code segment */
+	.byte 0x66
+	.code32
+	ljmp $GDT_CODE, $(_protected_mode_segment + BOOT_ADDRESS)
 _protected_mode_segment:
-
-cli
-movb $0x08, %al /* Disable NMIs */
-outb %al, $0x70
-
-/* Load the real mode GDT selectors */
-movw $GDT_DATA, %ax
-movw %ax, %ds
-movw %ax, %es
-movw %ax, %fs
-movw %ax, %gs
-movw $GDT_STACK, %ax
-movw %ax, %ss
-
-/* Save the current return address */
-xorl %eax, %eax
-movl %sp, %ax
-addl $BOOT_ADDRESS, %eax
-movl (%eax), %ebx /* EAX holds the return address */
-andl $0x0000FFFF, %ebx
-
-/* Switch to the protected mode stack */
-movl RM_SAVED_ESP, %eax /* restore saved ESP and EBP */
-movl %eax, %esp
-movl RM_SAVED_EBP, %ebp
-
-push %ebx
-ret
-
-lable:
-	hlt
-	jmp lable
-	.code16
-
+	
+	cli
+	movb $0x08, %al /* Disable NMIs */
+	outb %al, $0x70
+	
+	/* Load the real mode GDT selectors */
+	xor %bx, %bx
+	movw $GDT_DATA, %ax
+	movw %ax, %ds
+	movw %bx, %es
+	movw %bx, %fs
+	movw %bx, %gs
+	movw $GDT_STACK, %ax
+	movw %ax, %ss
+	
+	/* Save the current return address */
+	xorl %eax, %eax
+	movw %sp, %ax
+	addl $BOOT_ADDRESS, %eax
+	movl (%eax), %ebx /* EAX holds the return address */
+	andl $0x0000FFFF, %ebx
+	
+	/* Switch to the protected mode stack */
+	movl RM_SAVED_ESP, %eax /* restore saved ESP and EBP */
+	movl %eax, %esp
+	movl RM_SAVED_EBP, %ebp
+	
+	push %ebx
+	ret
 
 .code16
 real_idt:
