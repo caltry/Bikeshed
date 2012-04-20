@@ -543,7 +543,7 @@ switch_to_real_mode:
 	movl %eax, %esp
 	
 	/* Load the real mode GDT selectors */
-	movw $GDT_CODE_16, %bx
+	movw $GDT_DATA_16, %bx
 	movw $GDT_DATA_16, %ax
 	movw %ax, %ds
 	movw %bx, %es
