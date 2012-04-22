@@ -43,28 +43,30 @@
 ** uncomment its entry in this list.
 */
 
-#define	SPAWN_A   // write, exit
-#define	SPAWN_B   // write, exit
-#define	SPAWN_C   // write, exit
-#define	SPAWN_D   // write, spawn, exit
-#define	SPAWN_E   // write, get_pid, sleep, exit
-#define	SPAWN_F   // write, get_pid, sleep, exit
-#define	SPAWN_G   // write, get_pid, sleep, exit
-#define	SPAWN_H   // write
+//#define	SPAWN_A   // write, exit
+//#define	SPAWN_B   // write, exit
+//#define	SPAWN_C   // write, exit
+//#define	SPAWN_D   // write, spawn, exit
+//#define	SPAWN_E   // write, get_pid, sleep, exit
+//#define	SPAWN_F   // write, get_pid, sleep, exit
+//#define	SPAWN_G   // write, get_pid, sleep, exit
+//#define	SPAWN_H   // write
 // no user i
-#define	SPAWN_J   // write, spawn, exit
-#define	SPAWN_K   // write, sleep, spawn, exit
-#define	SPAWN_L   // write, sleep, spawn, get_time, exit
-#define	SPAWN_M   // write, spawnp, exit
-#define	SPAWN_N   // write, spawnp, exit
+//#define	SPAWN_J   // write, spawn, exit
+//#define	SPAWN_K   // write, sleep, spawn, exit
+//#define	SPAWN_L   // write, sleep, spawn, get_time, exit
+//#define	SPAWN_M   // write, spawnp, exit
+//#define	SPAWN_N   // write, spawnp, exit
 // no user O
-#define	SPAWN_P   // write, sleep, get_time
-#define	SPAWN_Q   // write, bogus, exit
-#define	SPAWN_R   // write, read, sleep, exit
-#define	SPAWN_S   // write, sleep, forever
-#define	SPAWN_T   // write, get_prio, set_priority, exit
+//#define	SPAWN_P   // write, sleep, get_time
+//#define	SPAWN_Q   // write, bogus, exit
+//#define	SPAWN_R   // write, read, sleep, exit
+//#define	SPAWN_S   // write, sleep, forever
+//#define	SPAWN_T   // write, get_prio, set_priority, exit
 // no user U
 // no user V
+
+#define	SPAWN_SEM_TEST
 
 /*
 ** Users W-Z are spawned from other processes; they

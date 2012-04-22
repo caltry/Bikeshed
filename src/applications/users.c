@@ -61,7 +61,7 @@ void user_m( void ); void user_n( void ); void user_o( void );
 void user_p( void ); void user_q( void ); void user_r( void );
 void user_s( void ); void user_t( void ); void user_u( void );
 void user_v( void ); void user_w( void ); void user_x( void );
-void user_y( void ); void user_z( void );
+void user_y( void ); void user_z( void ); void user_sem_test( void );
 
 /*
 ** Users A, B, and C are identical, except for the character they
@@ -730,6 +730,61 @@ void user_z( void ) {
 
 }
 
+void user_sem_test( void ) {
+	
+	
+	Sem i = 19;
+	Status status;
+	Pid pid;
+	Sem sem;
+	c_printf("i = %d\n", i);
+
+	c_puts( "User Sem Test running\n" );
+	status = sem_init(&sem);
+	prt_status( "User sem_test sem_init status %s\n", status );
+	c_printf("Semid = %d\n", sem);
+	status = sem_post(sem);
+	status = sem_post(sem);
+	
+	c_printf("i(bf) = %d\n", i);
+	status = fork(&pid);
+	if (status != SUCCESS)
+	{
+		prt_status( "User sem_test fork FAILED %s GOODBYE!\n", status );
+	} else {
+		if(pid > 0) {
+			c_printf("i(parent) = %d\n", i);
+			c_printf("Semid (Parent) = %d\n", sem);
+			//in parent
+			while(1) {
+				msleep(3000);
+				
+				c_puts( "User sem_test (Parent) posting!\n" );
+				status = sem_post(sem);
+				if (status != SUCCESS) {
+					prt_status( "User sem_test (Parent) sem_post FAILED: %s GOODBYE!\n", status );
+					break;
+				}
+			}
+		} else {
+			c_printf("i(child) = %d\n", i);
+			c_printf("Semid (child) = %d\n", sem);
+			//in child
+			while(1) {
+				
+				status = sem_wait(sem);
+				if (status == SUCCESS) {
+					prt_status( "User sem_test (Child) sem_wait status %s\n", status );
+				} else {
+					prt_status( "User sem_test (Child) sem_wait FAILED %s GOODBYE!\n", status );
+					break;
+				}
+			}
+		}
+	}
+	c_printf("i(gb) = %d\n", i);
+}
+
 
 /*
 ** SYSTEM PROCESSES
@@ -892,6 +947,14 @@ void init( void ) {
 		prt_status( "init: can't spawn() user T, status %s\n", status );
 	}
 #endif
+
+#ifdef SPAWN_SEM_TEST
+	status = spawn( &pid, user_sem_test );
+	if( status != SUCCESS ) {
+		prt_status( "init: can't spawn() user sem_test, status %s\n", status );
+	}
+#endif
+
 
 	write( '!' );
 

@@ -91,7 +91,7 @@ void _sem_init( void ) {
 }
 
 /*
-** _sem_init()
+** _sem_new()
 **
 ** initialize a semaphore
 */
@@ -104,8 +104,10 @@ Sem _sem_new( void ) {
 		s->value = 0;
 		_q_alloc(&(s->waiting), NULL);
 		_q_insert(_semaphores, s, (Key) s->sem);
+		c_printf("CREATED SEMAPHORE %d\n", s->sem);
+		return s->sem;
 	} else {
-		return 0;
+		return -1;
 	}
 }
 
@@ -137,6 +139,7 @@ Status _sem_post( Sem sem ) {
 		_sem_sched_waiting(s);
 		return SUCCESS;
 	} else {
+		c_puts("herp\n");
 		return status;
 	}
 }
@@ -148,9 +151,13 @@ Status _sem_wait( Sem sem, Pcb *pcb ) {
 	//if we found the semaphore
 	if (status == SUCCESS)
 	{
-		//if its g
+		//if its value is greater than 0 just decrement it and go
 		if (s->value > 0) {
 			s->value--;
+		} else {
+			//add this pcb to the waiting queue
+			_q_insert(s->waiting, pcb, (Key) 0);
+			_dispatch();
 		}
 		return SUCCESS;
 	} else {

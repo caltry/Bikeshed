@@ -564,7 +564,7 @@ static void _sys_sem_init( Pcb *pcb ) {
 ** _sys_sem_destroy - Destroys a semaphore
 */
 static void _sys_sem_destroy( Pcb *pcb ) {
-	_sem_destroy(*((Sem*) ARG(pcb)[1]));
+	_sem_destroy((Sem) ARG(pcb)[1]);
 	RET(pcb) = SUCCESS;
 }
 
@@ -572,27 +572,21 @@ static void _sys_sem_destroy( Pcb *pcb ) {
 ** _sys_sem_post - Increments a semaphore
 */
 static void _sys_sem_post( Pcb *pcb ) {
-	RET(pcb) = _sem_post(*((Sem*) ARG(pcb)[1]));
+	RET(pcb) = _sem_post((Sem) ARG(pcb)[1]);
 }
 
 /*
 ** _sys_sem_wait - Waits for a semaphore
 */
 static void _sys_sem_wait( Pcb *pcb ) {
-	Sem sem = *((Sem*) ARG(pcb)[1]);
-	if(_sem_wait(sem, pcb)) {
-		RET(pcb) = SUCCESS;
-	} else {
-		
-		RET(pcb) = FAILURE;
-	}
+	RET(pcb) = _sem_wait((Sem) ARG(pcb)[1], pcb);
 }
 
 /*
 ** _sys_sem_try_wait - Attempts to decrement a semaphore. If it can't then it returns false.
 */
 static void _sys_sem_try_wait( Pcb *pcb ) {
-	Sem sem = *((Sem*) ARG(pcb)[1]);
+	Sem sem = ((Sem) ARG(pcb)[1]);
 	if(_sem_get_value(sem) > 0) {
 		RET(pcb) = SUCCESS;
 	} else {
