@@ -1,10 +1,11 @@
 #include "kmalloc.h"
 #include "../serial.h"
-#include "paging.h"
-#include "physical.h"
 
 #include "../../ulib/c_io.h"
 #include "../lib/klib.h"
+
+#include "paging.h"
+#include "physical.h"
 
 typedef struct LinkedNode
 {
@@ -147,6 +148,12 @@ void* __kmalloc(uint32 size)
 		serial_string("Next node is a middle node\n");
 		next_node->next = current_node->next;
 		next_node->prev = current_node->prev;
+		current_node->prev->next = next_node;
+
+		if (current_node->next != 0)
+		{
+			current_node->next->prev = next_node;
+		}
 	}
 
 	// Setup next_node's size
@@ -158,6 +165,7 @@ void* __kmalloc(uint32 size)
 	}
 
 	serial_printf("Next node size: %d\n", (Uint32)next_node->size);
+	serial_printf("Next node addr: %x\n", (Uint32)next_node);
 
 	serial_printf("Returning address: %X\n", (uint32)current_node + HEADER_SIZE);
 
@@ -176,9 +184,7 @@ void* realloc(void* address, uint32 new_size)
 /*
 void* kcalloc(void)
 {
-}
-*/
-
+} */ 
 /* For debugging */
 int list_size(void)
 {
@@ -293,6 +299,7 @@ void __kfree(void* address)
 	linked_node_t* middle_node = free_node;
 	linked_node_t* last_node = current_node;
 
+	serial_printf("Current node: %x\n", (Uint32)current_node);
 	if (free_node < current_node)
 	{
 		serial_string("free node before tail\n");
@@ -321,6 +328,7 @@ void __kfree(void* address)
 	// Check for combinations
 	if (((uint32)prev_node + prev_node->size + HEADER_SIZE) == (Uint32)middle_node)
 	{
+		serial_string("Combining prev and middle\n");
 		prev_node->size += middle_node->size + HEADER_SIZE;
 		prev_node->next = middle_node->next;
 		if (middle_node->next == 0)
@@ -335,6 +343,7 @@ void __kfree(void* address)
 	
 	if (((uint32)middle_node + middle_node->size + HEADER_SIZE) == (Uint32)last_node)
 	{
+		serial_string("Combining middle and next\n");
 		middle_node->size += last_node->size + HEADER_SIZE;
 		middle_node->next = last_node->next;
 		if (last_node->next != 0)

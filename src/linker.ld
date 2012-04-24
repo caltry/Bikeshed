@@ -1,13 +1,8 @@
 ENTRY (_start)
 
 SECTIONS {
-	virt = 0xC0010000;/*0xC0100000;*/
-	phys = 0x00110000;
-
-/*	.special_code 0x10000 : AT(phys) {
-		spec_code = .;
-		*(.special_code)
-	}*/
+	virt = 0xC0100000;
+	phys = 0x00100000;
 
 	.text virt : AT(phys) {
 		code = .;

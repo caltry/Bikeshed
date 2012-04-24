@@ -6,6 +6,7 @@
 # 4003-506 (with appropriate tweaking).
 #
 
+# Modules must end with a trailing slash.
 MODULES := applications/ boot/ kernel/lib/ kernel/ serial/ ulib/ kernel/memory/
 
 # That's right, there's no default support for newlines in Make.
