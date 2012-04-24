@@ -62,7 +62,6 @@ void __virt_initialize_paging()
 	}
 
 	// Map the kernel
-	//address = KERNEL_LOAD_ADDR;
 	Uint32 pages = KERNEL_SIZE / 4096;
 	Uint32 page_dir_index = KERNEL_LINK_ADDR / (4096 * 1024);
 	Uint32 page_dir_end_index = (KERNEL_LINK_ADDR + KERNEL_SIZE) / (4096 * 1024);
@@ -83,7 +82,6 @@ void __virt_initialize_paging()
 	if (page_dir_index != 0)
 	{
 		serial_string("Kernel is not in the lowest 4MB\n");
-		//for (; i < page_table_end; ++i)
 		for (; i < page_table_end+1; ++i)
 		{
 			kernel_table->pages[i].value = address | 3;
@@ -120,8 +118,6 @@ void __virt_initialize_paging()
 
 	serial_string("4KB page tables enabled\n");
 
-	//Uint32* data = (uint32 *)__phys_get_free_4k();
-	//_kmemset(data, 0, 4096);
 	c_puts("Paging Enabled\n");
 }
 
