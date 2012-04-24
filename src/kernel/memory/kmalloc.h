@@ -12,11 +12,6 @@
  */
 void __kmem_init_kmalloc(void);
 
-/* Performs some basic kmalloc() tests, can be removed
- * once kmalloc() has been sufficiently tested
- */
-void __kmem_kmalloc_tests(void);
-
 /* Allocate some memory off the heap and return a virtual
  * address to be used for whatever purpose.
  *
@@ -56,6 +51,11 @@ void __kmem_kmalloc_tests(void);
  * the maximum heap size a kernel panic happens.
  */
 void* __kmalloc(uint32 size);
+
+/* Same as kmalloc, except zeros the memory before returning
+ * a pointer to the memory
+ */
+void* __kcalloc(uint32 size);
 
 /* Free a block of memory allocated by kmalloc(). There 
  * are no safe guards against bad blocks being passed 
