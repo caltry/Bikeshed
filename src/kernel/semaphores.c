@@ -119,9 +119,32 @@ Sem _sem_new( void ) {
 ** returns the status of the insertion into the ready queue
 */
 
-void _sem_destroy( Sem sem ) {
-	//_semaphores;
+Status _sem_destroy( Sem sem ) {
+	Semaphore *s;
+	Status status = _q_get_by_key(_semaphores, &s, (Key) sem);
 
+	if(status == SUCCESS) {
+		//Put all the waiting processes back into the wait queue with an error
+		while(status == SUCCESS) {
+			Pcb *pcb;
+			status = _q_remove( s->waiting, &pcb );
+			if ( status == SUCCESS ) {
+				RET(pcb) = FAILURE;
+				_sched(pcb);
+			}
+		}
+
+		//dealloc its wait queue
+		_q_dealloc( s->waiting );
+
+		//put this semaphore back on the queue to be used
+		_q_remove_by_key(_semaphores, &s, (Key) sem);
+		_q_insert(_available_semaphores, s, (Key) 0);
+
+		return SUCCESS;
+	} else {
+		return status;
+	}
 }
 
 Uint32 _sem_get_value( Sem sem ) {

@@ -118,6 +118,16 @@ Status _q_status( Queue * );
 Status _q_alloc( Queue **, int (*compare)(Key,Key) );
 
 /*
+** _q_dealloc(queue,compare)
+**
+** deallocates a queue and gives it back to the queue system to be used again.
+**
+** returns the status of the deallocation attempt
+*/
+
+Status _q_dealloc( Queue * );
+
+/*
 ** _q_peek(queue,key)
 **
 ** peek into the specified queue, returning the first Key through

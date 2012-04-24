@@ -63,7 +63,7 @@ Sem _sem_new( void );
 ** returns the status of the insertion into the ready queue
 */
 
-void _sem_destroy( Sem sem );
+Status _sem_destroy( Sem sem );
 
 Uint32 _sem_get_value( Sem sem );
 

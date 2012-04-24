@@ -331,6 +331,20 @@ Status _q_alloc( Queue **que, int (*compare)(Key,Key) ) {
 	return( SUCCESS );
 }
 
+
+/*
+** _q_dealloc(queue,compare)
+**
+** deallocates a queue and gives it back to the queue system to be used again.
+**
+** returns the status of the deallocation attempt
+*/
+
+Status _q_dealloc( Queue * que ) {
+	_que_dealloc(que);
+	return SUCCESS;
+}
+
 /*
 ** _q_insert(queue,data,key)
 **
