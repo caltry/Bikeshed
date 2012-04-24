@@ -34,9 +34,9 @@ floppy:	floppy.image
 usb:	usb.image
 	dd if=usb.image of=/local/devices/disk
 
-bikeshed_fs: src/prog.b
+bikeshed_fs:
 	dd if=/dev/zero of=bikeshed_fs bs=1K count=120
-	yes | mke2fs -L bikeshed bikeshed_fs
+	mke2fs -F -L bikeshed bikeshed_fs
 
 # Run the OS in qemu
 qemu:	usb.image
