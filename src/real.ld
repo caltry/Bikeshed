@@ -2,7 +2,7 @@ ENTRY (_start)
 
 SECTIONS {
 
-	.realmode : { 
+	.text : { 
 		*(".realmode")
 	}
 
@@ -12,6 +12,8 @@ SECTIONS {
 		*(.rodata)
 		*(.bss)
 		*(COMMON)
+		*(.eh_frame)
+		*(.comment)
 	}
 
 }
