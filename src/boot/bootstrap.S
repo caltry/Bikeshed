@@ -486,7 +486,6 @@ continue_loading:
 	movl $BUFFER_START_PROTECTED_MODE, %edx /* Source pointer */
 	movl load_location+BOOT_ADDRESS, %eax   /* Load address/Destination pointer */
 	movl current_load+BOOT_ADDRESS, %ecx       /* Kernel Size */
-	inc %ecx
 	shl $9, %ecx
 
 	/* Adjust load_location in case there's another loop */
