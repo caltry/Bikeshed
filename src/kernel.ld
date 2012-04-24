@@ -4,8 +4,13 @@ SECTIONS {
 	virt = 0xC0100000;
 	phys = 0x00100000;
 
-	/DISCARD/ : {
-		*(".realmode")
+	.realmode 0x3000 : {
+		real = .;
+		__start_real = ABSOLUTE(.);
+
+		kernel/bios/bios.o
+
+		__end_real = ABSOLUTE(.);
 	}
 
 	.text virt : AT(phys) {
@@ -28,10 +33,12 @@ SECTIONS {
 
 	.bss ALIGN(0x1000) : AT(phys + (bss - code)) {
 		bss = .;
+		__bss_start = .;
 		*(COMMON)
 		*(.bss)
 
-		. = ALIGN(4096);
+		_end = .;
+		KERNEL_END = .;
 	}
 
 }

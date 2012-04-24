@@ -414,8 +414,6 @@ current_load: .word 0x0
 	BUFFER_SIZE = (MAX_VALID_RAM - BUFFER_START)
 	BUFFER_SEG = 0x1000
 	BUFFER_OFF = 0
-	BUFFER_SECTORS = BUFFER_SIZE / SECTOR_SIZE - 1 /* Because we can read at least one */
-	BUFFER_COUNT = BUFFER_SECTORS * SECTOR_SIZE
 	BUFFER_START_PROTECTED_MODE = 0x10008
 
 switch:
@@ -488,6 +486,7 @@ continue_loading:
 	movl $BUFFER_START_PROTECTED_MODE, %edx /* Source pointer */
 	movl load_location+BOOT_ADDRESS, %eax   /* Load address/Destination pointer */
 	movl current_load+BOOT_ADDRESS, %ecx       /* Kernel Size */
+	inc %ecx
 	shl $9, %ecx
 
 	/* Adjust load_location in case there's another loop */

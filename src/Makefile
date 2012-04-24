@@ -30,6 +30,7 @@ U_LIBS	= $(shell find $(MODULES) -name *.ar)
 default:
 	$(MAKE) make_modules
 	$(MAKE) prog.b
+	$(MAKE) real.b
 
 # Build all of the submodules that we've defined.
 .PHONY: make_modules
@@ -70,11 +71,13 @@ prog.out: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o prog.out $(OBJECTS)
 
 prog.o:	$(OBJECTS) make_modules
-	$(LD) $(LDFLAGS) -o prog.o -Tlinker.ld $(OBJECTS) $(U_LIBS) $(U_LIBS)
+	$(LD) $(LDFLAGS) -o prog.o -Tkernel.ld $(OBJECTS) $(U_LIBS) $(U_LIBS)
 
 prog.b:	prog.o
 	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Tlinker.ld prog.o
 
+real.b:	prog.o
+	$(LD) $(LDFLAGS) -o real.b -s --oformat binary -Treal.ld prog.o
 
 Offsets:	Offsets.c
 	$(CC) $(INCLUDES) -o Offsets Offsets.c
