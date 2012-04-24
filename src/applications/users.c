@@ -874,7 +874,7 @@ void user_sem_test_destroy( void ) {
 					//in child B
 					c_puts( "User sem_test_destroy (ChildB) waiting\n" );
 					status = sem_wait(sem);
-					prt_status( "User sem_test_destroy (ChildB) sem_wait status %s\n", status );
+					prt_status( "User sem_test_destroy (ChildB) sem_wait status %s THIS IS GOOD!\n", status );
 				}
 			}
 		
@@ -883,7 +883,7 @@ void user_sem_test_destroy( void ) {
 			//in child A
 			c_puts( "User sem_test_destroy (ChildA) waiting\n" );
 			status = sem_wait(sem);
-			prt_status( "User sem_test_destroy (ChildA) sem_wait status %s\n", status );
+			prt_status( "User sem_test_destroy (ChildA) sem_wait status %s THIS IS GOOD!\n", status );
 		}
 	}
 }
