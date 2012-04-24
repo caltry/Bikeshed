@@ -13,6 +13,7 @@
 #include "vesa.h"
 
 
+	.text
 	.code32
 	.globl vesa_test
 vesa_test:
