@@ -10,7 +10,7 @@ typedef struct
 
 } vm8086_context_t;
 
-void _vm8086_init(void);
+void __vm8086_init(void);
 
 void _isr_gpf(int vector, int code);
 
