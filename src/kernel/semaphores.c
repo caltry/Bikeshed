@@ -141,6 +141,7 @@ Status _sem_destroy( Sem sem ) {
 		_q_remove_by_key(_semaphores, &s, (Key) sem);
 		_q_insert(_available_semaphores, s, (Key) 0);
 
+		c_printf( "DESTROYED SEMAPHORE %d\n", sem);
 		return SUCCESS;
 	} else {
 		return status;

@@ -66,8 +66,9 @@
 // no user U
 // no user V
 
-#define	SPAWN_SEM_TEST
-#define	SPAWN_SEM_TEST_READ
+//#define	SPAWN_SEM_TEST
+//#define	SPAWN_SEM_TEST_READ
+#define SPAWN_SEM_TEST_DESTROY
 
 /*
 ** Users W-Z are spawned from other processes; they

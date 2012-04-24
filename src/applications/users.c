@@ -62,7 +62,7 @@ void user_p( void ); void user_q( void ); void user_r( void );
 void user_s( void ); void user_t( void ); void user_u( void );
 void user_v( void ); void user_w( void ); void user_x( void );
 void user_y( void ); void user_z( void ); void user_sem_test( void );
-void user_sem_test_read( void );
+void user_sem_test_read( void ); void user_sem_test_destroy( void );
 
 /*
 ** Users A, B, and C are identical, except for the character they
@@ -831,6 +831,63 @@ void user_sem_test_read( void ) {
 }
 
 
+
+void user_sem_test_destroy( void ) {
+	Status status;
+	Pid pid;
+	Sem sem;
+
+	c_puts( "User Sem Test destroy running\n" );
+	status = sem_init(&sem);
+	prt_status( "User sem_test_destroy sem_init status %s\n", status );
+	c_printf("Sem destroy id = %d\n", sem);
+
+	status = fork(&pid);
+	if (status != SUCCESS)
+	{
+		prt_status( "User sem_test_destroy fork FAILED %s GOODBYE!\n", status );
+	} else {
+		if(pid > 0) {
+			c_printf("Sem destroy id (Parent) = %d\n", sem);
+			int ch;
+			//in parent
+
+			//fork again to make another child
+			status = fork(&pid);
+			if(status != SUCCESS) {
+				prt_status( "User sem_test_destroy fork FAILED %s GOODBYE!\n", status );
+			} else {
+				if(pid > 0) {
+					//in parent
+					//wait a bit then destroy the child
+					sleep(1);
+						
+					status = sem_destroy(sem);
+					if (status != SUCCESS) {
+						prt_status( "User sem_test_destroy (Parent) sem_destroy FAILED: %s GOODBYE!\n", status );
+					} else {
+						prt_status( "User sem_test_destroy (Parent) sem_destroy %s\n", status );
+					}
+					sleep(1);
+				} else {
+					c_printf("Sem destroy id (ChildB) = %d\n", sem);
+					//in child B
+					c_puts( "User sem_test_destroy (ChildB) waiting\n" );
+					status = sem_wait(sem);
+					prt_status( "User sem_test_destroy (ChildB) sem_wait status %s\n", status );
+				}
+			}
+		
+		} else {
+			c_printf("Sem destroy id (ChildA) = %d\n", sem);
+			//in child A
+			c_puts( "User sem_test_destroy (ChildA) waiting\n" );
+			status = sem_wait(sem);
+			prt_status( "User sem_test_destroy (ChildA) sem_wait status %s\n", status );
+		}
+	}
+}
+
 /*
 ** SYSTEM PROCESSES
 */
@@ -1004,6 +1061,13 @@ void init( void ) {
 	status = spawn( &pid, user_sem_test_read );
 	if( status != SUCCESS ) {
 		prt_status( "init: can't spawn() user sem_test_read, status %s\n", status );
+	}
+#endif
+
+#ifdef SPAWN_SEM_TEST_DESTROY
+	status = spawn( &pid, user_sem_test_destroy );
+	if( status != SUCCESS ) {
+		prt_status( "init: can't spawn() user sem_test_destroy, status %s\n", status );
 	}
 #endif
 

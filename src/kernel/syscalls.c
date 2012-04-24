@@ -564,8 +564,7 @@ static void _sys_sem_init( Pcb *pcb ) {
 ** _sys_sem_destroy - Destroys a semaphore
 */
 static void _sys_sem_destroy( Pcb *pcb ) {
-	_sem_destroy((Sem) ARG(pcb)[1]);
-	RET(pcb) = SUCCESS;
+	RET(pcb) = _sem_destroy((Sem) ARG(pcb)[1]);
 }
 
 /*
