@@ -17,6 +17,9 @@
 	.code32
 	.globl vesa_test
 vesa_test:
+	cli
+	movl	$0xc001c0de, %eax
+	hlt
 /*	pushal
 
 	call switch_to_real_mode
@@ -28,9 +31,6 @@ vesa_test:
 	call switch_to_protected_mode
 	.code32*/
 
-	movl	$0xc001c0de, %eax
-	cli
-	hlt
 
 ;	popal
 	ret

@@ -4,7 +4,7 @@ SECTIONS {
 	virt = 0xC0100000;
 	phys = 0x00100000;
 
-	.realmode 0x3000 : {
+	.realmode 0x3000 : AT(0x3000) {
 		real = .;
 		__start_real = ABSOLUTE(.);
 

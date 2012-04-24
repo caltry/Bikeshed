@@ -403,9 +403,8 @@ boot_sig:
 */
 kernel_location: .quad 0x0
 load_location: .quad 0x0
-load_size: .quad 0x0
 remaining: .quad 0x1
-current_load: .word 0x0
+flag: .quad 0x0
 
 	/* Okay we're good, copy the block to the right address */
 
@@ -414,6 +413,7 @@ current_load: .word 0x0
 	BUFFER_SIZE = (MAX_VALID_RAM - BUFFER_START)
 	BUFFER_SEG = 0x1000
 	BUFFER_OFF = 0
+	BUFFER_SECTORS = BUFFER_SIZE / SECTOR_SIZE - 1
 	BUFFER_START_PROTECTED_MODE = 0x10008
 
 switch:
@@ -427,6 +427,10 @@ switch:
 	mov %bx, %ds
 
 load_stuff:
+	movl flag, %eax
+	inc %eax
+	movl %eax, flag
+
 	/* We're in real-mode */
 	movw $1, %ax
 	movw $BUFFER_SEG, %bx
@@ -455,8 +459,8 @@ stop_executing:
 	jmp stop_executing
 
 	.code16
-	/* TODO JUMP TO KERNEL */
 dont_jump_to_kernel:
+
 	movl kernel_location, %edx /* Check if we've set the kernel location */
 	testl %edx, %edx
 	jnz skip_kernel_loc
@@ -465,18 +469,38 @@ skip_kernel_loc:
 
 	movl %es:(4), %eax /* Get how much we need to load (in sectors) */
 	dec %eax /* Subtract one, because we just loaded it */
-	movl %eax, load_size /* Save it! */
 	movl %eax, remaining /* Save it! */
 
+
 continue_loading:
-	/* TODO check if it's over the max */		
+	movl remaining, %eax /* Remaining is the total number of sectors left */
+	movl $BUFFER_SECTORS, %ecx /* Check if the remaining amount of sectors is > MAX_SECTORS */
+	cmpl %eax, %ecx /* Compare EDX TO ECX */
+	jge enough_sectors
+
+	movl %ecx, %eax /* We tried to load too many sectors, load fewer */
+
+enough_sectors: /* There are enough sectors */
+	
+	/* Subtract eax from remaining */	
+	/* Save the number of sectors to read on the stack for
+	   later in the copy_copy method
+	 */
+	push %eax
+
+	testl %eax, %eax /* Don't load 0 more sectors! */
+	jz skip_second_load
+
 	movl remaining, %edx
-	movl %eax, current_load
 	subl %eax, %edx
 	movl %edx, remaining
 
 	/* Load as many as we can */
 	call readprog
+
+skip_second_load: /* Okay we have read 0 or more sectors */
+
+	pop %ecx /* This is the original amount to read, ecx is not touched by switch_to_protected_mode */
 
 	/* Goto protected mode */				
 	call switch_to_protected_mode
@@ -485,7 +509,8 @@ continue_loading:
 	/* Yay we're in protected mode */
 	movl $BUFFER_START_PROTECTED_MODE, %edx /* Source pointer */
 	movl load_location+BOOT_ADDRESS, %eax   /* Load address/Destination pointer */
-	movl current_load+BOOT_ADDRESS, %ecx       /* Kernel Size */
+	/*movl current_load+BOOT_ADDRESS, %ecx  */     /* Amount to read, stored in ECX */
+	inc %ecx
 	shl $9, %ecx
 
 	/* Adjust load_location in case there's another loop */

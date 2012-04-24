@@ -2,6 +2,7 @@
 #include "physical.h"
 #include "serial.h"
 #include "x86arch.h"
+#include "scheduler.h"
 
 #include "../lib/klib.h"
 
@@ -266,6 +267,7 @@ void _isr_page_fault(int vector, int code)
 	serial_printf("%d - ", code & 0x1);
 	serial_string(page_table_errors[code & 0x7]);
 	serial_string("\n");
+	serial_printf("OFFENDING ADDRESS: %x\n", _current->context->eip);
 	unsigned int cr2 = read_cr2();
 	serial_printf("Address: %X\n", cr2);
 	serial_printf("Page Directory Entry: %d\n", (cr2 >> 22));
