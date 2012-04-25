@@ -118,6 +118,16 @@ Status _q_status( Queue * );
 Status _q_alloc( Queue **, int (*compare)(Key,Key) );
 
 /*
+** _q_dealloc(queue,compare)
+**
+** deallocates a queue and gives it back to the queue system to be used again.
+**
+** returns the status of the deallocation attempt
+*/
+
+Status _q_dealloc( Queue * );
+
+/*
 ** _q_peek(queue,key)
 **
 ** peek into the specified queue, returning the first Key through
@@ -160,6 +170,17 @@ Status _q_remove( Queue *, void ** );
 */
 
 Status _q_remove_by_key( Queue *, void **, Key );
+
+/*
+** _q_get_by_key(queue,data,key)
+**
+** gets the first element in the queue which has the supplied key,
+** returning the pointer to it through the second parameter
+**
+** returns the status of the get attempt
+*/
+
+Status _q_get_by_key( Queue *, void **, Key );
 
 /*
 ** _q_remove_selected(queue,data,compare,lookfor)

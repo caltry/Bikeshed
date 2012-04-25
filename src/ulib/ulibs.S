@@ -64,6 +64,11 @@ SYSCALL(get_state)
 SYSCALL(set_priority)
 SYSCALL(set_time)
 SYSCALL(exec)
+SYSCALL(sem_init)
+SYSCALL(sem_destroy)
+SYSCALL(sem_post)
+SYSCALL(sem_wait)
+SYSCALL(sem_try_wait)
 
 // This is a bogus system call; it's here so that we can test
 // our handling of out-of-range syscall codes in the syscall ISR.

@@ -21,6 +21,7 @@
 #include "syscalls.h"
 #include "sio.h"
 #include "scheduler.h"
+#include "semaphores.h"
 
 // TODO XXX ADDED REMOVE
 #include "bootstrap.h"
@@ -232,6 +233,7 @@ void _init( void ) {
 	_sio_init();
 	_syscall_init();
 	_sched_init();
+	_sem_init();
 	_clock_init();
 
 	c_puts( "\n" );
