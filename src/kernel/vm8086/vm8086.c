@@ -10,6 +10,8 @@ void __vm8086_init(void)
 
 void _isr_gpf(int vector, int code)
 {
+	UNUSED(vector);
+
 	if (code == 0)
 	{
 		// Not a segment issue

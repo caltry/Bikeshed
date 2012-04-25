@@ -7,12 +7,12 @@
 // Assume 256MB of RAM for now
 #define PHYSICAL_MEM_SIZE 256*1024*1024
 
-#include "defs.h"
+#include "headers.h"
 
 //////////////////////////////
-extern unsigned int KERNEL_END;
+extern Uint32 KERNEL_END;
 
-uint32 KERNEL_SIZE;
+Uint32 KERNEL_SIZE;
 
 /* Takes a physical address and sets the bit in the
  * bitmap. Doesn't do anything more than that
@@ -26,7 +26,7 @@ void __phys_unset_bit(void* address);
 
 /* Check if an address has already been allocated
  */
-uint32 __phys_check_bit(void* address);
+Uint32 __phys_check_bit(void* address);
 
 /* Search the bitmap for an unused address. If there
  * are no free addresses then it causes a kernel panic

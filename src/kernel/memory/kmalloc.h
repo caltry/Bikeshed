@@ -50,12 +50,12 @@ void __kmem_init_kmalloc(void);
  * to the end of the heap. If this causes the heap to go beyond
  * the maximum heap size a kernel panic happens.
  */
-void* __kmalloc(uint32 size);
+void* __kmalloc(Uint32 size);
 
 /* Same as kmalloc, except zeros the memory before returning
  * a pointer to the memory
  */
-void* __kcalloc(uint32 size);
+void* __kcalloc(Uint32 size);
 
 /* Print some info about the status of the kernel heap
  */
@@ -73,6 +73,6 @@ void __kmalloc_info(void);
  * is made. This is done in order to keep the fragmentation of
  * the heap down.
  */
-void __kfree(void *);
+void __kfree(void *address);
 
 #endif

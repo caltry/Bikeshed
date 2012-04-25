@@ -27,7 +27,8 @@
 #include "bootstrap.h"
 #include "memory/physical.h"
 #include "memory/paging.h"
-#include "memory/kmalloc.h"
+//#include "memory/kmalloc.h"
+#include "memory/kmalloc2.h"
 #include "serial.h"
 
 // need init() address
@@ -264,29 +265,37 @@ void _init( void ) {
 	c_printf("CFG Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_CFG_HI));
 	__phys_initialize_bitmap();
 	__virt_initialize_paging();
+/*
+	for (int i = 0; i < 100; ++i)
+	{
+		serial_printf("i: %d - Value: ", i);
+		serial_printf("%x\n", __phys_get_free_4k());
+	}
+	asm volatile ("cli");
+	asm volatile ("hlt");
+*/
+	__kmem_init_kmalloc2();
 
-	__kmem_init_kmalloc();
-
-	const Uint32 amt = 150;
+	const Uint32 amt = 10000;
 
 	void *ptrs[amt];
 
 	Uint32 total_allocated = 0;
 	/* Run some kmalloc() tests */
-	for (int i = 0; i < amt; ++i)
+	for (Uint32 i = 0; i < amt; ++i)
 	{
 		Uint32 size = _krand() % 8192;
-		ptrs[i] = __kmalloc(size);
+		ptrs[i] = __kmalloc2(size);
 		total_allocated += size;
 	}
 
-	int num_freed = 0;
+	Uint32 num_freed = 0;
 	while (num_freed != amt)
 	{
 		Uint32 index = _krand() % amt;
 		if (ptrs[index] != 0)
 		{
-			__kfree(ptrs[index]);
+			__kfree2(ptrs[index]);
 			ptrs[index] = 0;
 			++num_freed;
 		}
@@ -294,7 +303,7 @@ void _init( void ) {
 
 	serial_printf("Total amount allocated: %d\n", total_allocated);
 
-	__kmalloc_info();
+	__kmalloc_info2();
 
 	asm volatile ("cli");
 	asm volatile ("hlt");
