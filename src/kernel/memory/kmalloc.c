@@ -181,72 +181,12 @@ void* realloc(void* address, uint32 new_size)
 }
 */
 
-/*
-void* kcalloc(void)
+void* __kcalloc(uint32 size)
 {
-} */ 
-/* For debugging */
-int list_size(void)
-{
-	int size = 0;
-	linked_node_t* node = kernel_heap.start_node;
-	while (node != 0)
-	{
-		node = node->next;
-		++size;
-	}
+	void* address = __kmalloc(size);
+	_kmemclr(address, size);
 
-	return size;
-}
-
-void __kmem_kmalloc_tests()
-{
-	serial_string(".---- Start of kmalloc() tests ----.\n");
-	serial_string("|If all is working correctly there |\n");
-	serial_string("|should be an 'All Tests Passed'   |\n");
-	serial_string("|message                           |\n");
-	serial_string("'----------------------------------'\n");
-	// This function makes sure the __kmalloc routines are working correctly
-	
-	// Test 1 - Assumes that nothing has been allocated yet, calls __kmalloc() and then __kfree()
-	// In free it's the code path:
-	//  if (free_node < current_node)
-	//      if ((uint32)free_node + free_node->size + HEADER_SIZE) == current_node)
-	serial_string("========Test 1========\n");
-	void* ptr = __kmalloc(10);
-	if ((Uint32)ptr != 0xC0000004) { _kpanic("Kmalloc", "Bad address returned from __kmalloc()\n", 0); }
-	if ((Uint32)kernel_heap.start_node != 0xC0000010) { _kpanic("Kmalloc", "Wrong address for next node\n", 0); }
-	if (kernel_heap.start_node->size != (8192 - 12 - 2*HEADER_SIZE)) { _kpanic("Kmalloc", "Next node has a bad size!\n", 0); }
-	if (kernel_heap.start_node->next != 0) { _kpanic("Kmalloc", "Next node is not 0!\n", 0); }
-	if (kernel_heap.start_node->prev != 0) { _kpanic("Kmalloc", "Prev node is not 0!\n", 0); }
-	__kfree(ptr);
-	if ((Uint32)kernel_heap.start_node != 0xC0000000) { _kpanic("Kmalloc", "Test 1 - __kfree() messed up\n", 0); }
-	if (kernel_heap.start_node->size != (8192 -  HEADER_SIZE)) { _kpanic("Kmalloc", "Free'd node has a bad size!\n", 0); }
-	if (kernel_heap.start_node->next != 0) { _kpanic("Kmalloc", "Free'd next node is not 0!\n", 0); }
-	if (kernel_heap.start_node->prev != 0) { _kpanic("Kmalloc", "Free'd prev node is not 0!\n", 0); }
-
-	// Test 2 - Allocate three things and free the first, tests the code path in free
-	// if (free_node < current_node)
-	//    else - Can't combine 
-	serial_string("========Test 2========\n");
-	ptr  = __kmalloc(10);
-	void* ptr2 = __kmalloc(10);
-	void* ptr3 = __kmalloc(10);
-
-	serial_string("PTR1\n");
-	__kfree(ptr);
-	serial_string("PTR3\n");
-	__kfree(ptr3);
-	serial_string("PTR2\n");
-	__kfree(ptr2);
-
-	serial_printf("Number of Heap nodes: %d\n", (Uint32)list_size());
-	
-	serial_string("========Test 3========\n");
-	ptr = __kmalloc(10);
-	
-
-	serial_string("---- All Tests Passed ----\n");
+	return address;
 }
 
 void __kfree(void* address)
@@ -311,7 +251,8 @@ void __kfree(void* address)
 		// TODO we'll never be freeing from behind the tail...
 		serial_string("free node after tail\n");
 		// Check if we ended up at the tail
-		if (current_node->next != 0)
+		_kpanic("Kmalloc", "A free after the tail...impossible condition!\n", 0);
+		/*if (current_node->next != 0)
 		{
 			current_node->next->prev = free_node;
 		}
@@ -323,6 +264,7 @@ void __kfree(void* address)
 		// Used for combinations
 		middle_node = current_node;
 		last_node = free_node;
+		*/
 	}
 
 	// Check for combinations
