@@ -1,6 +1,8 @@
 #include "physical.h"
 #include "serial.h"
 
+#include "../lib/klib.h"
+
 #include "c_io.h"
 
 typedef long unsigned int ul;

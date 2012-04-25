@@ -60,10 +60,10 @@ void __kmalloc_info(void)
 	while (node != 0)
 	{
 		serial_printf("Node Number: %d\n", node_number);
-		serial_printf("Node addr: %x\n", (Uint3)node);
+		serial_printf("Node addr: %x\n", (Uint32)node);
 		serial_printf("Node size: %d\n", node->size);
-		serial_printf("Node next: %x\n", (Uint3)node->next);
-		serial_printf("Node prev: %x\n\n", (Uint3)node->prev);
+		serial_printf("Node next: %x\n", (Uint32)node->next);
+		serial_printf("Node prev: %x\n\n", (Uint32)node->prev);
 		node = node->next;
 		++node_number;
 	}
@@ -187,8 +187,8 @@ void __kfree(void* address)
 	serial_string("Kfree\n");
 	linked_node_t* free_node = (linked_node_t *)((Uint32)address - HEADER_SIZE);
 
-	serial_printf("Free node->next: %x\n", free_node->next);
-	serial_printf("Free node->prev: %x\n", free_node->prev);
+	serial_printf("Free node->next: %x\n", (Uint32)free_node->next);
+	serial_printf("Free node->prev: %x\n", (Uint32)free_node->prev);
 
 	if (free_node->size > ((Uint32)kernel_heap.end_address - (Uint32)kernel_heap.start_address))
 	{
