@@ -41,13 +41,13 @@ void __kmem_init_kmalloc()
 	for (Uint32 i = 0; i < HEAP_INITIAL_PAGES; ++i)
 	{
 		__virt_map_page(__phys_get_free_4k(), start_address, READ_WRITE | PRESENT);
-		start_address += 4096;
+		start_address += PAGE_SIZE;
 	}
 
 	kernel_heap.end_address = start_address;
 	kernel_heap.start_node = (linked_node_t *)kernel_heap.start_address;
 
-	kernel_heap.start_node->size = HEAP_INITIAL_PAGES * 4096;
+	kernel_heap.start_node->size = HEAP_INITIAL_PAGES * PAGE_SIZE;
 	kernel_heap.start_node->next = 0;
 	kernel_heap.start_node->prev = 0;
 }
@@ -115,7 +115,7 @@ void* __kmalloc(Uint32 size)
 		// We couldn't find a node large enough, ask for more space!
 		// We need to allocate at least 1 page, but also include some fudge for the next
 		// header which will need to come after this as we're expanding the last node
-		Uint32 num_pages = (size - current_node->size + sizeof(linked_node_t)) / 4096 + 1;
+		Uint32 num_pages = (size - current_node->size + sizeof(linked_node_t)) / PAGE_SIZE + 1;
 		for (Uint32 i = 0; i < num_pages; ++i)
 		{
 			if (kernel_heap.end_address > kernel_heap.max_address)
@@ -126,11 +126,11 @@ void* __kmalloc(Uint32 size)
 			serial_string("Alloc page\n");
 			// Allocate a page to the end of the heap
 			__virt_map_page(__phys_get_free_4k(), kernel_heap.end_address, READ_WRITE | PRESENT);
-			kernel_heap.end_address += 4096;
+			kernel_heap.end_address += PAGE_SIZE;
 		}
 
 		// Adjust current_node's size accordingly
-		current_node->size += num_pages * 4096;
+		current_node->size += num_pages * PAGE_SIZE;
 	}
 
 	// Okay we've found a good node

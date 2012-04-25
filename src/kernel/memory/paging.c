@@ -59,16 +59,16 @@ void __virt_initialize_paging()
 	for (; i < 256; ++i)
 	{
 		first_table->pages[i].value = address | 3;
-		address += 4096;
+		address += PAGE_SIZE;
 	}
 
 	// Map the kernel
-	Uint32 pages = KERNEL_SIZE / 4096;
-	Uint32 page_dir_index = KERNEL_LINK_ADDR / (4096 * 1024);
-	Uint32 page_dir_end_index = (KERNEL_LINK_ADDR + KERNEL_SIZE) / (4096 * 1024);
+	Uint32 pages = KERNEL_SIZE / PAGE_SIZE;
+	Uint32 page_dir_index = KERNEL_LINK_ADDR / (PAGE_SIZE * 1024);
+	Uint32 page_dir_end_index = (KERNEL_LINK_ADDR + KERNEL_SIZE) / (PAGE_SIZE * 1024);
 
-	Uint32 page_table_start = (KERNEL_LINK_ADDR >> 12) % 4096;
-	Uint32 page_table_end = ((KERNEL_LINK_ADDR + KERNEL_SIZE) >> 12) % 4096;
+	Uint32 page_table_start = (KERNEL_LINK_ADDR >> 12) % PAGE_SIZE;
+	Uint32 page_table_end = ((KERNEL_LINK_ADDR + KERNEL_SIZE) >> 12) % PAGE_SIZE;
 
 	serial_printf("Kernel pages: %d\n", (ul)pages);
 	serial_printf("Kernel page_dir_index: %d\n", (ul)page_dir_index);
@@ -86,7 +86,7 @@ void __virt_initialize_paging()
 		for (; i < page_table_end+1; ++i)
 		{
 			kernel_table->pages[i].value = address | 3;
-			address += 4096;
+			address += PAGE_SIZE;
 		}
 
 		__virt_kpage_directory->ptables[page_dir_index] = (Uint32)kernel_table | 3;
@@ -95,7 +95,7 @@ void __virt_initialize_paging()
 		for (; i < page_table_end; ++i)
 		{
 			first_table->pages[i].value = address | 3;
-			address += 4096;
+			address += PAGE_SIZE;
 		}
 
 		__phys_unset_bit((void *)kernel_table);
@@ -214,7 +214,7 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
 	//	serial_printf("Page dir value 2: %x\n", (Uint32)pd[page_dir_index]);
 	//	serial_printf("Page dir addr  3: %x\n", (Uint32)&pd[page_dir_index]);
 		//_kmemset(pt, 0, sizeof(page_table_t));
-		_kmemclr(pt, 4096);
+		_kmemclr(pt, PAGE_SIZE);
 	}
 	
 	//serial_string("Mapping page 2/4\n");
