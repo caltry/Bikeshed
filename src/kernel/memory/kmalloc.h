@@ -16,6 +16,8 @@ void __kmem_init_kmalloc(void);
  */
 void __kmem_kmalloc_tests(Uint32 test_size);
 
+void __kmem_kmalloc_tests_2(Uint32 test_size);
+
 /* Allocate some memory off the heap and return a virtual
  * address to be used for whatever purpose.
  *

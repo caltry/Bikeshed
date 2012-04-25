@@ -317,3 +317,60 @@ void __kmem_kmalloc_tests(Uint32 test_size)
 	asm volatile ("cli");
 	asm volatile ("hlt");
 }
+
+void __kmem_kmalloc_tests_2(Uint32 test_size)
+{
+	const Uint32 amt = test_size;
+
+	void *ptrs[amt];
+
+	Uint32 total_allocated = 0;
+	/* Run some kmalloc() tests */
+	for (Uint32 i = 0; i < amt; ++i)
+	{
+		Uint32 size = _krand() % 8192;
+		ptrs[i] = __kmalloc(size);
+		total_allocated += size;
+	}
+
+	Uint32 num_freed = 0;
+	while (num_freed != amt/2)
+	{
+		Uint32 index = _krand() % amt;
+		if (ptrs[index] != 0)
+		{
+			__kfree(ptrs[index]);
+			ptrs[index] = 0;
+			++num_freed;
+		}
+	}
+
+	for (Uint i = 0; i < amt; ++i)
+	{
+		if (ptrs[i] == 0)
+		{
+			Uint32 size = _krand() % 8192;
+			ptrs[i] = __kmalloc(size);
+			total_allocated += size;
+		}
+	}		
+
+	num_freed = 0;
+	while (num_freed != amt)
+	{
+		Uint32 index = _krand() % amt;
+		if (ptrs[index] != 0)
+		{
+			__kfree(ptrs[index]);
+			ptrs[index] = 0;
+			++num_freed;
+		}
+	}
+
+	serial_printf("Total amount allocated: %d\n", total_allocated);
+
+	__kmalloc_info();
+
+	asm volatile ("cli");
+	asm volatile ("hlt");
+}
