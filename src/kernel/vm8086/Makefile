@@ -7,13 +7,13 @@ OBJ_FILES = $(DYN_OBJ_FILES)
 
 .PHONY: all
 
-all: klib.ar
+all: vm8086.ar
 
-klib.ar: $(OBJ_FILES)
+vm8086.ar: $(OBJ_FILES)
 	$(AR) $@ $^
 
 clean:
-	$(RM) *.o *.lst *.ar
+	$(RM) *.o *.lst *.ar *.s
 
 .PHONY: depend
 depend: makedepends.mk

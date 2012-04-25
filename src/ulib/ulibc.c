@@ -104,15 +104,27 @@ Status spawnp( Pid *pid, Prio prio, void (*entry)(void) ) {
 		status = set_priority( prio );
 		if( status != SUCCESS ) {
 			status2 = get_pid( &new );
-			c_printf( "Child pid %d", new );
-			prt_status( ", set_priority() status %s\n", status );
+			if( status2 == SUCCESS ) {
+			    c_printf( "Child pid %d", new );
+			    prt_status( ", set_priority() status %s\n", status );
+			} else {
+			    c_printf( "Unable to set_priority() or get pid of"
+					"%d's child", pid );
+			    prt_status( ", get_pid's status: %s\n", status2 );
+			}
 			exit();
 		}
 		status = exec( entry );
 		// if we got here, the exec() failed
 		status2 = get_pid( &new );
-		c_printf( "Child pid %d", new );
-		prt_status( ", exec() status %s\n", status );
+		if( status2 == SUCCESS ) {
+		    c_printf( "Child pid %d", new );
+		    prt_status( ", exec() status %s\n", status );
+		} else {
+		    c_printf( "spawn(), exec failed. Unable to get the pid"
+				"of %d's child.", pid );
+		    prt_status( ", exec() status %s\n", status );
+		}
 		exit();
 	}
 

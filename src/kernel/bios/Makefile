@@ -1,15 +1,16 @@
 include ../../defs.mk
 
-CFLAGS += -I../../include -I../../ulib -I..
+CFLAGS += -I../../include -I../../boot -I.. -I../../ulib -I../../kernel/lib
+CPPFLAGS += -I../../include -I../../boot -I.. -I../../ulib -I../../kernel/lib
 
-SRC_FILES = $(DYN_SRC_FILES)
+SRC_FILES = $(DYN_SRC_FILES) realmode.S
 OBJ_FILES = $(DYN_OBJ_FILES)
 
 .PHONY: all
 
-all: klib.ar
+all: bios.ar realmode.o
 
-klib.ar: $(OBJ_FILES)
+bios.ar: bios.o
 	$(AR) $@ $^
 
 clean:

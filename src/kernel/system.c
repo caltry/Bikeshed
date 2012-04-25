@@ -22,6 +22,13 @@
 #include "sio.h"
 #include "scheduler.h"
 
+// TODO XXX ADDED REMOVE
+#include "bootstrap.h"
+#include "memory/physical.h"
+#include "memory/paging.h"
+#include "memory/kmalloc.h"
+#include "serial.h"
+
 // need init() address
 #include "users.h"
 
@@ -242,6 +249,26 @@ void _init( void ) {
 	__install_isr( INT_VEC_SYSCALL, _isr_syscall );
 	__install_isr( INT_VEC_SERIAL_PORT_1, _isr_sio );
 
+	/* Setup virtual memory
+	 */
+	c_printf("System end: %x\n", (Uint32)&KERNEL_END);
+	c_printf("Memory 1M-16M: %x\n", *((Uint16*)MMAP_EXT_LO));
+	c_printf("Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_EXT_HI));
+	c_printf("CFG Memory 1M-16M: %x\n", *((Uint16*)MMAP_CFG_LO));
+	c_printf("CFG Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_CFG_HI));
+	__phys_initialize_bitmap();
+	__virt_initialize_paging();
+
+	__kmem_init_kmalloc();
+
+
+	/*
+	** Initialize the bios module
+	*/
+
+	_bios_init();
+
+
 	/*
 	** Create the initial process
 	**
@@ -298,5 +325,5 @@ void _init( void ) {
 	*/
 
 	c_puts( "System initialization complete.\n" );
-
+	serial_string("System intialized\n");
 }

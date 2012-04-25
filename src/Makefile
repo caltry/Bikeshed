@@ -6,7 +6,7 @@
 # 4003-506 (with appropriate tweaking).
 #
 
-MODULES := applications/ boot/ kernel/lib/ kernel/ serial/ ulib/ kernel/video/
+MODULES := applications/ boot/ kernel/lib/ kernel/ serial/ ulib/ kernel/memory/ kernel/vm8086/ kernel/bios/ kernel/video/
 
 # That's right, there's no default support for newlines in Make.
 define NL
@@ -30,6 +30,7 @@ U_LIBS	= $(shell find $(MODULES) \( ! -regex '.*/\..*' \) -type f -name "*.ar")
 default:
 	$(MAKE) make_modules
 	$(MAKE) prog.b
+	$(MAKE) real.b
 
 # Build all of the submodules that we've defined.
 .PHONY: make_modules
@@ -70,11 +71,13 @@ prog.out: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o prog.out $(OBJECTS)
 
 prog.o:	$(OBJECTS) make_modules
-	$(LD) $(LDFLAGS) -o prog.o -Ttext 0x10000 $(OBJECTS) $(U_LIBS) $(U_LIBS)
+	$(LD) $(LDFLAGS) -o prog.o -Tkernel.ld $(OBJECTS) $(U_LIBS) $(U_LIBS)
 
 prog.b:	prog.o
-	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext 0x10000 prog.o
+	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Tlinker.ld prog.o
 
+real.b:	prog.o
+	$(LD) $(LDFLAGS) -o real.b -s --oformat binary -Treal.ld prog.o
 
 Offsets:	Offsets.c
 	$(CC) $(INCLUDES) -o Offsets Offsets.c
@@ -116,8 +119,6 @@ prog.dis: prog.o
 #       looking at the #include lines in the source files
 #
 
+.PHONY: depend
 depend:
-	makedepend $(INCLUDES) $(SOURCES)
-
-# DO NOT DELETE THIS LINE -- make depend depends on it.
-
+	$(foreach module, $(MODULES),$(MAKE) -C $(module) $@ $(NL))

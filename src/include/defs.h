@@ -15,6 +15,8 @@
 
 #include "headers.h"
 
+#define UNUSED(X) ((void)X)
+
 /*
 ** General (C and/or assembly) definitions
 */
@@ -36,6 +38,11 @@
 /*
 ** Types
 */
+typedef int int32;
+typedef unsigned int uint32;
+
+typedef char int8;
+typedef unsigned char uint8;
 
 /*
 ** Globals
