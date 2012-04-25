@@ -1,4 +1,4 @@
-#include "kmalloc2.h"
+#include "kmalloc.h"
 
 #include "../serial.h"
 
@@ -8,68 +8,68 @@
 #include "paging.h"
 #include "physical.h"
 
-typedef struct LinkedNode2
+typedef struct LinkedNode
 {
 	Uint32 size; // Size must be first! Also the size without the HEADER
-	struct LinkedNode2* next;
-	struct LinkedNode2* prev;
-} linked_node_t2;
+	struct LinkedNode* next;
+	struct LinkedNode* prev;
+} linked_node_t;
 
-#define HEADER_SIZE2 4
+#define HEADER_SIZE 4
 
-typedef struct Heap2
+typedef struct Heap
 {
 	void* start_address;
 	void* end_address;
 	void* max_address;
-	linked_node_t2* start_node;
-} heap_t2;
+	linked_node_t* start_node;
+} heap_t;
 
-heap_t2 kernel_heap2;
+heap_t kernel_heap;
 
 // 256MB of Kernel heap Space
 #define HEAP_START_LOCATION 0xD0000000
 #define HEAP_MAX_LOCATION   0xE0000000
 #define HEAP_INITIAL_PAGES  2
 
-void __kmem_init_kmalloc2()
+void __kmem_init_kmalloc()
 {
-	kernel_heap2.start_address = (void *)HEAP_START_LOCATION;
-	kernel_heap2.max_address   = (void *)HEAP_MAX_LOCATION;
+	kernel_heap.start_address = (void *)HEAP_START_LOCATION;
+	kernel_heap.max_address   = (void *)HEAP_MAX_LOCATION;
 
-	void* start_address = kernel_heap2.start_address;
+	void* start_address = kernel_heap.start_address;
 	for (Uint32 i = 0; i < HEAP_INITIAL_PAGES; ++i)
 	{
 		__virt_map_page(__phys_get_free_4k(), start_address, READ_WRITE | PRESENT);
 		start_address += 4096;
 	}
 
-	kernel_heap2.end_address = start_address;
-	kernel_heap2.start_node = (linked_node_t2 *)kernel_heap2.start_address;
+	kernel_heap.end_address = start_address;
+	kernel_heap.start_node = (linked_node_t *)kernel_heap.start_address;
 
-	kernel_heap2.start_node->size = HEAP_INITIAL_PAGES * 4096;// - HEADER_SIZE2;
-	kernel_heap2.start_node->next = 0;
-	kernel_heap2.start_node->prev = 0;
+	kernel_heap.start_node->size = HEAP_INITIAL_PAGES * 4096;
+	kernel_heap.start_node->next = 0;
+	kernel_heap.start_node->prev = 0;
 }
 
-void __kmalloc_info2(void)
+void __kmalloc_info(void)
 {
 	Uint32 node_number = 1;
-	linked_node_t2* node = kernel_heap2.start_node;
+	linked_node_t* node = kernel_heap.start_node;
 
 	while (node != 0)
 	{
 		serial_printf("Node Number: %d\n", node_number);
-		serial_printf("Node addr: %x\n", (Uint32)node);
+		serial_printf("Node addr: %x\n", (Uint3)node);
 		serial_printf("Node size: %d\n", node->size);
-		serial_printf("Node next: %x\n", (Uint32)node->next);
-		serial_printf("Node prev: %x\n\n", (Uint32)node->prev);
+		serial_printf("Node next: %x\n", (Uint3)node->next);
+		serial_printf("Node prev: %x\n\n", (Uint3)node->prev);
 		node = node->next;
 		++node_number;
 	}
 }
 
-void print_node_info(linked_node_t2* node)
+void print_node_info(linked_node_t* node)
 {
 	serial_printf("Node addr: %x\n", (Uint32)node);
 	serial_printf("Node size: %d\n", node->size);
@@ -77,7 +77,7 @@ void print_node_info(linked_node_t2* node)
 	serial_printf("Node prev: %x\n\n", (Uint32)node->prev);
 }
 
-void* __kmalloc2(Uint32 size)
+void* __kmalloc(Uint32 size)
 {
 	serial_string("Kmalloc\n");
 	serial_printf("Unmodded size: %d\n", size);
@@ -85,9 +85,9 @@ void* __kmalloc2(Uint32 size)
 	// less than sizeof(linked_node_t) bytes, otherwise we won't have
 	// room to store the linked list information when we add the chunk
 	// of memory back to the free list
-	if (size < sizeof(linked_node_t2))
+	if (size < sizeof(linked_node_t))
 	{
-		size = sizeof(linked_node_t2);
+		size = sizeof(linked_node_t);
 	}
 
 	// Make sure the size is aligned to a 4-byte boundary
@@ -97,11 +97,11 @@ void* __kmalloc2(Uint32 size)
 	}
 
 	// Add the header size to size, because we subtract that when returning the node
-	size += HEADER_SIZE2;
+	size += HEADER_SIZE;
 
 	// Find a node that will fit it
-	linked_node_t2* current_node = kernel_heap2.start_node;
-	while (current_node->next != 0 && current_node->size <= (size + sizeof(linked_node_t2))) // TODO re-think the size part
+	linked_node_t* current_node = kernel_heap.start_node;
+	while (current_node->next != 0 && current_node->size <= (size + sizeof(linked_node_t))) // TODO re-think the size part
 	{
 		current_node = current_node->next;
 	}
@@ -110,23 +110,23 @@ void* __kmalloc2(Uint32 size)
 	serial_printf("Size: %d\n", size);
 	// We can shorten this to
 	// if (current_node->size < size)
-	if (current_node->next == 0 && current_node->size < (size + sizeof(linked_node_t2)))
+	if (current_node->next == 0 && current_node->size < (size + sizeof(linked_node_t)))
 	{
 		// We couldn't find a node large enough, ask for more space!
 		// We need to allocate at least 1 page, but also include some fudge for the next
 		// header which will need to come after this as we're expanding the last node
-		Uint32 num_pages = (size - current_node->size + sizeof(linked_node_t2)) / 4096 + 1;
+		Uint32 num_pages = (size - current_node->size + sizeof(linked_node_t)) / 4096 + 1;
 		for (Uint32 i = 0; i < num_pages; ++i)
 		{
-			if (kernel_heap2.end_address > kernel_heap2.max_address)
+			if (kernel_heap.end_address > kernel_heap.max_address)
 			{
 				_kpanic("Kmalloc", "Heap has exceeded the set bounds!\n", 0);
 			}
 
 			serial_string("Alloc page\n");
 			// Allocate a page to the end of the heap
-			__virt_map_page(__phys_get_free_4k(), kernel_heap2.end_address, READ_WRITE | PRESENT);
-			kernel_heap2.end_address += 4096;
+			__virt_map_page(__phys_get_free_4k(), kernel_heap.end_address, READ_WRITE | PRESENT);
+			kernel_heap.end_address += 4096;
 		}
 
 		// Adjust current_node's size accordingly
@@ -134,7 +134,7 @@ void* __kmalloc2(Uint32 size)
 	}
 
 	// Okay we've found a good node
-	linked_node_t2* next_node = (linked_node_t2 *)((Uint32)current_node + size);	
+	linked_node_t* next_node = (linked_node_t *)((Uint32)current_node + size);	
 	// Setup next_node's size
 	next_node->size = (Uint32)current_node->size - size;
 
@@ -144,9 +144,9 @@ void* __kmalloc2(Uint32 size)
 	print_node_info(current_node);
 	
 	// Check if we're replacing the root node
-	if (current_node == kernel_heap2.start_node)
+	if (current_node == kernel_heap.start_node)
 	{
-		kernel_heap2.start_node = next_node;
+		kernel_heap.start_node = next_node;
 		next_node->prev = 0;
 		next_node->next = current_node->next;
 	} else {
@@ -171,31 +171,31 @@ void* __kmalloc2(Uint32 size)
 	current_node->prev = (void *)0xCAFEBABE;
 
 	serial_string("End Kmalloc\n");
-	return (void *)((Uint32)current_node + HEADER_SIZE2);
+	return (void *)((Uint32)current_node + HEADER_SIZE);
 }
 
-void* __kcalloc2(Uint32 size)
+void* __kcalloc(Uint32 size)
 {
-	void* address = __kmalloc2(size);
+	void* address = __kmalloc(size);
 	_kmemclr(address, size);
 
 	return address;
 }
 
-void __kfree2(void* address)
+void __kfree(void* address)
 {
 	serial_string("Kfree\n");
-	linked_node_t2* free_node = (linked_node_t2 *)((Uint32)address - HEADER_SIZE2);
+	linked_node_t* free_node = (linked_node_t *)((Uint32)address - HEADER_SIZE);
 
 	serial_printf("Free node->next: %x\n", free_node->next);
 	serial_printf("Free node->prev: %x\n", free_node->prev);
 
-	if (free_node->size > ((Uint32)kernel_heap2.end_address - (Uint32)kernel_heap2.start_address))
+	if (free_node->size > ((Uint32)kernel_heap.end_address - (Uint32)kernel_heap.start_address))
 	{
 		_kpanic("Kmalloc", "Bad size!\n", 0);
 	}
 
-	linked_node_t2* current_node = kernel_heap2.start_node;	
+	linked_node_t* current_node = kernel_heap.start_node;	
 	// Check to see if this free_node is before the current head of the free list
 	if (free_node < current_node)
 	{
@@ -203,22 +203,22 @@ void __kfree2(void* address)
 		if (((Uint32)free_node + free_node->size) == (Uint32)current_node)
 		{
 			serial_string("Combining free_node with start_node\n");
-			free_node->size += kernel_heap2.start_node->size;
-			free_node->next = kernel_heap2.start_node->next;
+			free_node->size += kernel_heap.start_node->size;
+			free_node->next = kernel_heap.start_node->next;
 			free_node->prev = 0;
 
-			if (kernel_heap2.start_node->next != 0)
+			if (kernel_heap.start_node->next != 0)
 			{
-				kernel_heap2.start_node->next->prev = free_node;
+				kernel_heap.start_node->next->prev = free_node;
 			}
 		} else {
 			// We can't combine the free_node with start_node so we have to replace it
-			free_node->next = kernel_heap2.start_node;
+			free_node->next = kernel_heap.start_node;
 			free_node->prev = 0;
-			kernel_heap2.start_node->prev = free_node;
+			kernel_heap.start_node->prev = free_node;
 		}
 
-		kernel_heap2.start_node = free_node;
+		kernel_heap.start_node = free_node;
 		serial_string("End Kfree\n");
 		return; // We've found a place for the free_node
 	}
@@ -248,9 +248,9 @@ void __kfree2(void* address)
 	current_node->prev = free_node;
 
 	// These should all point to the correct places now
-	linked_node_t2* prev_node   = free_node->prev;
-	linked_node_t2* middle_node = free_node;
-	linked_node_t2* last_node   = free_node->next;
+	linked_node_t* prev_node   = free_node->prev;
+	linked_node_t* middle_node = free_node;
+	linked_node_t* last_node   = free_node->next;
 
 	// Check if the previous node can be combined with free_node
 	if (((Uint32)prev_node + prev_node->size) == (Uint32)middle_node)
