@@ -12,6 +12,10 @@
  */
 void __kmem_init_kmalloc(void);
 
+/* Run some tests to verify that kmalloc works
+ */
+void __kmem_kmalloc_tests(Uint32 test_size);
+
 /* Allocate some memory off the heap and return a virtual
  * address to be used for whatever purpose.
  *
