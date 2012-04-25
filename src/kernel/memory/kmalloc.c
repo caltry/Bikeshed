@@ -64,6 +64,24 @@ void __kmem_init_kmalloc()
 	c_puts("Kmalloc Initialized\n");
 }
 
+void __kmalloc_info(void)
+{
+	serial_string("Current kernel heap layout:\n");
+	Uint32 node_number = 1;
+	linked_node_t* node = kernel_heap.start_node;
+
+	while (node != 0)
+	{
+		serial_printf("Node Number: %d\n", node_number);
+		serial_printf("Node addr: %x\n", (Uint32)node);
+		serial_printf("Node size: %d\n", node->size);
+		serial_printf("Node next: %x\n", (Uint32)node->next);
+		serial_printf("Node prev: %x\n\n", (Uint32)node->prev);
+		node = node->next;
+		++node_number;
+	}
+}
+
 void* __kmalloc(uint32 size)
 {
 	serial_string("----Allocating----\n");
@@ -149,11 +167,11 @@ void* __kmalloc(uint32 size)
 		next_node->next = current_node->next;
 		next_node->prev = current_node->prev;
 		current_node->prev->next = next_node;
+	}
 
-		if (current_node->next != 0)
-		{
-			current_node->next->prev = next_node;
-		}
+	if (current_node->next != 0)
+	{
+		current_node->next->prev = next_node;
 	}
 
 	// Setup next_node's size
@@ -215,6 +233,12 @@ void __kfree(void* address)
 			free_node->size += current_node->size + HEADER_SIZE;
 			free_node->next = current_node->next;
 			free_node->prev = 0;
+
+			/* Fix current_node */
+			if (current_node->next != 0)
+			{
+				current_node->next->prev = free_node;
+			}
 		} else {
 			serial_string("Can't combine free_node and start_node\n");
 			// We need to replace the head
@@ -228,9 +252,18 @@ void __kfree(void* address)
 		return;
 	}
 
+	// Check for cycles
+	linked_node_t* cycle_detection = 0;
 	// We aren't replacing the head, find the correct position in the list
 	while (current_node->next != 0 && current_node < free_node)
 	{
+		cycle_detection = current_node;
+		/*serial_printf("\tNode addr: %x\n", (Uint32)cycle_detection);
+		serial_printf("\tNode size: %d\n", cycle_detection->size);
+		serial_printf("\tNode next: %x\n", (Uint32)cycle_detection->next);
+		serial_printf("\tNode prev: %x\n\n", (Uint32)cycle_detection->prev);*/
+		serial_string(".");
+
 		current_node = current_node->next;
 	}
 
@@ -248,7 +281,7 @@ void __kfree(void* address)
 		free_node->next = current_node;
 		current_node->prev = free_node;
 	} else {
-		// TODO we'll never be freeing from behind the tail...
+		// TODO we'll never be freeing from after the tail... there's always a last node
 		serial_string("free node after tail\n");
 		// Check if we ended up at the tail
 		_kpanic("Kmalloc", "A free after the tail...impossible condition!\n", 0);

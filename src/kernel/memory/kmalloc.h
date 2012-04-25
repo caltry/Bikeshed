@@ -57,6 +57,10 @@ void* __kmalloc(uint32 size);
  */
 void* __kcalloc(uint32 size);
 
+/* Print some info about the status of the kernel heap
+ */
+void __kmalloc_info(void);
+
 /* Free a block of memory allocated by kmalloc(). There 
  * are no safe guards against bad blocks being passed 
  * into free() and will corrupt the heap if done.
