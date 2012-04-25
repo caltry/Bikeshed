@@ -265,38 +265,7 @@ void _init( void ) {
 	__phys_initialize_bitmap();
 	__virt_initialize_paging();
 
-/*	__kmem_init_kmalloc();*/
-
-
-	// Copy the real mode code to 0x3000
-	Uint32 length = ((Uint32)(&__end_real - &__start_real)) * sizeof(Uint32) * 32;
-	
-	c_printf("Real mode code len: %x\n", length);
-	for (Uint32 load_pos = 0; load_pos < length; load_pos += 4096) {
-		c_printf("mapping %x\n", 0x400000 + load_pos);
-		__virt_map_page((void *)(0x400000 + load_pos),
-			(void *)(0x400000 + load_pos), READ_WRITE | PRESENT);
-	}
-	
-	_kmemcpy(&__start_real, (void *)0x400000, length * sizeof(char));
-	
-	/*for (Uint32 load_pos = 0; load_pos < length; load_pos += 4096) {
-		__virt_unmap_page((void *)(0x400000 + load_pos));
-	}*/
-
-	typedef void (*func)(void);
-	
-	void *ptr = (void *)((Uint32)0x3000);
-	func vesa = (func)ptr;
-
-
-	//vesa();
-
-
-	vesa_test();
-
-	asm("cli");
-	asm("hlt");
+	__kmem_init_kmalloc();
 
 	/*
 	** Create the initial process
