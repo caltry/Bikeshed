@@ -8,11 +8,11 @@ SECTIONS {
 		real = .;
 		__start_real = ABSOLUTE(.);
 
-		kernel/bios/bios.o(.text)
-		kernel/bios/bios.o(.rodata)
-		kernel/bios/bios.o(.data)
-		kernel/bios/bios.o(COMMON)
-		kernel/bios/bios.o(.bss)
+		kernel/bios/realmode.o(.text)
+		kernel/bios/realmode.o(.rodata)
+		kernel/bios/realmode.o(.data)
+		kernel/bios/realmode.o(COMMON)
+		kernel/bios/realmode.o(.bss)
 
 		__end_real = ABSOLUTE(.);
 	}
