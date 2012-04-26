@@ -16,7 +16,7 @@
 */
 
 // Where the real mode bios code was loaded by the boot loader
-#define	REAL_LOAD_ADDRESS		0x400000
+#define	REAL_LOAD_ADDRESS		0x200000
 
 #ifndef __ASM__20113__
 
