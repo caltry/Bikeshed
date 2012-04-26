@@ -12,6 +12,12 @@
  */
 void __kmem_init_kmalloc(void);
 
+/* Run some tests to verify that kmalloc works
+ */
+void __kmem_kmalloc_tests(Uint32 test_size);
+
+void __kmem_kmalloc_tests_2(Uint32 test_size);
+
 /* Allocate some memory off the heap and return a virtual
  * address to be used for whatever purpose.
  *
@@ -50,12 +56,16 @@ void __kmem_init_kmalloc(void);
  * to the end of the heap. If this causes the heap to go beyond
  * the maximum heap size a kernel panic happens.
  */
-void* __kmalloc(uint32 size);
+void* __kmalloc(Uint32 size);
 
 /* Same as kmalloc, except zeros the memory before returning
  * a pointer to the memory
  */
-void* __kcalloc(uint32 size);
+void* __kcalloc(Uint32 size);
+
+/* Print some info about the status of the kernel heap
+ */
+void __kmalloc_info(void);
 
 /* Free a block of memory allocated by kmalloc(). There 
  * are no safe guards against bad blocks being passed 
@@ -69,6 +79,6 @@ void* __kcalloc(uint32 size);
  * is made. This is done in order to keep the fragmentation of
  * the heap down.
  */
-void __kfree(void *);
+void __kfree(void *address);
 
 #endif

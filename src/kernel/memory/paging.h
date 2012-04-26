@@ -14,6 +14,8 @@ typedef struct Page
 	Uint32 frame 		: 20;
 } page_t;
 */
+#define PAGE_SIZE 4096
+
 #define PRESENT 	0x1
 #define READ_WRITE 	0x2
 #define USER 		0x4

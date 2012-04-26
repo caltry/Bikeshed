@@ -59,16 +59,16 @@ void __virt_initialize_paging()
 	for (; i < 256; ++i)
 	{
 		first_table->pages[i].value = address | 3;
-		address += 4096;
+		address += PAGE_SIZE;
 	}
 
 	// Map the kernel
-	Uint32 pages = KERNEL_SIZE / 4096;
-	Uint32 page_dir_index = KERNEL_LINK_ADDR / (4096 * 1024);
-	Uint32 page_dir_end_index = (KERNEL_LINK_ADDR + KERNEL_SIZE) / (4096 * 1024);
+	Uint32 pages = KERNEL_SIZE / PAGE_SIZE;
+	Uint32 page_dir_index = KERNEL_LINK_ADDR / (PAGE_SIZE * 1024);
+	Uint32 page_dir_end_index = (KERNEL_LINK_ADDR + KERNEL_SIZE) / (PAGE_SIZE * 1024);
 
-	Uint32 page_table_start = (KERNEL_LINK_ADDR >> 12) % 4096;
-	Uint32 page_table_end = ((KERNEL_LINK_ADDR + KERNEL_SIZE) >> 12) % 4096;
+	Uint32 page_table_start = (KERNEL_LINK_ADDR >> 12) % PAGE_SIZE;
+	Uint32 page_table_end = ((KERNEL_LINK_ADDR + KERNEL_SIZE) >> 12) % PAGE_SIZE;
 
 	serial_printf("Kernel pages: %d\n", (ul)pages);
 	serial_printf("Kernel page_dir_index: %d\n", (ul)page_dir_index);
@@ -86,7 +86,7 @@ void __virt_initialize_paging()
 		for (; i < page_table_end+1; ++i)
 		{
 			kernel_table->pages[i].value = address | 3;
-			address += 4096;
+			address += PAGE_SIZE;
 		}
 
 		__virt_kpage_directory->ptables[page_dir_index] = (Uint32)kernel_table | 3;
@@ -95,7 +95,7 @@ void __virt_initialize_paging()
 		for (; i < page_table_end; ++i)
 		{
 			first_table->pages[i].value = address | 3;
-			address += 4096;
+			address += PAGE_SIZE;
 		}
 
 		__phys_unset_bit((void *)kernel_table);
@@ -124,10 +124,10 @@ void __virt_initialize_paging()
 
 void* __virt_get_phys_addr(void *virtual_addr)
 {
-	Uint32 page_dir_index = (uint32)virtual_addr >> 22;
-	Uint32 page_tbl_index = (uint32)virtual_addr >> 12 & 0x03FF;
+	Uint32 page_dir_index = (Uint32)virtual_addr >> 22;
+	Uint32 page_tbl_index = (Uint32)virtual_addr >> 12 & 0x03FF;
 
-	Uint32 *pd = (uint32 *)0xFFFFF000;
+	Uint32 *pd = (Uint32 *)0xFFFFF000;
 
 	// TODO Check whether or not the page directory is present
 	if ((pd[page_dir_index] & PRESENT) > 0)
@@ -136,7 +136,7 @@ void* __virt_get_phys_addr(void *virtual_addr)
 	}
 	
 
-	Uint32 *pt = ((uint32*)0xFFC00000) + (0x400 * page_dir_index);
+	Uint32 *pt = ((Uint32*)0xFFC00000) + (0x400 * page_dir_index);
 	// TODO Here check whether the PT is present
 	
 	return (void *)((pt[page_tbl_index] & ~0xFFF) + ((Uint32)virtual_addr & 0xFFF));
@@ -144,10 +144,10 @@ void* __virt_get_phys_addr(void *virtual_addr)
 
 void __virt_unmap_page(void *virtual_addr)
 {
-	Uint32 page_dir_index = (uint32)virtual_addr >> 22;
-	Uint32 page_tbl_index = (uint32)virtual_addr >> 12 & 0x03FF;
+	Uint32 page_dir_index = (Uint32)virtual_addr >> 22;
+	Uint32 page_tbl_index = (Uint32)virtual_addr >> 12 & 0x03FF;
 
-	Uint32 *pd = (uint32 *)0xFFFFF000;
+	Uint32 *pd = (Uint32 *)0xFFFFF000;
 	
 	// Here check if the PD entry is present
 	// When it's not present, we're done
@@ -156,7 +156,7 @@ void __virt_unmap_page(void *virtual_addr)
 		return;
 	}
 
-	Uint32 *pt = ((uint32 *)0xFFC00000) + (0x400 * page_dir_index);
+	Uint32 *pt = ((Uint32 *)0xFFC00000) + (0x400 * page_dir_index);
 	// Here need to check whether the PT entry is present
 	// When it is, then we need to unmap it
 	if ((pt[page_tbl_index] & PRESENT) > 0)
@@ -194,44 +194,57 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
 {
 	// Make sure both addresses are page aligned
 	
-	Uint32 page_dir_index = (uint32)virtual_addr >> 22;
-	Uint32 page_tbl_index = (uint32)virtual_addr >> 12 & 0x03FF;
+	Uint32 page_dir_index = (Uint32)virtual_addr >> 22;
+	Uint32 page_tbl_index = (Uint32)virtual_addr >> 12 & 0x03FF;
 
-	Uint32 *pd = (uint32 *)0xFFFFF000;
-
+	Uint32 *pd = (Uint32 *)0xFFFFF000;
+/*
 	serial_string("Mapping page 1/4\n");
-	serial_printf("Phys: %x\n", (Uint32)physical_addr);
-	serial_printf("Virt: %x\n", (Uint32)virtual_addr);
-	serial_printf("Dir Index: %d\n", page_dir_index);
-	serial_printf("Tbl Index: %d\n", page_tbl_index);
 
+	*/
 	// Here check if the PD entry is present
 	// When it's not present, create a new empty PT and adjust the PDE accordingly
-	serial_printf("Page dir value: %x\n", pd[page_dir_index]);
-	Uint32 *pt = ((uint32 *)0xFFC00000) + (0x400 * page_dir_index); 
+	//serial_printf("Page dir value: %x\n", pd[page_dir_index]);
+	Uint32 *pt = ((Uint32 *)0xFFC00000) + (0x400 * page_dir_index); 
 	if ((pd[page_dir_index] & PRESENT) == 0)
 	{
 		serial_string("Page directory entry not present!\n");		
 		pd[page_dir_index] = (Uint32)__phys_get_free_4k();
 		pd[page_dir_index] |= READ_WRITE | PRESENT;
-		serial_printf("Page dir value 2: %x\n", (Uint32)pd[page_dir_index]);
-		serial_printf("Page dir addr  3: %x\n", (Uint32)&pd[page_dir_index]);
-		_kmemset(pt, 0, sizeof(page_table_t));
+	//	serial_printf("Page dir value 2: %x\n", (Uint32)pd[page_dir_index]);
+	//	serial_printf("Page dir addr  3: %x\n", (Uint32)&pd[page_dir_index]);
+		//_kmemset(pt, 0, sizeof(page_table_t));
+		_kmemclr(pt, PAGE_SIZE);
 	}
 	
-	serial_string("Mapping page 2/4\n");
+	//serial_string("Mapping page 2/4\n");
 	// Here need to check whether the PT entry is present
 	// When it is, then there is already a mapping present, what do you do?
 	if ((pt[page_tbl_index] & PRESENT) > 0)
 	{
 		// Uh-oh... This shouldn't happen!
+		serial_printf("Phys: %x\n", (Uint32)physical_addr);
+		serial_printf("Virt: %x\n", (Uint32)virtual_addr);
+		serial_printf("Dir Index: %d\n", page_dir_index);
+		serial_printf("Tbl Index: %d\n", page_tbl_index);
+		/*serial_printf("Value: %x\n", pt[page_tbl_index-1]);
+		serial_printf("Value: %x\n", pt[page_tbl_index-2]);
+		serial_printf("Value: %x\n", pt[page_tbl_index]);
+		serial_printf("Value: %x\n", pt[page_tbl_index+1]);
+		serial_printf("Value: %x\n", pt[page_tbl_index+2]);
+		*/
+		for (int i = 0; i < 1024; ++i)
+		{
+			serial_printf("i: %d - ", i);
+			serial_printf("Value: %x\n", pt[i]);
+		}
 		_kpanic("Paging", "A page has already been mapped here!\n", 0);
 	}
 	
-	serial_string("Mapping page 3/4\n");
+	//serial_string("Mapping page 3/4\n");
 	pt[page_tbl_index] = ((Uint32)physical_addr) | (flags & 0xFFF) | PRESENT; // Present
 
-	serial_string("Mapping page 4/4\n");
+	//serial_string("Mapping page 4/4\n");
 	// Now you need to flush the entry in the TBL
 	// or you might not notice the change
 	// Is this the virtual address or the physical address?
@@ -268,8 +281,9 @@ void _isr_page_fault(int vector, int code)
 	serial_printf("Address: %X\n", cr2);
 	serial_printf("Page Directory Entry: %d\n", (cr2 >> 22));
 	serial_printf("Page Table Entry:     %d\n", (cr2 >> 12) & 0x3FF);
-	c_printf("Address: %X\n", cr2);
-	c_printf("Page Directory Entry: %d\n", (cr2 >> 2));
+	c_printf("Address: 0x%x\n", cr2);
+	c_printf("Offender: 0x%x\n", _current->context->eip);
+	c_printf("Page Directory Entry: %d\n", (cr2 >> 22));
 	c_printf("Page Table Entry: %d\n", (cr2 >> 12) & 0x3FF);
 	c_printf("%s\n", page_table_errors[code & 0x7]);
 

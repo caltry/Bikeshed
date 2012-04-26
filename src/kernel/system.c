@@ -21,6 +21,7 @@
 #include "syscalls.h"
 #include "sio.h"
 #include "scheduler.h"
+#include "semaphores.h"
 
 // TODO XXX ADDED REMOVE
 #include "bootstrap.h"
@@ -34,6 +35,10 @@
 
 // need the exit() prototype
 #include "ulib.h"
+
+extern void vesa_test(void);
+extern void * __start_real;
+extern void * __end_real;
 
 /*
 ** PUBLIC FUNCTIONS
@@ -228,6 +233,7 @@ void _init( void ) {
 	_sio_init();
 	_syscall_init();
 	_sched_init();
+	_sem_init();
 	_clock_init();
 
 	c_puts( "\n" );
@@ -260,14 +266,6 @@ void _init( void ) {
 	__virt_initialize_paging();
 
 	__kmem_init_kmalloc();
-
-
-	/*
-	** Initialize the bios module
-	*/
-
-	_bios_init();
-
 
 	/*
 	** Create the initial process
