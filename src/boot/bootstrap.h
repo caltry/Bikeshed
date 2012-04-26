@@ -33,6 +33,8 @@
 #define GDT_CODE_16		0x0028
 #define GDT_DATA_16		0x0030
 #define GDT_STACK_16	0x0038
+#define GDT_DATA_16_2	0x0040
+#define GDT_STACK_16_2	0X0048
 
 /*
  * ** The Interrupt Descriptor Table (0000:2500 - 0000:2D00)
