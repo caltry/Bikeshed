@@ -799,6 +799,22 @@ stack_seg_16: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
 	.byte 0x00
 	.byte 0x00
 
+data_seg_16_2: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
+	.word 0xFFFF
+	.word 0x0000
+	.byte 0x00
+	.byte 0x92
+	.byte 0x00
+	.byte 0x00
+
+stack_seg_16_2: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
+	.word 0xFFFF
+	.word 0x0000
+	.byte 0x00
+	.byte 0x92
+	.byte 0x00
+	.byte 0x00
+
 end_gdt:
 gdt_len = end_gdt - start_gdt
 
