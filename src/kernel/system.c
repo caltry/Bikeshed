@@ -28,6 +28,7 @@
 #include "memory/physical.h"
 #include "memory/paging.h"
 #include "memory/kmalloc.h"
+#include "pci/pci.h"
 #include "serial.h"
 
 // need init() address
@@ -266,6 +267,8 @@ void _init( void ) {
 	__virt_initialize_paging();
 
 	__kmem_init_kmalloc();
+
+	//__pci_dump_all_devices();
 
 	/*
 	** Create the initial process
