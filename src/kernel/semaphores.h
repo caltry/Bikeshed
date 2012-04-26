@@ -65,7 +65,7 @@ Sem _sem_new( void );
 
 Status _sem_destroy( Sem sem );
 
-Uint32 _sem_get_value( Sem sem );
+Status _sem_try_wait( Sem sem );
 
 Status _sem_post( Sem sem );
 
