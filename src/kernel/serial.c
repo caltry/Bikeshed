@@ -34,29 +34,6 @@ void serial_string(const char *out)
 	}
 }
 
-static const char digits [] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-static void ui2a(unsigned int num, unsigned int base, int uc)
-{
-	int n = 0;
-	unsigned int d = 1;
-	while ((num / d) >= base)
-	{
-		d *= base;
-	}
-
-	while (d != 0) 
-	{
-		int dgt = num / d;
-		num %= d;
-		d /= base;
-		if (n || dgt > 0 || d == 0) {
-			serial_char(dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10));
-			++n;
-		}
-	}
-}
-
 static char* cvtdec0( char *buf, int value ){
 	int	quotient;
 
@@ -189,8 +166,6 @@ static void __serial_printf(char **f)
 	int	width;
 	int	len;
 	int	padchar;
-	int x = 0;
-	int y = 0;
 	
 	/*
 	** Get characters from the format string and process them
@@ -233,31 +208,31 @@ static void __serial_printf(char **f)
 				ch = *ap++;
 				buf[ 0 ] = ch;
 				buf[ 1 ] = '\0';
-				x = padstr(buf, 1, width, leftadjust, padchar );
+				padstr(buf, 1, width, leftadjust, padchar );
 				break;
 
 			case 'd':
 				// len = cvtdec( buf, *( (int *)ap )++ );
 				len = cvtdec( buf, *ap++ );
-				x = padstr(buf, len, width, leftadjust, padchar );
+				padstr(buf, len, width, leftadjust, padchar );
 				break;
 
 			case 's':
 				// str = *( (char **)ap )++;
 				str = (char *) (*ap++);
-				x = padstr(str, -1, width, leftadjust, padchar );
+				padstr(str, -1, width, leftadjust, padchar );
 				break;
 
 			case 'x':
 				// len = cvthex( buf, *( (int *)ap )++ );
 				len = cvthex( buf, *ap++ );
-				x = padstr(buf, len, width, leftadjust, padchar );
+				padstr(buf, len, width, leftadjust, padchar );
 				break;
 
 			case 'o':
 				// len = cvtoct( buf, *( (int *)ap )++ );
 				len = cvtoct( buf, *ap++ );
-				x = padstr(buf, len, width, leftadjust, padchar );
+				padstr(buf, len, width, leftadjust, padchar );
 				break;
 
 			}
