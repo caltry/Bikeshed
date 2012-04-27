@@ -84,9 +84,7 @@ void __pci_dump_all_devices()
 
 void __pci_dump_device(Uint8 bus, Uint8 slot, Uint8 func)
 {
-	serial_printf("pci 0000:%d:", bus);
-	serial_printf("%d:", slot);
-	serial_printf(".%d config space:\n", func);
+	serial_printf("pci 0000:%d:%d.%d", bus, slot, func);
 
 	for (Int32 i = 0; i < 256; i += 4)
 	{
