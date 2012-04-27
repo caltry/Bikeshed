@@ -37,9 +37,7 @@
 // need the exit() prototype
 #include "ulib.h"
 
-extern void vesa_test(void);
-extern void * __start_real;
-extern void * __end_real;
+#include "bios.h"
 
 /*
 ** PUBLIC FUNCTIONS
