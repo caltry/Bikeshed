@@ -36,9 +36,7 @@
 // need the exit() prototype
 #include "ulib.h"
 
-extern void vesa_test(void);
-extern void * __start_real;
-extern void * __end_real;
+#include "bios.h"
 
 /*
 ** PUBLIC FUNCTIONS
@@ -266,6 +264,13 @@ void _init( void ) {
 	__virt_initialize_paging();
 
 	__kmem_init_kmalloc();
+
+
+	/*
+	** Initialize the bios module
+	*/
+
+	_bios_init();
 
 	/*
 	** Create the initial process

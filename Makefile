@@ -10,7 +10,7 @@ FANCYCAT   = build/FancyCat
 
 usb.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE) $(FANCYCAT)
 	$(BUILDIMAGE) -d usb -o build.image -b src/boot/bootstrap.b dummy 0x10000
-	$(FANCYCAT) 0x100000 src/prog.b 0x400000 src/real.b
+	$(FANCYCAT) 0x100000 src/prog.b 0x200000 src/real.b
 	/bin/cat build.image image.dat > usb.image
 
 floppy.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE) $(FANCYCAT)

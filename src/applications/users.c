@@ -67,6 +67,7 @@ void user_s( void ); void user_t( void ); void user_u( void );
 void user_v( void ); void user_w( void ); void user_x( void );
 void user_y( void ); void user_z( void ); void user_sem_test( void );
 void user_sem_test_read( void ); void user_sem_test_destroy( void );
+void user_sem_test_try_wait( void );
 
 /*
 ** Users A, B, and C are identical, except for the character they
@@ -836,6 +837,8 @@ void user_sem_test_read( void ) {
 
 
 
+
+
 void user_sem_test_destroy( void ) {
 	Status status;
 	Pid pid;
@@ -853,7 +856,6 @@ void user_sem_test_destroy( void ) {
 	} else {
 		if(pid > 0) {
 			c_printf("Sem destroy id (Parent) = %d\n", sem);
-			int ch;
 			//in parent
 
 			//fork again to make another child
@@ -888,6 +890,47 @@ void user_sem_test_destroy( void ) {
 			c_puts( "User sem_test_destroy (ChildA) waiting\n" );
 			status = sem_wait(sem);
 			prt_status( "User sem_test_destroy (ChildA) sem_wait status %s THIS IS GOOD!\n", status );
+		}
+	}
+}
+
+void user_sem_test_try_wait( void ) {
+	Status status;
+	Pid pid;
+	Sem sem;
+
+	c_puts( "User Sem Test try_wait running\n" );
+	status = sem_init(&sem);
+	prt_status( "User sem_test_try_wait sem_init status %s\n", status );
+	c_printf("Sem try_wait id = %d\n", sem);
+	sem_post(sem);
+
+	status = fork(&pid);
+	if (status != SUCCESS)
+	{
+		prt_status( "User sem_test_try_wait fork FAILED %s GOODBYE!\n", status );
+	} else {
+		if(pid > 0) {
+			c_printf("Sem try_wait id (Parent) = %d\n", sem);
+			//in parent
+
+		} else {
+			c_printf("Sem try_wait id (child) = %d\n", sem);
+			//in child
+			status = sem_try_wait(sem);
+			if (status == SUCCESS) {
+				prt_status( "User sem_test_try_wait (Child) sem_wait status %s THIS IS GOOD!\n", status );
+			} else {
+				prt_status( "User sem_test_try_wait (Child) sem_wait FAILED %s THIS IS BAD! GOODBYE!\n", status );
+				return;
+			}
+
+			status = sem_try_wait(sem);
+			if (status == FAILURE) {
+				prt_status( "User sem_test_try_wait (Child) sem_wait status %s THIS IS GOOD!\n", status );
+			} else {
+				prt_status( "User sem_test_try_wait (Child) sem_wait status %s THIS IS BAD!\n", status );
+			}
 		}
 	}
 }
@@ -1077,6 +1120,13 @@ void init( void ) {
 	status = spawn( &pid, user_sem_test_destroy );
 	if( status != SUCCESS ) {
 		prt_status( "init: can't spawn() user sem_test_destroy, status %s\n", status );
+	}
+#endif
+
+#ifdef SPAWN_SEM_TEST_TRY_WAIT
+	status = spawn( &pid, user_sem_test_try_wait );
+	if( status != SUCCESS ) {
+		prt_status( "init: can't spawn() user sem_test_try_wait, status %s\n", status );
 	}
 #endif
 
