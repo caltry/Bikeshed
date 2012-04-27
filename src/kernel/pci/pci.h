@@ -13,6 +13,9 @@
 // The format of CONFIG_ADDRESS is the following:
 // bus << 16  |  device << 11  |  function <<  8  |  offset
 
+// 31 	        30 - 24 	23 - 16 	15 - 11 	    10 - 8 	            7 - 2 	            1 - 0 
+// Enable Bit 	Reserved 	Bus Number 	Device Number 	Function Number 	Register Number 	00 
+
 // Useful wiki
 // http://en.wikipedia.org/wiki/Input/Output_Base_Address
 
