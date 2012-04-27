@@ -10,31 +10,129 @@
 #define __ASM__20113__
 
 #include "bootstrap.h"
-#include "vesa.h"
+
 
 
 	.text
 	.code32
-	.globl call_bios
-call_bios:
+	.globl _bios_call
+
+	/*
+	** Function parameters
+	*/
+	INT			= 8
+	REGISTERS	= 12
+
+	/*
+	** Registers struct
+	*/
+	DI = 0
+	SI = 2
+	BX = 4
+	DX = 6
+	CX = 8
+	AX = 10
+
+	/* Start of the registers struct on the real mode stack */
+	REAL_REGS = (REAL_STACK + 2)
+
+	/* Real mode stack stack pointer after pushing parameters */
+	REAL_SP = (REAL_STACK + 10)
+
+_bios_call:
+	enter	$0, $0
 	pushal
+
+	/*
+	** Copy the parameters to the real mode stack
+	*/
+	movl	REGISTERS(%ebp), %esi
+
+	movw	DI(%esi), %bx
+	movw	%bx, (REAL_REGS + DI)
+	movw	SI(%esi), %cx
+	movw	%cx, (REAL_REGS + SI)
+	movw	BX(%esi), %ax
+	movw	%ax, (REAL_REGS + BX)
+	movw	DX(%esi), %bx
+	movw	%bx, (REAL_REGS + DX)
+	movw	CX(%esi), %cx
+	movw	%cx, (REAL_REGS + CX)
+	movw	AX(%esi), %ax
+	movw	%ax, (REAL_REGS + AX)
+
+	/*
+	** Patch the interrupt code (below) to the desired interrupt
+	*/
+	movw	INT(%ebp), %ax
+	movb	%al, _int_number
+
 
 	call 	switch_to_real_mode
 	.code16
 
-	/* TODO */
+
+	/* Move ESP to the top of the copied parameters */
+	movw	$REAL_SP, %sp
+
+	/* Load the registers from the stack */
+	xorl	%edi, %edi
+	movw	(REAL_REGS + DI), %di
+	xorl	%esi, %esi
+	movw	(REAL_REGS + SI), %si
+	xorl	%ebx, %ebx
+	movw	(REAL_REGS + BX), %bx
+	xorl	%edx, %edx
+	movw	(REAL_REGS + DX), %dx
+	xorl	%ecx, %ecx
+	movw	(REAL_REGS + CX), %cx
+	xorl	%eax, %eax
+	movw	(REAL_REGS + AX), %ax
+
+	/* Call the desired interrupt (patched from above) */
+	.byte	0xcd
+_int_number:
+	.byte	0
+
+	/* Save the registers after the bios call */
+	movw	%di, (REAL_REGS + DI)
+	movw	%si, (REAL_REGS + SI)
+	movw	%bx, (REAL_REGS + BX)
+	movw	%dx, (REAL_REGS + DX)
+	movw	%cx, (REAL_REGS + CX)
+	movw	%ax, (REAL_REGS + AX)
+
 
 	call	switch_to_protected_mode
 	.code32
 
-	popal
-	ret
 
+	/* Move the saved registers to the return struct */
+	movl	REGISTERS(%ebp), %esi
+
+	movw	(REAL_REGS + DI), %bx
+	movw	%bx, DI(%esi)
+	movw	(REAL_REGS + SI), %cx
+	movw	%cx, SI(%esi)
+	movw	(REAL_REGS + BX), %ax
+	movw	%ax, BX(%esi)
+	movw	(REAL_REGS + DX), %bx
+	movw	%bx, DX(%esi)
+	movw	(REAL_REGS + CX), %cx
+	movw	%cx, CX(%esi)
+	movw	(REAL_REGS + AX), %ax
+	movw	%ax, AX(%esi)
+	
+
+	popal
+	leave
+	ret
 
 
 /*
 ** Switches from protected mode to real mode
 */
+	.text
 	.code32
 	.globl switch_to_real_mode
 switch_to_real_mode:
