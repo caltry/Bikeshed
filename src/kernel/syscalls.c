@@ -582,15 +582,10 @@ static void _sys_sem_wait( Pcb *pcb ) {
 }
 
 /*
-** _sys_sem_try_wait - Attempts to decrement a semaphore. If it can't then it returns false.
+** _sys_sem_try_wait - Attempts to decrement a semaphore. If it can't then it returns FAILURE
 */
 static void _sys_sem_try_wait( Pcb *pcb ) {
-	Sem sem = ((Sem) ARG(pcb)[1]);
-	if(_sem_get_value(sem) > 0) {
-		RET(pcb) = SUCCESS;
-	} else {
-		RET(pcb) = FAILURE;
-	}
+	RET(pcb) = _sem_try_wait((Sem) ARG(pcb)[1]);
 }
 
 

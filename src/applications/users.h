@@ -69,6 +69,7 @@
 #define	SPAWN_SEM_TEST
 #define	SPAWN_SEM_TEST_READ
 #define SPAWN_SEM_TEST_DESTROY
+#define SPAWN_SEM_TEST_TRY_WAIT
 
 /*
 ** Users W-Z are spawned from other processes; they
