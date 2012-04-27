@@ -8,6 +8,9 @@
 #include "paging.h"
 #include "physical.h"
 
+#define serial_string(...) 
+#define serial_printf(...)
+
 typedef struct LinkedNode
 {
 	Uint32 size; // Size must be first! Also the size without the HEADER
@@ -71,6 +74,7 @@ void __kmalloc_info(void)
 
 void print_node_info(linked_node_t* node)
 {
+	UNUSED(node); // Cheat for when we 'remove' the print statements
 	serial_printf("Node addr: %x\n", node);
 	serial_printf("Node size: %d\n", node->size);
 	serial_printf("Node next: %x\n", node->next);
@@ -183,6 +187,12 @@ void* __kcalloc(Uint32 size)
 
 void __kfree(void* address)
 {
+	// Do nothing if we've been given a bad value
+	if (address < kernel_heap.start_address || address > kernel_heap.end_address)
+	{
+		return;
+	}
+
 	serial_string("Kfree\n");
 	linked_node_t* free_node = (linked_node_t *)((Uint32)address - HEADER_SIZE);
 

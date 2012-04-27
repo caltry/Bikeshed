@@ -226,6 +226,20 @@ void _init( void ) {
 
 	c_puts( "Module init: " );
 
+	/* Setup virtual memory
+	 */
+	c_printf("System end: %x\n", (Uint32)&KERNEL_END);
+	c_printf("Memory 1M-16M: %x\n", *((Uint16*)MMAP_EXT_LO));
+	c_printf("Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_EXT_HI));
+	c_printf("CFG Memory 1M-16M: %x\n", *((Uint16*)MMAP_CFG_LO));
+	c_printf("CFG Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_CFG_HI));
+	__phys_initialize_bitmap();
+	__virt_initialize_paging();
+
+	__kmem_init_kmalloc();
+
+	//__pci_dump_all_devices();
+
 	_q_init();		// must be first
 	_pcb_init();
 	_stack_init();
@@ -253,20 +267,6 @@ void _init( void ) {
 	__install_isr( INT_VEC_TIMER, _isr_clock );
 	__install_isr( INT_VEC_SYSCALL, _isr_syscall );
 	__install_isr( INT_VEC_SERIAL_PORT_1, _isr_sio );
-
-	/* Setup virtual memory
-	 */
-	c_printf("System end: %x\n", (Uint32)&KERNEL_END);
-	c_printf("Memory 1M-16M: %x\n", *((Uint16*)MMAP_EXT_LO));
-	c_printf("Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_EXT_HI));
-	c_printf("CFG Memory 1M-16M: %x\n", *((Uint16*)MMAP_CFG_LO));
-	c_printf("CFG Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_CFG_HI));
-	__phys_initialize_bitmap();
-	__virt_initialize_paging();
-
-	__kmem_init_kmalloc();
-
-	//__pci_dump_all_devices();
 
 	/*
 	** Create the initial process
