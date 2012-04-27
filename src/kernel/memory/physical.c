@@ -125,8 +125,7 @@ void* __phys_get_free_4k()
 	// We ran out of physical memory!
 	if (__phys_bitmap_4k[i] == 0xFFFFFFFF)
 	{
-		serial_string("No more free pages!\n");
-		for (;;) { asm("hlt"); }
+		_kpanic("Physical Memory", "No more free pages!\n", 0);
 	}
 
 	// A bit has to be free because this section is != 0xFFFFFFFF
