@@ -55,7 +55,7 @@ void _sem_sched_waiting( Semaphore *s ) {
 	Status status = SUCCESS;
 	while( s->value > 0 && status == SUCCESS) {
 		Pcb *pcb;
-		status = _q_remove( s->waiting, &pcb );
+		status = _q_remove( s->waiting, (void **) &pcb );
 		if ( status == SUCCESS ) {
 			_sched(pcb);
 			s->value--;
@@ -98,12 +98,12 @@ void _sem_init( void ) {
 
 Sem _sem_new( void ) {
 	Semaphore *s;
-	Status status =	_q_remove(_available_semaphores, &s);
+	Status status =	_q_remove(_available_semaphores, (void **) &s);
 	if (status == SUCCESS) {
 		s->sem = ++_sem_count;
 		s->value = 0;
 		_q_alloc(&(s->waiting), NULL);
-		_q_insert(_semaphores, s, (Key) s->sem);
+		_q_insert(_semaphores, (void *) s, (Key) s->sem);
 		c_printf("CREATED SEMAPHORE %d\n", s->sem);
 		return s->sem;
 	} else {
@@ -121,13 +121,13 @@ Sem _sem_new( void ) {
 
 Status _sem_destroy( Sem sem ) {
 	Semaphore *s;
-	Status status = _q_get_by_key(_semaphores, &s, (Key) sem);
+	Status status = _q_get_by_key(_semaphores, (void **) &s, (Key) sem);
 
 	if(status == SUCCESS) {
 		//Put all the waiting processes back into the wait queue with an error
 		while(status == SUCCESS) {
 			Pcb *pcb;
-			status = _q_remove( s->waiting, &pcb );
+			status = _q_remove( s->waiting, (void **) &pcb );
 			if ( status == SUCCESS ) {
 				RET(pcb) = FAILURE;
 				_sched(pcb);
@@ -138,8 +138,8 @@ Status _sem_destroy( Sem sem ) {
 		_q_dealloc( s->waiting );
 
 		//put this semaphore back on the queue to be used
-		_q_remove_by_key(_semaphores, &s, (Key) sem);
-		_q_insert(_available_semaphores, s, (Key) 0);
+		_q_remove_by_key(_semaphores, (void **) &s, (Key) sem);
+		_q_insert(_available_semaphores, (void *) s, (Key) 0);
 
 		c_printf( "DESTROYED SEMAPHORE %d\n", sem);
 		return SUCCESS;
@@ -148,13 +148,25 @@ Status _sem_destroy( Sem sem ) {
 	}
 }
 
-Uint32 _sem_get_value( Sem sem ) {
-	return 0;
+Status _sem_try_wait( Sem sem ) {
+	Semaphore *s;
+	Status status = _q_get_by_key(_semaphores, (void **) &s, (Key) sem);
+	if(status == SUCCESS) {
+		if( s->value > 0 ) {
+			s->value--;
+			return SUCCESS;
+		} else {
+			return FAILURE;
+		}
+	} else {
+		return status;
+	}
+
 }
 
 Status _sem_post( Sem sem ) {
 	Semaphore *s;
-	Status status = _q_get_by_key(_semaphores, &s, (Key) sem);
+	Status status = _q_get_by_key(_semaphores, (void **) &s, (Key) sem);
 
 	//if we found the semaphore
 	if (status == SUCCESS)
@@ -170,7 +182,7 @@ Status _sem_post( Sem sem ) {
 
 Status _sem_wait( Sem sem, Pcb *pcb ) {
 	Semaphore *s;
-	Status status = _q_get_by_key(_semaphores, &s, (Key) sem);
+	Status status = _q_get_by_key(_semaphores, (void **) &s, (Key) sem);
 
 	//if we found the semaphore
 	if (status == SUCCESS)
@@ -180,7 +192,7 @@ Status _sem_wait( Sem sem, Pcb *pcb ) {
 			s->value--;
 		} else {
 			//add this pcb to the waiting queue
-			_q_insert(s->waiting, pcb, (Key) 0);
+			_q_insert(s->waiting, (void *) pcb, (Key) 0);
 			_dispatch();
 		}
 		return SUCCESS;
