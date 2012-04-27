@@ -93,8 +93,10 @@ struct vesa_mode_info {
 ** Prototypes
 */
 
-void print_vesa_info(void);
-void print_mode_info(int mode_num);
+void _vesa_init(void);
+
+void _vesa_print_info(void);
+void _vesa_print_mode_info(int mode_num);
 
 #endif
 

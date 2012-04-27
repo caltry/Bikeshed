@@ -36,7 +36,11 @@
 ** PUBLIC FUNCTIONS
 */
 
-void print_vesa_info(void) {
+void _vesa_init(void) {
+	_vesa_print_info();
+}
+
+void _vesa_print_info(void) {
 	struct vesa_controller_info* info =
 		(struct vesa_controller_info*)((Uint32)VESA_INFO_ADDRESS);
 
@@ -56,7 +60,7 @@ void print_vesa_info(void) {
 	c_printf("\n      %d total modes\n", count);
 }
 
-void print_mode_info(int mode_num) {
+void _vesa_print_mode_info(int mode_num) {
 	struct vesa_mode_info* info =
 		(struct vesa_mode_info*)((Uint32)VESA_MODE_ADDRESS);
 

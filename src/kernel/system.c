@@ -38,6 +38,8 @@
 
 #include "bios.h"
 
+#include "vesa.h"
+
 /*
 ** PUBLIC FUNCTIONS
 */
@@ -271,6 +273,12 @@ void _init( void ) {
 	*/
 
 	_bios_init();
+
+
+	/*
+	** Start up the system graphics module
+	*/
+	_vesa_init();
 
 	/*
 	** Create the initial process

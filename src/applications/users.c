@@ -14,10 +14,6 @@
 
 #include "users.h"
 
-#include "vesa.h"
-
-extern void vesa_test(void);
-
 /*
 ** USER PROCESSES
 **
@@ -951,11 +947,6 @@ void init( void ) {
 	Status status;
 
 	c_puts( "Init started\n" );
-
-	print_vesa_info();
-	print_mode_info(VESA_MODE_TO_LOAD);
-
-	vesa_test();
 
 	write( '$' );
 
