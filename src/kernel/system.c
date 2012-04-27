@@ -233,6 +233,7 @@ void _init( void ) {
 	c_printf("Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_EXT_HI));
 	c_printf("CFG Memory 1M-16M: %x\n", *((Uint16*)MMAP_CFG_LO));
 	c_printf("CFG Memory > 16M 64k blocks: %x\n", *((Uint16*)MMAP_CFG_HI));
+	serial_install();
 	__phys_initialize_bitmap();
 	__virt_initialize_paging();
 

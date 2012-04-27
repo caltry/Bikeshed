@@ -110,12 +110,20 @@ void* __phys_get_free_4k()
 	//serial_printf("Getting page, size: %d\n", __phys_bitmap_4k_size);
 	//serial_printf("Free pages: %d\n", __phys_get_free_page_count());
 	// Skip 32-bits at a time
-	Uint32 i = 0;
-	while (__phys_bitmap_4k[i] == 0xFFFFFFFF && i < __phys_bitmap_4k_elements) { ++i; }
+	static Uint32 i = 0;
+	Uint32 i_start = i;
+	while (__phys_bitmap_4k[i] == 0xFFFFFFFF)
+	{ 
+		i = (i + 1) % __phys_bitmap_4k_elements; 
+		if (i == i_start)
+		{
+			break;
+		}
+	}
 
 	serial_printf("I after loop: %d\n", i);
 	// We ran out of physical memory!
-	if (i >= __phys_bitmap_4k_elements)
+	if (__phys_bitmap_4k[i] == 0xFFFFFFFF)
 	{
 		serial_string("No more free pages!\n");
 		for (;;) { asm("hlt"); }
