@@ -60,6 +60,8 @@ int main(int argc, char *argv[])
 
 	int current_file = 2;
 
+	printf("%s:\n", argv[0]);
+
 	while (current_file < argc)
 	{
 		FILE *fp = fopen(argv[current_file], "rb");
@@ -137,6 +139,9 @@ int main(int argc, char *argv[])
 			}
 			free(padding);
 		}
+
+		printf("File: %s, load location: 0x%X, sector count: %d, file size: %ld bytes\n",
+				argv[current_file], load_location, number_of_sectors, file_size);
 
 		if ((current_file+1) >= argc)
 		{

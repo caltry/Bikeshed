@@ -340,7 +340,7 @@ msg_loading:
 msg_dot:
 	.asciz "."
 msg_go:
-	.asciz "done."
+	.asciz "done"
 msg_bar:
 	.asciz	"|"
 
@@ -471,7 +471,6 @@ skip_kernel_loc:
 	dec %eax /* Subtract one, because we just loaded it */
 	movl %eax, remaining /* Save it! */
 
-
 continue_loading:
 	movl remaining, %eax /* Remaining is the total number of sectors left */
 	movl $BUFFER_SECTORS, %ecx /* Check if the remaining amount of sectors is > MAX_SECTORS */
@@ -539,6 +538,7 @@ copy_copy:
 	movw $BUFFER_SEG, %bx
 	movw %bx, %es 
 	movw $BUFFER_OFF, %bx
+
 	jmp continue_loading
 
 /*

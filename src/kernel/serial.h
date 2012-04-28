@@ -7,5 +7,5 @@ void serial_string(const char *);
 
 void serial_install(void);
 
-void serial_printf(char *string, unsigned long val);
+void serial_printf(char *fmt, ...);
 #endif

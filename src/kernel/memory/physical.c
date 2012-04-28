@@ -1,6 +1,7 @@
 #include "physical.h"
 #include "serial.h"
 
+#include "../../boot/bootstrap.h"
 #include "../lib/klib.h"
 
 #include "c_io.h"
@@ -10,11 +11,24 @@ Uint32 __phys_bitmap_4k_size_bytes;
 Uint32 __phys_bitmap_4k_elements;
 
 Uint32 KERNEL_SIZE = 0;
+Uint32 PHYSICAL_MEM_SIZE = ONE_MEGABYTE;
+
+static Uint32 memory_low = 0;
+static Uint32 memory_hi  = 0;
 
 #define BITS_IN_INTEGER (sizeof(Uint32) * 8)
 
+#define ADDR_TO_INDEX(x) ((x) / PAGE_SIZE / BITS_IN_INTEGER)
+
 void __phys_initialize_bitmap()
 {
+	memory_low = *(Uint16 *)(MMAP_ADDRESS + MMAP_EXT_LO) * ONE_KILOBYTE;
+	memory_hi  = *(Uint16 *)(MMAP_ADDRESS + MMAP_EXT_HI) * SIXTY_FOUR_KB;
+
+	PHYSICAL_MEM_SIZE += memory_low + memory_hi;
+
+	serial_printf("Total amount of memory: %d\n", PHYSICAL_MEM_SIZE);
+
 	// Figure out how much physical memory we have	
 	// Memory size in bytes / 4096 byte pages / sizeof(Uint32)*8 bits per index
 	__phys_bitmap_4k_size_bytes = PHYSICAL_MEM_SIZE / PAGE_SIZE / BITS_IN_INTEGER;
@@ -43,19 +57,34 @@ void __phys_initialize_bitmap()
 	}
 	serial_printf("Free pages: %d\n", __phys_get_free_page_count());
 
-	// TODO, for now just mark everything after the kernel as empty
-	// because the kernel is loaded at the 1MB limit, so mark everything
-	// after as usable/allocatable
-	i = (KERNEL_LOAD_ADDR + KERNEL_SIZE) / PAGE_SIZE / BITS_IN_INTEGER;
+	// Calculate the amount of memory available between 1MB - 16MB
+	// 0x100000 = 1MB
+	// Calculate the amount of space > 16MB as well
+	Uint32 space_available_under_1MB = ADDR_TO_INDEX(ONE_MEGABYTE + memory_low);
+	Uint32 space_available_after_16MB = ADDR_TO_INDEX(SIXTEEN_MEG + memory_hi);
 
-	// i = 9.282
-	// Grab those pages that might be free before the next index
-	serial_printf("I BEFORE ALLOCATING: %d\n", i);
-	++i;
-	for (; i < __phys_bitmap_4k_elements; ++i)
+	serial_printf("i: %d\ns<1mb: %d\ns>16mb: %d\n", i, space_available_under_1MB, space_available_after_16MB);
+	
+	i = ADDR_TO_INDEX(ONE_MEGABYTE);
+	for (; i < space_available_under_1MB; ++i)
 	{
 		__phys_bitmap_4k[i] = 0;
-		serial_printf("i: %d ", i);
+	}
+
+	i = ADDR_TO_INDEX(SIXTEEN_MEG);
+	for (; i < space_available_after_16MB; ++i)
+	{
+		__phys_bitmap_4k[i] = 0;
+	}
+
+	// Free the memory after the 16MB mark
+	// because the kernel is loaded at the 1MB limit, so mark everything
+	// after as usable/allocatable
+	const Uint32 end_kernel = ADDR_TO_INDEX(KERNEL_LOAD_ADDR + KERNEL_SIZE) + 1;
+	i = ADDR_TO_INDEX(ONE_MEGABYTE);
+	for (; i < end_kernel; ++i)
+	{
+		__phys_bitmap_4k[i] = 0xFFFFFFFF;
 	}
 
 	c_puts("Physical Memory Bitmap Initialized\n");
@@ -110,15 +139,22 @@ void* __phys_get_free_4k()
 	//serial_printf("Getting page, size: %d\n", __phys_bitmap_4k_size);
 	//serial_printf("Free pages: %d\n", __phys_get_free_page_count());
 	// Skip 32-bits at a time
-	Uint32 i = 0;
-	while (__phys_bitmap_4k[i] == 0xFFFFFFFF && i < __phys_bitmap_4k_elements) { ++i; }
+	static Uint32 i = 0;
+	Uint32 i_start = i;
+	while (__phys_bitmap_4k[i] == 0xFFFFFFFF)
+	{ 
+		i = (i + 1) % __phys_bitmap_4k_elements; 
+		if (i == i_start)
+		{
+			break;
+		}
+	}
 
 	serial_printf("I after loop: %d\n", i);
 	// We ran out of physical memory!
-	if (i >= __phys_bitmap_4k_elements)
+	if (__phys_bitmap_4k[i] == 0xFFFFFFFF)
 	{
-		serial_string("No more free pages!\n");
-		for (;;) { asm("hlt"); }
+		_kpanic("Physical Memory", "No more free pages!\n", 0);
 	}
 
 	// A bit has to be free because this section is != 0xFFFFFFFF
