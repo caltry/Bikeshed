@@ -36,6 +36,8 @@
 				+ EXT2_INODE_DOUBLE_INDIRECT_BLOCKS \
 				+ EXT2_INODE_TRIPLE_INDIRECT_BLOCKS)
 
+#define EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER 0x1
+
 /*
  * A hook for the kernel to call when enabling ext2.
  */
@@ -222,7 +224,7 @@ struct ext2_superblock {
 // Each block group has a copy of the group descripor table. Each index of the
 // GDT points to a group descriptor for a different block group.
 
-struct ext2_group_descriptor {
+struct ext2_block_group_descriptor {
 	// Block number of the block allocation bitmap for this block group
 	BlockNumber block_bitmap;
 
@@ -410,6 +412,18 @@ struct ext2_directory_entry {
 
 	// Name of the file
 	char filename[];
+};
+
+
+/*
+ * Data for manipulating a specific ext2 filesystem.
+ */
+struct ext2_filesystem_context {
+	// The superblock for the filesystem
+	struct ext2_superblock *sb;
+
+	// The base address of the filesystem
+	Uint32 base_address;
 };
 
 #endif // _EXT2_H
