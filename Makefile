@@ -30,6 +30,10 @@ src/prog.b: build_src
 build_src:
 	$(MAKE) -C src
 
+build/%: FORCE
+	make -C $(dir $@) $(notdir $@)
+FORCE:
+
 #
 # Targets for copying bootable image onto boot devices
 #
