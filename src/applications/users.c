@@ -942,7 +942,7 @@ void user_sem_test_try_wait( void ) {
 
 void init( void ) {
 	int i;
-	Pid pid;
+	//Pid pid;
 	Time time;
 	Status status;
 
