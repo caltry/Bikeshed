@@ -36,7 +36,7 @@ usb:	usb.image
 
 bikeshed_fs:
 	dd if=/dev/zero of=bikeshed_fs bs=1K count=120
-	mke2fs -F -L bikeshed bikeshed_fs
+	mke2fs -O^resize_inode,^sparse_super -m0 -F -L bikeshed bikeshed_fs
 
 # Run the OS in qemu
 qemu:	usb.image
