@@ -1,3 +1,4 @@
+include src/defs.mk
 
 BUILDIMAGE = build/BuildImage
 
@@ -8,10 +9,10 @@ BUILDIMAGE = build/BuildImage
 #
 
 usb.image: src/boot/bootstrap.b src/prog.b bikeshed_fs $(BUILDIMAGE)
-	$(BUILDIMAGE) -d usb -o usb.image -b src/boot/bootstrap.b src/prog.b 0x10000 bikeshed_fs 0x80000
+	$(BUILDIMAGE) -d usb -o usb.image -b src/boot/bootstrap.b src/prog.b 0x10000 bikeshed_fs $(RAMDISK_PHYS_LOCATION)
 
 floppy.image: src/boot/bootstrap.b src/prog.b bikeshed_fs $(BUILDIMAGE)
-	$(BUILDIMAGE) -d floppy -o floppy.image -b src/boot/bootstrap.b src/prog.b 0x10000 bikeshed_fs 0x80000
+	$(BUILDIMAGE) -d floppy -o floppy.image -b src/boot/bootstrap.b src/prog.b 0x10000 bikeshed_fs $(RAMDISK_PHYS_LOCATION)
 
 #
 # Additional dependencies to make sure that bootstrap.b and prog.b are made

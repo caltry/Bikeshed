@@ -38,16 +38,19 @@ block_number_to_address( struct ext2_filesystem_context *context,
 
 void _fs_ext2_init()
 {
+#if RAMDISK_PHYS_LOCATION != RAMDISK_VIRT_LOCATION
+#error "This driver needs to be modified to support virual memory"
+#endif
 	ext2_debug_dump();
 }
 
 void ext2_debug_dump()
 {
-	struct ext2_superblock *sb = get_superblock( TEMP_RAMDISK_LOCATION );
+	struct ext2_superblock *sb = get_superblock( RAMDISK_VIRT_LOCATION );
 	serial_printf( "Dumping superblock located at: %x\n\r", (long) sb );
 	print_superblock_data( sb );
 
-	struct ext2_filesystem_context context = { sb, TEMP_RAMDISK_LOCATION };
+	struct ext2_filesystem_context context = { sb, RAMDISK_VIRT_LOCATION };
 
 
 	serial_string("==\n\r");

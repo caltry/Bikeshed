@@ -4,8 +4,6 @@
 #include "types.h"
 #include "ext2.h"
 
-#define TEMP_RAMDISK_LOCATION 0x80000 
-
 void ext2_debug_dump(void);
 
 struct ext2_superblock *get_superblock( Uint32 filesystem_start );
