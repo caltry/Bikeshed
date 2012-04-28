@@ -36,6 +36,7 @@ START_SEGMENT	= 0x0000	/* where we'll put the startup code */
 START_OFFSET	= 0x00007E00
 SECTOR_SIZE	= 0x200		/* typical sector size for floppy & HD */
 OFFSET_LIMIT	= 65536 - SECTOR_SIZE
+MAX_VALID_RAM 	= 0x7FFFF
 
 /*
 ** Symbol for locating the beginning of the code.
@@ -51,8 +52,14 @@ begtext:
 	movw	$BOOT_SEGMENT, %ax	/* get our data seg */
 	movw	%ax, %ds
 	movw	%ax, %ss	/* stack segment starts at BOOT_SEGMENT */
-	movw	$0x4000, %ax	/* and the stack starts 0x4000 beyond that */
+	movw	$REAL_STACK, %ax	/* and the stack starts 0x4000 beyond that */
 	movw	%ax, %sp
+
+	movl $TARGET_STACK, %ebx
+	xor %ax, %ax
+	mov %ax, %es
+	movl %ebx, %es:(RM_SAVED_ESP)
+	movl %ebx, %es:(RM_SAVED_EBP)
 
 /*
 ** Next, verify that the disk is there and working.
@@ -95,7 +102,7 @@ diskok:
 	movw	$msg_loading,%si /* Print the Loading message */
 	call	dispMsg
 
-	movw	$1,%ax		/* sector count = 1 */
+	movw	$2,%ax		/* sector count = 1 */
 	movw	$START_SEGMENT,%bx /* read this into memory that */
 	movw	%bx,%es		/* immediately follows this code. */
 	movw	$START_OFFSET,%bx
@@ -306,7 +313,7 @@ check_mem:
 	movw	$MMAP_SEGMENT, %ax
 	movw	%ax, %ds	  /* Write relative to the memory map start */
 	movw	$0xE801, %ax	  /* Get memory size for >64M configurations */
-	int	$0x15
+	int 	$0x15
 	movw	%ax, MMAP_EXT_LO  /* extended memory between 1M - 16M in K */
 	movw	%bx, MMAP_EXT_HI  /* extended memory > 16M in 64K blocks */
 	movw	%cx, MMAP_CFG_LO  /* configured memory between 1M - 16M in K */
@@ -333,7 +340,7 @@ msg_loading:
 msg_dot:
 	.asciz "."
 msg_go:
-	.asciz "done."
+	.asciz "done"
 msg_bar:
 	.asciz	"|"
 
@@ -394,50 +401,273 @@ boot_sig:
 ** This code configures the GDT, enters protected mode, and then
 ** transfers to the OS entry point.
 */
+kernel_location: .quad 0x0
+load_location: .quad 0x0
+remaining: .quad 0x1
+flag: .quad 0x0
+
+	/* Okay we're good, copy the block to the right address */
+
+	/* Move the kernel */
+	BUFFER_START = 0x10000
+	BUFFER_SIZE = (MAX_VALID_RAM - BUFFER_START)
+	BUFFER_SEG = 0x1000
+	BUFFER_OFF = 0
+	BUFFER_SECTORS = BUFFER_SIZE / SECTOR_SIZE - 1
+	BUFFER_START_PROTECTED_MODE = 0x10008
 
 switch:
-	cli
-	movb	$0x80, %al	/* disable NMIs */
-	outb	%al, $0x70
+	call floppy_off
+	call enable_A20
+	call move_gdt
+	call check_mem
 
-	call	floppy_off
-	call	enable_A20
-	call	move_gdt
-	call	check_mem
+	/* IMPORTANT, fix DS! */
+	mov $BOOT_SEGMENT, %bx
+	mov %bx, %ds
+
+load_stuff:
+	movl flag, %eax
+	inc %eax
+	movl %eax, flag
+
+	/* We're in real-mode */
+	movw $1, %ax
+	movw $BUFFER_SEG, %bx
+	movw %bx, %es 
+	movw $BUFFER_OFF, %bx
+	call readprog
+
+	/* Read the current block size */
+	movl %es:(0), %eax /* Load location */
+	movl %eax, load_location /* Save it */
+
+	cmpl $0xFFFFFFFF, %eax /* We need to jump to the kernel */
+	jne dont_jump_to_kernel
+
+	call switch_to_protected_mode
+	.code32
+
+	/* HUZAH! JUMP TO THE KERNEL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+	movl kernel_location+BOOT_ADDRESS, %eax
+	push %eax
+	ret
+	/* In case the kernel returns */
+	cli 
+stop_executing:
+	hlt
+	jmp stop_executing
+
+	.code16
+dont_jump_to_kernel:
+
+	movl kernel_location, %edx /* Check if we've set the kernel location */
+	testl %edx, %edx
+	jnz skip_kernel_loc
+	movl %eax, kernel_location
+skip_kernel_loc:
+
+	movl %es:(4), %eax /* Get how much we need to load (in sectors) */
+	dec %eax /* Subtract one, because we just loaded it */
+	movl %eax, remaining /* Save it! */
+
+continue_loading:
+	movl remaining, %eax /* Remaining is the total number of sectors left */
+	movl $BUFFER_SECTORS, %ecx /* Check if the remaining amount of sectors is > MAX_SECTORS */
+	cmpl %eax, %ecx /* Compare EDX TO ECX */
+	jge enough_sectors
+
+	movl %ecx, %eax /* We tried to load too many sectors, load fewer */
+
+enough_sectors: /* There are enough sectors */
+	
+	/* Subtract eax from remaining */	
+	/* Save the number of sectors to read on the stack for
+	   later in the copy_copy method
+	 */
+	push %eax
+
+	testl %eax, %eax /* Don't load 0 more sectors! */
+	jz skip_second_load
+
+	movl remaining, %edx
+	subl %eax, %edx
+	movl %edx, remaining
+
+	/* Load as many as we can */
+	call readprog
+
+skip_second_load: /* Okay we have read 0 or more sectors */
+
+	pop %ecx /* This is the original amount to read, ecx is not touched by switch_to_protected_mode */
+
+	/* Goto protected mode */				
+	call switch_to_protected_mode
+	.code32
+
+	/* Yay we're in protected mode */
+	movl $BUFFER_START_PROTECTED_MODE, %edx /* Source pointer */
+	movl load_location+BOOT_ADDRESS, %eax   /* Load address/Destination pointer */
+	/*movl current_load+BOOT_ADDRESS, %ecx  */     /* Amount to read, stored in ECX */
+	inc %ecx
+	shl $9, %ecx
+
+	/* Adjust load_location in case there's another loop */
+	movl %ecx, %ebx
+	addl %eax, %ebx
+	movl %ebx, load_location+BOOT_ADDRESS
+
+copy_copy:
+	movb (%edx), %bl 
+	movb %bl, (%eax)
+	dec %ecx
+	inc %eax
+	inc %edx
+	testl %ecx, %ecx
+	jnz copy_copy
+
+	call switch_to_real_mode
+	.code16
+
+	movl remaining, %eax
+	testl %eax, %eax
+	jz load_stuff 
+
+	/* Reset the buffer to the beginning and read more */
+	/* EAX contains the remaining amount */
+	movw $BUFFER_SEG, %bx
+	movw %bx, %es 
+	movw $BUFFER_OFF, %bx
+
+	jmp continue_loading
 
 /*
-** The IDTR and GDTR are loaded relative to this segment, so we must
-** use the full offsets from the beginning of the segment (0000:0000);
-** however, we were loaded at 0000:7c00, so we need to add that in.
+** Switches from protected mode to real mode
 */
-	lidt	idt_48 + BOOT_ADDRESS
-	lgdt	gdt_48 + BOOT_ADDRESS
-
-	movl	%cr0, %eax	/* get current CR0 */
-	orl	$1, %eax	/* set the PE bit */
-	movl	%eax, %cr0	/* and store it back. */
+.code32
+.globl switch_to_real_mode
+switch_to_real_mode:
+	cli
 	
-	/*
-	** We'll be in protected mode at the start of the user's code
-	** right after this jump executes.
-	**
-	** First, a byte to force 32-bit mode execution, followed by
-	** a 32-bit long jump.  The long ("far") jump loads both EIP
-	** and CS with the proper values so that when we land at the
-	** destination address in protected mode, the next instruction
-	** fetch doesn't cause a fault.
-	**
-	** The old code for this:
-	**
-	**	.byte	06xx, 0xEA
-	**	.long	TARGET_ADDRESS
-	**	.word	GDT_CODE
-	*/
-
-	.byte	0x66	/* 32-bit mode prefix */
-	.code32
-	ljmp	$GDT_CODE, $TARGET_ADDRESS
+	/* Save the current ESP and EBP values */
+	movl %esp, %eax
+	movl %eax, RM_SAVED_ESP
+	movl %ebp, RM_SAVED_EBP
+	
+	/* Set up the real mode stack */
+	movl (%esp), %ecx /* copy the return address to the real stack */
+	movw %cx, (REAL_STACK+BOOT_ADDRESS)
+	
+	movl $(REAL_STACK+BOOT_ADDRESS), %eax /* switch to using the real mode stack */
+	
+	/* Fix esp and ebp */
+	subl $BOOT_ADDRESS, %eax
+	movl %eax, %ebp
+	movl %eax, %esp
+	
+	/* Load the real mode GDT selectors */
+	movw $GDT_DATA_16, %bx
+	movw $GDT_DATA_16, %ax
+	movw %ax, %ds
+	movw %bx, %es
+	movw %bx, %fs
+	movw %bx, %gs
+	movw $GDT_STACK_16, %ax
+	movw %ax, %ss
+	
+	push %cx
+	
+	/* This sets the code segment register */
+	ljmp $GDT_CODE_16, $_not_quite_real+BOOT_ADDRESS
+_not_quite_real:
+	
+	/* Switch of the protected mode flag */
+	movl %cr0, %eax /* get current CR0 */
+	andl $0xfffffffe, %eax /* clear the PE bit */
+	movl %eax, %cr0 /* and store it back. */
+	
+	/* Long jump to a real mode code segment */
+	.byte 0x66
+	ljmp $0x0, $_real_mode_segment+BOOT_ADDRESS
+	
 	.code16
+_real_mode_segment:
+
+	/* Setup the real mode segments */
+	movw $0x7c0, %ax
+	movw %ax, %ds
+	movw %ax, %ss
+	/* Clear the general purpose registers */
+	xorw %ax, %ax
+	movw %ax, %es
+	movw %ax, %fs
+	movw %ax, %gs
+	
+	/* Load the real mode IDT */
+	lidt (real_idt)
+
+	sti
+	ret
+
+
+/*
+** Returns to protected mode from real mode
+*/
+.globl switch_to_protected_mode
+switch_to_protected_mode:
+.code16
+	cli
+	movb $0x08, %al /* Disable NMIs */
+	outb %al, $0x70
+	
+	/* Load the protected mode IDT */
+	lidt (idt_48)
+	lgdt (gdt_48)
+	
+	/* Set the protected mode flag */
+	movl %cr0, %eax /* get current CR0 */
+	orb $0x1, %al /* set the PE bit */
+	movl %eax, %cr0 /* and store it back. */
+	
+	/* Long jump to a real mode code segment */
+	.byte 0x66
+	.code32
+	ljmp $GDT_CODE, $(_protected_mode_segment + BOOT_ADDRESS)
+_protected_mode_segment:
+	
+	cli
+	movb $0x08, %al /* Disable NMIs */
+	outb %al, $0x70
+	
+	/* Load the real mode GDT selectors */
+	xor %bx, %bx
+	movw $GDT_DATA, %ax
+	movw %ax, %ds
+	movw %bx, %es
+	movw %bx, %fs
+	movw %bx, %gs
+	movw $GDT_STACK, %ax
+	movw %ax, %ss
+	
+	/* Save the current return address */
+	xorl %eax, %eax
+	movw %sp, %ax
+	addl $BOOT_ADDRESS, %eax
+	movl (%eax), %ebx /* EAX holds the return address */
+	andl $0x0000FFFF, %ebx
+	
+	/* Switch to the protected mode stack */
+	movl RM_SAVED_ESP, %eax /* restore saved ESP and EBP */
+	movl %eax, %esp
+	movl RM_SAVED_EBP, %ebp
+	
+	push %ebx
+	ret
+
+.code16
+real_idt:
+.short 0x3ff
+.long 0x0
 
 /*
 ** Supporting code.
@@ -545,6 +775,46 @@ stack_seg:	/* limit FFFFF, base 0, R/W data seg, 32-bit 4K */
 	.byte	0xCF
 	.byte	0x00
 
+code_seg_16: /* limit 64k, base 0, R/E code seg, 16-bit 4K */
+	.word 0xFFFF
+	.word 0x0000
+	.byte 0x00
+	.byte 0x9A
+	.byte 0x00
+	.byte 0x00
+
+data_seg_16: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
+	.word 0xFFFF
+	.word 0x7c00
+	.byte 0x00
+	.byte 0x92
+	.byte 0x00
+	.byte 0x00
+
+stack_seg_16: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
+	.word 0xFFFF
+	.word 0x7c00
+	.byte 0x00
+	.byte 0x92
+	.byte 0x00
+	.byte 0x00
+
+data_seg_16_2: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
+	.word 0xFFFF
+	.word 0x0000
+	.byte 0x00
+	.byte 0x92
+	.byte 0x00
+	.byte 0x00
+
+stack_seg_16_2: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
+	.word 0xFFFF
+	.word 0x0000
+	.byte 0x00
+	.byte 0x92
+	.byte 0x00
+	.byte 0x00
+
 end_gdt:
 gdt_len = end_gdt - start_gdt
 
@@ -564,6 +834,6 @@ gdt_len = end_gdt - start_gdt
 ** to be loaded, their values appear just before the previous set.
 */
 
-	.org	1024-2
+	.org	1536-2
 firstcount:
 	.word	0	/* n_sectors for 1st module will go here */

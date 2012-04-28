@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <errno.h>
+#include <string.h>
+
+#define SECTOR_SIZE 512
 
 const char * const usage = "Usage: %s location file {[location] file ...}\n";
 
@@ -14,7 +17,7 @@ struct file_header
 int dump_file(FILE *src, FILE *dest)
 {
 	char buffer[4096];
-	int read = 0;
+	size_t read = 0;
 
 	while (!feof(src) && !ferror(src))
 	{
@@ -41,7 +44,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	int load_location = 0;
+	unsigned int load_location = 0;
 	if (sscanf(argv[1], "%x", &load_location) != 1)
 	{
 		fprintf(stderr, "Invalid initial location\n");
@@ -56,6 +59,8 @@ int main(int argc, char *argv[])
 	}
 
 	int current_file = 2;
+
+	printf("%s:\n", argv[0]);
 
 	while (current_file < argc)
 	{
@@ -93,7 +98,13 @@ int main(int argc, char *argv[])
 			return 7;
 		}
 
-		struct file_header hdr = { load_location, file_size };
+		int number_of_sectors = file_size + sizeof(struct file_header) + 
+				(SECTOR_SIZE - ((file_size + sizeof(struct file_header)) % SECTOR_SIZE));
+
+		number_of_sectors /= SECTOR_SIZE;
+		
+
+		struct file_header hdr = { load_location, number_of_sectors };
 		if (fwrite(&hdr, sizeof(hdr), 1, new_file) != 1)
 		{
 			fprintf(stderr, "Failed to write to destination file\n");
@@ -110,6 +121,28 @@ int main(int argc, char *argv[])
 			return 9;
 		}
 
+		/* Pad to the next 512 byte location */
+		if (((file_size + sizeof(struct file_header)) % SECTOR_SIZE) != 0)
+		{
+			long int pad_amount = SECTOR_SIZE - 
+				((file_size + sizeof(struct file_header)) % SECTOR_SIZE);
+
+			char* padding = (char *)malloc(pad_amount);
+			memset(padding, 0x22, pad_amount);
+			if (fwrite(padding, pad_amount, 1, new_file) != 1)
+			{
+				free(padding);
+				fprintf(stderr, "Failed to pad output file\n");
+				fclose(fp);
+				fclose(new_file);
+				return 10;
+			}
+			free(padding);
+		}
+
+		printf("File: %s, load location: 0x%X, sector count: %d, file size: %ld bytes\n",
+				argv[current_file], load_location, number_of_sectors, file_size);
+
 		if ((current_file+1) >= argc)
 		{
 			fclose(fp);
@@ -117,7 +150,7 @@ int main(int argc, char *argv[])
 		}
 
 		// Grab the next parameter, can be a number or file
-		int new_location = 0;
+		unsigned int new_location = 0;
 		if (sscanf(argv[current_file+1], "%x", &new_location) != 1)
 		{
 			load_location += file_size;
@@ -129,6 +162,18 @@ int main(int argc, char *argv[])
 
 		fclose(fp);
 	}
+
+	// Put the end byte marker
+	char end[SECTOR_SIZE];	
+	memset(&end[0], 0, sizeof(end));
+	end[0] = end[1] = end[2] = end[3] = 0xFF;
+	end[4] = end[5] = end[6] = end[7] = 0xFF;
+	if (fwrite(&end, sizeof(end), 1, new_file) != 1)
+	{
+		fprintf(stderr, "Failed to put end marker\n");
+		fclose(new_file);
+		return 11;
+	}	
 
 	fclose(new_file);
 

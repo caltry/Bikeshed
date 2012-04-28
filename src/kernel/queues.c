@@ -16,6 +16,9 @@
 
 #include "pcbs.h"
 #include "stacks.h"
+#include "semaphores.h"
+
+#include "memory/kmalloc.h"
 
 /*
 ** PRIVATE DEFINITIONS
@@ -25,11 +28,11 @@
 //
 // need one per PCB, one per Stack, and a few extra
 
-#define	N_QNODES	(N_PCBS + N_STACKS + 5)
+#define	N_QNODES	(N_PCBS + N_STACKS + MAX_SEMAPHORES + 5)
 
 // Number of queues to allocate
 
-#define	N_QUEUES	10
+#define	N_QUEUES	10 + MAX_SEMAPHORES
 
 /*
 ** PRIVATE DATA TYPES
@@ -63,21 +66,13 @@ typedef struct queue {
 
 // Qnodes
 
-static Qnode _qnodes[ N_QNODES ];
-
 // Unlike PCBs and stacks, we maintain just a simple linked list of
 // available Qnodes.
 
-static Qnode *_qnode_list;
-
 // Queues
-
-static Queue _queues[ N_QUEUES ];
 
 // Again, we maintain just a simple linked list of Queues.  The
 // list is maintained via the Qnode *head field of the Queue entries.
-
-static Qnode *_queue_list;
 
 /*
 ** PUBLIC GLOBAL VARIABLES
@@ -94,12 +89,7 @@ static Qnode *_queue_list;
 */
 
 static Qnode *_qnode_alloc( void ) {
-	Qnode *new;
-
-	new = _qnode_list;
-	if( new != NULL ) {
-		_qnode_list = (Qnode *) new->next;
-	}
+	Qnode* new = (Qnode *)__kmalloc(sizeof(Qnode));
 
 	return( new );
 }
@@ -110,16 +100,16 @@ static Qnode *_qnode_alloc( void ) {
 ** deallocate a qnode, putting it into the list of available qnodes
 */
 
-static void _qnode_dealloc( Qnode *qn ) {
+static Status _qnode_dealloc( Qnode *qn ) {
 
 	// Sanity check here?  What happens if qn is NULL?
 	if( qn == NULL ) {
-		return;
+		return BAD_PARAM;
 	}
 
-	qn->next = _qnode_list;
-	_qnode_list = qn;
+	__kfree(qn);
 
+	return SUCCESS;
 }
 
 /*
@@ -129,12 +119,7 @@ static void _qnode_dealloc( Qnode *qn ) {
 */
 
 static Queue *_que_alloc( void ) {
-	Queue *new;
-
-	new = (Queue *) _queue_list;
-	if( new != NULL ) {
-		_queue_list = new->head;
-	}
+	Queue* new = (Queue *)__kmalloc(sizeof(Queue));
 
 	return( new );
 }
@@ -145,16 +130,16 @@ static Queue *_que_alloc( void ) {
 ** deallocate a queue, putting it into the list of available queues
 */
 
-static void _que_dealloc( Queue *que ) {
+static Status _que_dealloc( Queue *que ) {
 
 	// Sanity check here?  What if que is NULL?
 	if( que == NULL ){
-		return;
+		return BAD_PARAM;
 	}
 
-	que->head = _queue_list;
-	_queue_list = (Qnode *) que;
+	__kfree(que);
 
+	return SUCCESS;
 }
 
 /*
@@ -183,10 +168,7 @@ static Status _q_delete_node( Queue *que, Qnode *qn ) {
 		qn->next->prev = qn->prev;
 	}
 
-	_qnode_dealloc( qn );
-
-	return( SUCCESS );
-
+	return _qnode_dealloc( qn );
 }
 
 /*
@@ -234,21 +216,10 @@ int _comp_ascend_uint( Key old, Key new ) {
 */
 
 void _q_init( void ) {
-	int i;
 
 	// init qnodes
 
-	_qnode_list = NULL;
-	for( i = 0; i < N_QNODES; ++i ) {
-		_qnode_dealloc( &_qnodes[i] );
-	}
-
 	// init queues
-
-	_queue_list = NULL;
-	for( i = 0; i < N_QUEUES; ++i ) {
-		_que_dealloc( &_queues[i] );
-	}
 
 	// report that we have finished
 
@@ -328,6 +299,20 @@ Status _q_alloc( Queue **que, int (*compare)(Key,Key) ) {
 
 	*que = new;
 	return( SUCCESS );
+}
+
+
+/*
+** _q_dealloc(queue,compare)
+**
+** deallocates a queue and gives it back to the queue system to be used again.
+**
+** returns the status of the deallocation attempt
+*/
+
+Status _q_dealloc( Queue * que ) {
+	_que_dealloc(que);
+	return SUCCESS;
 }
 
 /*
@@ -424,9 +409,9 @@ Status _q_remove( Queue *que, void **data ) {
 	}
 
 	*data = qn->data;
-	_qnode_dealloc( qn );
+	;
 
-	return( SUCCESS );
+	return _qnode_dealloc( qn );
 }
 
 /*
@@ -463,6 +448,43 @@ Status _q_remove_by_key( Queue *que, void **data, Key key ) {
 	return( _q_delete_node(que,qn) );
 
 }
+
+
+/*
+** _q_get_by_key(queue,data,key)
+**
+** gets the first element in the queue which has the supplied key,
+** returning the pointer to it through the second parameter
+**
+** returns the status of the get attempt
+*/
+
+Status _q_get_by_key( Queue *que, void **data, Key key ) {
+	Qnode *qn;
+
+	if( que == NULL ) {
+		return( BAD_PARAM );
+	}
+
+	if( _q_empty(que) ) {
+		return( EMPTY_QUEUE );
+	}
+
+	qn = que->head;
+	while( qn && qn->key.u != key.u ) {
+		qn = qn->next;
+	}
+
+	if( qn == NULL ) {
+		return( NOT_FOUND );
+	}
+
+	*data = qn->data;
+
+	return( SUCCESS );
+
+}
+
 
 /*
 ** _q_remove_selected(queue,data,compare,lookfor)

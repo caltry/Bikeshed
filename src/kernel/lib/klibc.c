@@ -78,7 +78,6 @@ void _kmemcpy( void *destination, void *source, Uint32 length ) {
 
 }
 
-
 /*
 ** _kpanic - kernel-level panic routine
 **
@@ -116,3 +115,15 @@ void _kpanic( char *mod, char *msg, Status code ) {
 	__panic( "KERNEL PANIC" );
 
 }
+
+Uint32 _krand()
+{
+	static Uint32 m_z = 0x12345678; /* Initial seed for m_z */
+	static Uint32 m_w = 0xC001C0DE; /* Initial seed for m_w */
+
+	m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+	m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+
+	return (m_z << 16) + m_w;
+}
+

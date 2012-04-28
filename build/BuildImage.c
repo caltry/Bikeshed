@@ -41,7 +41,7 @@ short	drive = DRIVE_FLOPPY;	/* boot drive:  0x00 == floppy, 0x80 == usb */
 */
 #define	N_INFO	( 512 / sizeof( short ) )
 short	info[ N_INFO ];
-int	n_info = N_INFO;
+size_t n_info = N_INFO;
 
 void quit( char *msg, int call_perror ) {
 	if( msg != NULL ){
@@ -77,8 +77,7 @@ void usage_error( void ){
 int copy_file( FILE *in ){
 	int	n_sectors = 0;
 	char	buf[ 512 ];
-	int	n_bytes;
-	int	i;
+	size_t n_bytes;
 
 	/*
 	** Copy the file to the output, being careful that the
@@ -87,7 +86,7 @@ int copy_file( FILE *in ){
 	n_sectors = 0;
 	while( (n_bytes = fread( buf, 1, sizeof( buf ), in )) > 0 ){
 		if( n_bytes < sizeof( buf ) ){
-			int	i;
+			size_t i;
 
 			for( i = n_bytes; i < sizeof( buf ); i += 1 ){
 				buf[ i ] = '\0';
@@ -107,7 +106,6 @@ void process_file( char *name, char *addr ){
 	long	address;
 	short	segment, offset;
 	char	*cp;
-	int	n_bytes;
 	int	valid_address;
 
 	/*
@@ -133,7 +131,6 @@ void process_file( char *name, char *addr ){
 	if( cp != NULL ){
 		if( strlen( addr ) == 9 && cp == addr + 4 ){
 			char	*u1, *u2;
-			int	a1, a2;
 
 			segment = strtol( addr, &u1, 16 );
 			offset = strtol( addr + 5, &u2, 16 );
@@ -239,9 +236,9 @@ void process_args( int ac, char **av ) {
 int main( int ac, char **av ) {
 	FILE	*bootimage;
 	int	bootimage_size;
-	int	n_bytes, n_words;
+	size_t n_bytes, n_words;
 	short	existing_data[ N_INFO ];
-	int	i;
+	size_t i;
 	
 	/*
 	** Save the program name for error messages

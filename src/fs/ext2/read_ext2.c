@@ -21,12 +21,12 @@ static const char *NEWLINE = "\n\r";
  */
 void print_file_data(struct ext2_filesystem_context *context, const char *path);
 
-inline Uint get_block_size( struct ext2_superblock *sb )
+Uint get_block_size( struct ext2_superblock *sb )
 {
 	return 1024 << sb->logarithmic_block_size;
 }
 
-inline void*
+void*
 block_number_to_address( struct ext2_filesystem_context *context,
 			Uint32 one_indexed_block_number )
 {

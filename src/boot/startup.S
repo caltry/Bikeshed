@@ -71,56 +71,7 @@ begtext:
 */
 	.globl	_start
 
-#define VIDEO 0xB8000
 _start:
-	cli			/* seems to be reset on entry to p. mode */
-	movb	$0x00, %al	/* re-enable NMIs (bootstrap */
-	outb	$0x70		/*   turned them off) */
-
-	/*
-	 ** Set the data and stack segment registers (code segment register
-** was set by the long jump that switched us into protected mode).
-*/
-	xorl	%eax, %eax	/* clear EAX */
-	movw	$GDT_DATA, %ax	/* GDT entry #3 - data segment */
-	movw	%ax, %ds	/* for all four data segment registers */
-	movw	%ax, %es
-	movw	%ax, %fs
-	movw	%ax, %gs
-
-	movw	$GDT_STACK, %ax	/* entry #4 is the stack segment */
-	movw	%ax, %ss
-
-	movl	$TARGET_STACK, %ebp	/* set up the system frame pointer */
-	movl	%ebp, %esp	/* and stack pointer */
-
-	xorl %ecx, %ecx
-	mov $0xB8000, %ecx
-	movw $0x0F41, (%ecx)
-
-	/* Move the kernel to the 1MB line */
-	mov $(_end - KERNEL_VIRTUAL_BASE), %ecx
-	mov $(_end - KERNEL_VIRTUAL_BASE + 0x100000), %eax
-
-move_kernel_loop:
-	movb (%ecx), %bl
-	movb %bl, (%eax)
-	dec %eax
-	dec %ecx
-
-	cmp $(0x110000-1), %eax
-	jne move_kernel_loop /* A relative jump, doesn't need to be adjusted */
-
-	mov $0xB8000, %ecx
-	movw $0x0F42, (%ecx)
-
-	/* Jump to our moved code! */
-	mov $(test_value - KERNEL_VIRTUAL_BASE + 0x100000), %ecx
-	push %ecx
-	ret
-test_value:
-	mov $0xB8000, %ecx
-	movw $0x0F44, (%ecx)
 
 /* SETUP VIRTUAL MEMORY FOR THE HIGHER HALF kernel
  * This section of assembly loads the boot_page_directory as 
@@ -136,9 +87,9 @@ test_value:
 	mov %cr0, %ecx	/* Set PG bit in CR0 to enable paging  */
 	or $0x80000000, %ecx
 	mov %ecx, %cr0
- 
+
 	/* Start fetching instructions after paging has been enabled */
-	lea (enable_paging - KERNEL_VIRTUAL_BASE + 0x100000), %ecx
+	lea (enable_paging - KERNEL_VIRTUAL_BASE), %ecx
 	jmp *%ecx
 enable_paging:
 /* Paging is now enabled */
@@ -166,12 +117,7 @@ clearbss:
 	jb	clearbss
 
 #endif
-
-	movw $0x0F46, (%ecx)
-
 	
-#ifdef SP2_CONFIG
-
 /*
 ** Initialize devices
 */
@@ -185,20 +131,6 @@ clearbss:
 ** an interrupt!!!
 */
 	jmp	__isr_restore   // defined in isr_stubs.S
-
-#else
-
-
-/*
-** Initialize various devices
-*/
-	call	__init_interrupts	/* initialize the interrupt system */
-	call	c_io_init	/* initialize the console I/O routines */
-
-/*
-** Call the user's main program
-*/
-	call	main
 
 /*
 ** Returned from the main function!  Stop execution.
@@ -215,8 +147,6 @@ die:	hlt			// Stop.
 
 message: .string "     ***** Returned from main! *****     "
 messagelen = . - message - 1
-
-#endif
 
 /*
 ** Support routines needed for boot up and the console.

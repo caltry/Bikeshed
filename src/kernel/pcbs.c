@@ -68,6 +68,8 @@ Pcb *_pcb_alloc( void ) {
 		_kpanic( "_pcb_alloc", "removed non-FREE pcb", FAILURE );
 	}
 
+	pcb->page_directory = __virt_kpage_directory;
+
 	return( pcb );
 }
 

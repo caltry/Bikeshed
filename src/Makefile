@@ -6,8 +6,7 @@
 # 4003-506 (with appropriate tweaking).
 #
 
-# Modules must end with a trailing slash.
-MODULES := applications/ boot/ kernel/lib/ kernel/ serial/ ulib/ kernel/memory/ fs/ext2/
+MODULES := applications/ boot/ kernel/lib/ kernel/ serial/ ulib/ kernel/memory/ kernel/vm8086/ kernel/bios/ kernel/pci/ fs/ext2/
 
 # That's right, there's no default support for newlines in Make.
 define NL
@@ -26,11 +25,12 @@ U_C_SRC = clock.c klibc.c pcbs.c queues.c scheduler.c sio.c stacks.c syscalls.c 
 U_C_OBJ = clock.o klibc.o pcbs.o queues.o scheduler.o sio.o stacks.o syscalls.o system.o ulibc.o users.o
 U_S_SRC = klibs.S ulibs.S
 U_S_OBJ = klibs.o ulibs.o
-U_LIBS	= $(shell find $(MODULES) -name *.ar)
+U_LIBS	= $(shell find $(MODULES) \( ! -regex '.*/\..*' \) -type f -name "*.ar")
 
 default:
 	$(MAKE) make_modules
 	$(MAKE) prog.b
+	$(MAKE) real.b
 
 # Build all of the submodules that we've defined.
 .PHONY: make_modules
@@ -71,11 +71,13 @@ prog.out: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o prog.out $(OBJECTS)
 
 prog.o:	$(OBJECTS) make_modules
-	$(LD) $(LDFLAGS) -o prog.o -Tlinker.ld $(OBJECTS) $(U_LIBS) $(U_LIBS)
+	$(LD) $(LDFLAGS) -o prog.o -Tkernel.ld $(OBJECTS) $(U_LIBS) $(U_LIBS)
 
 prog.b:	prog.o
 	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Tlinker.ld prog.o
 
+real.b:	prog.o
+	$(LD) $(LDFLAGS) -o real.b -s --oformat binary -Treal.ld prog.o
 
 Offsets:	Offsets.c
 	$(CC) $(INCLUDES) -o Offsets Offsets.c

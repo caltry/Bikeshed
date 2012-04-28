@@ -167,7 +167,7 @@ __isr_restore:
 	** IF THE LOCATION OF EITHER FIELD IN THE PCB CHANGES!
 	*/
 
-	movl	12(%ebx), %eax	// get PID and PPID of this process
+	movl	16(%ebx), %eax	// get PID and PPID of this process
 	pushl	%eax
 	pushl	_system_time	// and the current system time
 

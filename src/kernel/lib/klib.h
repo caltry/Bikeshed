@@ -88,6 +88,12 @@ void _kmemcpy( void *destination, void *source, Uint32 length );
 
 void _kpanic( char *mod, char *msg, Status code );
 
+/* Returns a random unsigned 32-bit integer
+ *
+ * Code taken from: http://www.codeproject.com/Articles/25172/Simple-Random-Number-Generation
+ */
+Uint32 _krand(void);
+
 #endif
 
 #endif

@@ -1,13 +1,20 @@
-OUTPUT_FORMAT (elf32-i386)
-OUTPUT_ARCH (i386)
 ENTRY (_start)
 
 SECTIONS {
 	virt = 0xC0100000;
 	phys = 0x00100000;
 
-	/DISCARD/ : {
-		*(".realmode")
+	.realmode 0x3000 : AT(0x3000) {
+		real = .;
+		__start_real = ABSOLUTE(.);
+
+		kernel/bios/realmode.o(.text)
+		kernel/bios/realmode.o(.rodata)
+		kernel/bios/realmode.o(.data)
+		kernel/bios/realmode.o(COMMON)
+		kernel/bios/realmode.o(.bss)
+
+		__end_real = ABSOLUTE(.);
 	}
 
 	.text virt : AT(phys) {
@@ -30,10 +37,12 @@ SECTIONS {
 
 	.bss ALIGN(0x1000) : AT(phys + (bss - code)) {
 		bss = .;
+		__bss_start = .;
 		*(COMMON)
 		*(.bss)
 
-		. = ALIGN(4096);
+		_end = .;
+		KERNEL_END = .;
 	}
 
 }
