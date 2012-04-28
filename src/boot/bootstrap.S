@@ -544,37 +544,6 @@ copy_copy:
 
 	jmp continue_loading
 
-
-/*
-** VESA code.
-**
-** Loads VESA mode information while the OS is still in real mode
-*/
-
-	/* Load the VESA Controller information while we are in real mode */
-	xorw %bx, %bx
-	movw %bx, %es
-	movw $VESA_INFO_ADDRESS, %di
-	movw $GET_CONTROLLER_INFO, %ax
-	int $0x10
-	cli
-
-	/* Load information for one of the vesa modes (hardcoded) */
-	
-	xorw %bx, %bx
-	movw %bx, %es
-	movw $VESA_MODE_ADDRESS, %di
-	movw $VESA_MODE_TO_LOAD, %cx
-	movw $GET_MODE_INFO, %ax
-	int $0x10
-	cli
-
-	/* Set the desired mode (hardcoded) */
-	/*movw $VESA_MODE_TO_LOAD, %bx
-	movw $SET_MODE, %ax
-	int $0x10
-	cli*/
-
 /*
 ** Switches from protected mode to real mode
 */

@@ -20,6 +20,8 @@
 
 #ifndef __ASM__20113__
 
+#define PTR_16(x) ((Uint16)((Uint32)x))
+
 /*
 ** Start of C-only definitions
 */

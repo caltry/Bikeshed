@@ -15,11 +15,23 @@
 
 #define VESA_INFO_ADDRESS	0x00004000
 #define VESA_MODE_ADDRESS	(VESA_INFO_ADDRESS + 512)
-#define VESA_MODE_TO_LOAD	261
 
 #define GET_CONTROLLER_INFO			0x4F00
 #define GET_MODE_INFO				0x4F01
 #define SET_MODE					0x4F02
+
+/* Mode Attributes */
+#define MODE_SUPPORTED				1
+#define COLOR_MODE					8
+#define GRAPHICS_MODE				16
+#define LINEAR_BUFFER				128
+
+#define REQUIRED_ATTRIBUTES			(MODE_SUPPORTED | COLOR_MODE \
+										| GRAPHICS_MODE | LINEAR_BUFFER)
+
+/* Mode Memory Model */
+#define PACKED_PIXELS				4
+#define DIRECT_COLOR				6
 
 
 #ifndef __ASM__20113__
@@ -32,16 +44,16 @@
 
 typedef short VesaFarPtr;
  
-struct vesa_controller_info {
-	char signature[4];
+typedef struct vesa_controller_info {
+	Uint32 signature;
 	Int16 version;
-	VesaFarPtr oem_string[2];
-	Uint8 capabilities[4];
-	VesaFarPtr video_modes[2];
-	Uint8 total_memory;
-};
+	Uint32 oem_string;
+	Uint32 capabilities;
+	Uint32 video_modes;
+	Uint16 total_memory;
+} __attribute__((packed)) VesaControllerInfo;
 
-struct vesa_mode_info {
+typedef struct vesa_mode_info {
 	Uint16 attributes;
 	Uint8 window_a;
 	Uint8 window_b;
@@ -49,7 +61,7 @@ struct vesa_mode_info {
 	Uint16 window_size;
 	Uint16 window_a_segment;
 	Uint16 window_b_segment;
-	VesaFarPtr window_function;
+	Uint32 window_function;
 	Uint16 pitch;
 
 	Uint16 x_resolution;
@@ -79,7 +91,7 @@ struct vesa_mode_info {
 	Uint16 reserved_2;
 
 	/* VBE 3.0+ and above... */
-};
+} __attribute__((packed)) VesaModeInfo;
 
 /*
 ** Types
@@ -95,8 +107,14 @@ struct vesa_mode_info {
 
 void _vesa_init(void);
 
-void _vesa_print_info(void);
-void _vesa_print_mode_info(int mode_num);
+void _vesa_load_info(VesaControllerInfo *info);
+void _vesa_load_mode_info(Uint16 mode, VesaModeInfo *info);
+Uint16 _vesa_choose_mode(Uint16 *modes, int x, int y, int bpp);
+void _vesa_select_mode(Uint16 mode);
+
+void _vesa_print_info(VesaControllerInfo *info);
+void _vesa_print_mode_info_basic(int mode_num, VesaModeInfo *info);
+void _vesa_print_mode_info(int mode_num, VesaModeInfo *info);
 
 #endif
 

@@ -1,6 +1,6 @@
 include ../../defs.mk
 
-CFLAGS += -I../../include -I../../ulib -I../../kernel/lib -I..
+CFLAGS += -I../../include -I../../ulib -I../../kernel/lib -I.. -I../../kernel/bios
 
 OBJ_FILES := vesa.o
 
