@@ -16,6 +16,15 @@
 #include "queues.h"
 #include "klibc.c"
 
+
+//#define TRACE_SEMAPHORES
+#ifdef TRACE_SEMAPHORES
+#	define TRACE(...) c_printf(__VA_ARGS__)
+#else
+#	define TRACE(...) ;
+#endif
+
+
 /*
 ** PRIVATE DEFINITIONS
 */
@@ -87,7 +96,7 @@ void _sem_init( void ) {
 		_q_insert(_available_semaphores, &_sems[i], (Key) i);
 	}
 
-	c_puts( " semaphores" );
+	TRACE( " semaphores" );
 }
 
 /*
@@ -104,7 +113,7 @@ Sem _sem_new( void ) {
 		s->value = 0;
 		_q_alloc(&(s->waiting), NULL);
 		_q_insert(_semaphores, (void *) s, (Key) s->sem);
-		c_printf("CREATED SEMAPHORE %d\n", s->sem);
+		TRACE("CREATED SEMAPHORE %d\n", s->sem);
 		return s->sem;
 	} else {
 		return -1;
@@ -141,7 +150,7 @@ Status _sem_destroy( Sem sem ) {
 		_q_remove_by_key(_semaphores, (void **) &s, (Key) sem);
 		_q_insert(_available_semaphores, (void *) s, (Key) 0);
 
-		c_printf( "DESTROYED SEMAPHORE %d\n", sem);
+		TRACE( "DESTROYED SEMAPHORE %d\n", sem);
 		return SUCCESS;
 	} else {
 		return status;
@@ -175,7 +184,7 @@ Status _sem_post( Sem sem ) {
 		_sem_sched_waiting(s);
 		return SUCCESS;
 	} else {
-		c_puts("herp\n");
+		TRACE("herp\n");
 		return status;
 	}
 }
