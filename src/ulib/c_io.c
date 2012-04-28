@@ -283,7 +283,7 @@ void c_scroll( unsigned int lines ){
 	}
 }
 
-char * cvtdec0( char *buf, int value ){
+static char * cvtdec0( char *buf, int value ){
 	int	quotient;
 
 	quotient = value / 10;
@@ -298,7 +298,7 @@ char * cvtdec0( char *buf, int value ){
 	return buf;
 }
 
-int cvtdec( char *buf, int value ){
+static int cvtdec( char *buf, int value ){
 	char	*bp = buf;
 
 	if( value < 0 ){
@@ -311,9 +311,9 @@ int cvtdec( char *buf, int value ){
 	return bp - buf;
 }
 
-char hexdigits[] = "0123456789ABCDEF";
+static char hexdigits[] = "0123456789ABCDEF";
 
-int cvthex( char *buf, int value ){
+static int cvthex( char *buf, int value ){
 	int	i;
 	int	chars_stored = 0;
 	char	*bp = buf;
@@ -335,7 +335,7 @@ int cvthex( char *buf, int value ){
 	return bp - buf;
 }
 
-int cvtoct( char *buf, int value ){
+static int cvtoct( char *buf, int value ){
 	int	i;
 	int	chars_stored = 0;
 	char	*bp = buf;

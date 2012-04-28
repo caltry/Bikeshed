@@ -8,6 +8,9 @@
 #include "paging.h"
 #include "physical.h"
 
+#define serial_string(...) 
+#define serial_printf(...)
+
 typedef struct LinkedNode
 {
 	Uint32 size; // Size must be first! Also the size without the HEADER
@@ -60,10 +63,10 @@ void __kmalloc_info(void)
 	while (node != 0)
 	{
 		serial_printf("Node Number: %d\n", node_number);
-		serial_printf("Node addr: %x\n", (Uint32)node);
+		serial_printf("Node addr: %x\n", node);
 		serial_printf("Node size: %d\n", node->size);
-		serial_printf("Node next: %x\n", (Uint32)node->next);
-		serial_printf("Node prev: %x\n\n", (Uint32)node->prev);
+		serial_printf("Node next: %x\n", node->next);
+		serial_printf("Node prev: %x\n\n", node->prev);
 		node = node->next;
 		++node_number;
 	}
@@ -71,16 +74,16 @@ void __kmalloc_info(void)
 
 void print_node_info(linked_node_t* node)
 {
-	serial_printf("Node addr: %x\n", (Uint32)node);
+	UNUSED(node); // Cheat for when we 'remove' the print statements
+	serial_printf("Node addr: %x\n", node);
 	serial_printf("Node size: %d\n", node->size);
-	serial_printf("Node next: %x\n", (Uint32)node->next);
-	serial_printf("Node prev: %x\n\n", (Uint32)node->prev);
+	serial_printf("Node next: %x\n", node->next);
+	serial_printf("Node prev: %x\n\n", node->prev);
 }
 
 void* __kmalloc(Uint32 size)
 {
-	serial_string("Kmalloc\n");
-	serial_printf("Unmodded size: %d\n", size);
+	serial_printf("Kmalloc\nUnmodded size: %d\n", size);
 	// In order to make sure there is enough room, we can't allocate
 	// less than sizeof(linked_node_t) bytes, otherwise we won't have
 	// room to store the linked list information when we add the chunk
@@ -184,6 +187,12 @@ void* __kcalloc(Uint32 size)
 
 void __kfree(void* address)
 {
+	// Do nothing if we've been given a bad value
+	if (address < kernel_heap.start_address || address > kernel_heap.end_address)
+	{
+		return;
+	}
+
 	serial_string("Kfree\n");
 	linked_node_t* free_node = (linked_node_t *)((Uint32)address - HEADER_SIZE);
 

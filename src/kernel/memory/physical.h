@@ -4,8 +4,10 @@
 #define KERNEL_LINK_ADDR 0xC0100000
 #define KERNEL_LOAD_ADDR 0x00100000
 
-// Assume 256MB of RAM for now
-#define PHYSICAL_MEM_SIZE 256*1024*1024
+#define ONE_KILOBYTE  (1024)
+#define ONE_MEGABYTE  (1024 * ONE_KILOBYTE) 
+#define SIXTEEN_MEG   (16 * ONE_MEGABYTE)
+#define SIXTY_FOUR_KB (64 * ONE_KILOBYTE) 
 
 #include "headers.h"
 
@@ -13,6 +15,7 @@
 extern Uint32 KERNEL_END;
 
 Uint32 KERNEL_SIZE;
+Uint32 PHYSICAL_MEM_SIZE;
 
 /* Takes a physical address and sets the bit in the
  * bitmap. Doesn't do anything more than that
