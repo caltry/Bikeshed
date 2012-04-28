@@ -7,7 +7,8 @@
 #define PCI_CONFIG_DATA_PORT  0xCFC
 #define ENABLE_PCI_CONFIG_SPACE 0x80000000
 
-#define PCI_CLASS_REVISION 0x08 /* Highest 24-bits are class, low and revision */
+#define PCI_VENDOR_ID 0x0
+#define PCI_CLASS_REVISION 0x08 /* Highest 24-bits are class, low are revision */
 #define PCI_HEADER_TYPE 0x0e /* 8-bits */
 
 // The format of CONFIG_ADDRESS is the following:

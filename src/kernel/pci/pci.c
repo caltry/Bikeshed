@@ -4,8 +4,9 @@
 
 Uint32 __pci_config_read_long(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset)
 {
-	const Uint32 val = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | function << 8 | offset;
-	__outl(val, PCI_CONFIG_SPACE_PORT);
+	const Uint32 address = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | 
+						function << 8 | (offset & 0xFC);
+	__outl(PCI_CONFIG_SPACE_PORT, address);
 	Uint32 output = __inl(PCI_CONFIG_DATA_PORT);
 
 	return output;
@@ -13,43 +14,44 @@ Uint32 __pci_config_read_long(Uint8 bus, Uint8 device, Uint8 function, Uint8 off
 
 Uint16 __pci_config_read_short(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset)
 {
-	const Uint32 val = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | function << 8 | offset;
-	__outl(val, PCI_CONFIG_SPACE_PORT);
-	Uint16 output = __inw(PCI_CONFIG_DATA_PORT + (offset & 2));
+	const Uint32 address = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | 
+					 function << 8 | (offset & 0xFC);
+	__outl(PCI_CONFIG_SPACE_PORT, address);
+	Uint16 output = (__inl(PCI_CONFIG_DATA_PORT) >> ((offset & 2) * 8)) & 0xffff;
 	
 	return output;
 }
 
 Uint8 __pci_config_read_byte(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset)
 {
-	const Uint32 val = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | function << 8 | offset;
-	__outl(val, PCI_CONFIG_SPACE_PORT);
-	Uint8 output = __inb(PCI_CONFIG_DATA_PORT + (offset & 3));
+	const Uint32 address = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | function << 8 | (offset & 0xFC);
+	__outl(PCI_CONFIG_SPACE_PORT, address);
+	Uint8 output = (__inl(PCI_CONFIG_DATA_PORT) >> ((offset & 2) * 8)) & 0xFF;
 	
 	return output;
 }
 
 void __pci_config_write_long(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset, Uint32 val)
 {
-	const Uint32 pci = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | function << 8 | offset;
-	__outl(pci, PCI_CONFIG_SPACE_PORT);	
-	__outl(val, PCI_CONFIG_DATA_PORT);
+	const Uint32 pci = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | function << 8 | (offset & 0xFC);
+	__outl(PCI_CONFIG_SPACE_PORT, pci);	
+	__outl(PCI_CONFIG_DATA_PORT, val);
 }
 
 void __pci_config_write_short(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset, Uint16 val)
 {
-	const Uint32 pci = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | function << 8 | offset;
-	__outl(pci, PCI_CONFIG_SPACE_PORT);
-	__outw(val, PCI_CONFIG_DATA_PORT + (offset & 2));
+	const Uint32 pci = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | function << 8 | (offset & 0xFC);
+	__outl(PCI_CONFIG_SPACE_PORT, pci);
+	__outw(PCI_CONFIG_DATA_PORT, val);// + (offset & 2));
 }
 
 void __pci_config_write_byte(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset, Uint8 val)
 {
-	const Uint32 pci = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | function << 8 | offset;
-	__outl(pci, PCI_CONFIG_SPACE_PORT);	
-	__outb(val, PCI_CONFIG_DATA_PORT + (offset & 3));
+	const Uint32 pci = ENABLE_PCI_CONFIG_SPACE | bus << 16 | device << 11 | function << 8 | (offset & 0xFC);
+	__outl(PCI_CONFIG_SPACE_PORT, pci);	
+	__outb(PCI_CONFIG_DATA_PORT, val);// + (offset & 3));
 }
-
+/*
 void __pci_dump_all_devices()
 {
 	Uint16 bus, slot, func = 0;
@@ -74,7 +76,7 @@ void __pci_dump_all_devices()
 				{
 					type = __pci_config_read_byte(bus, slot, func, PCI_HEADER_TYPE);
 
-					if (!(type & 0x80)) /* TODO What does this mean? */
+					if (!(type & 0x80)) // TODO What does this mean? 
 						break;
 				}
 			}
@@ -88,7 +90,7 @@ void __pci_dump_device(Uint8 bus, Uint8 slot, Uint8 func)
 
 	for (Int32 i = 0; i < 256; i += 4)
 	{
-		if (!(i & 0x0f)) /* TODO What does this mean? */
+		if (!(i & 0x0f)) // TODO What does this mean? 
 		{
 			serial_printf("\n %d:", i);
 		}
@@ -101,6 +103,71 @@ void __pci_dump_device(Uint8 bus, Uint8 slot, Uint8 func)
 		}
 	}
 	serial_string("\n");
+}
+*/
+
+unsigned short pciConfigReadWord (unsigned short bus, unsigned short slot,
+		unsigned short func, unsigned short offset)
+{
+	unsigned long address;
+	unsigned long lbus = (unsigned long)bus;
+	unsigned long lslot = (unsigned long)slot;
+	unsigned long lfunc = (unsigned long)func;
+	unsigned short tmp = 0;
+
+	/* create configuration address as per Figure 1 */
+	address = (unsigned long)((lbus << 16) | (lslot << 11) |
+			(lfunc << 8) | (offset & 0xfc) | ((Uint32)0x80000000));
+
+	/* write out the address */
+	__outl (0xCF8, address);
+	/* read in the data */
+	/* (offset & 2) * 8) = 0 will choose the first word of the 32 bits register */
+	tmp = (unsigned short)((__inl (0xCFC) >> ((offset & 2) * 8)) & 0xffff);
+	return (tmp);
+}
+
+void __pci_dump_all_devices()
+{
+	for (Uint32 bus = 0; bus < 256; ++bus)
+	{
+		//Uint32 vendor = pciConfigReadWord(bus, 0, 0, 0);//__pci_config_read_short(bus, 0, 0, PCI_VENDOR_ID);
+		Uint32 vendor = __pci_config_read_short(bus, 0, 0, 0);
+		if (vendor == 0xFFFF) 
+		{
+			continue; 
+		}
+	
+		serial_printf("pci 0000:%d:%d.%d\n", bus, 0, 0);
+		serial_printf("vendor: %x\n", vendor);
+		Uint32 device_id = pciConfigReadWord(bus, 0, 0, 0x2);//__pci_config_read_short(bus, 0, 0, 0x2);
+		serial_printf("device: %x\n", device_id);
+		device_id = __pci_config_read_short(bus, 0, 0, 0x2);	
+		serial_printf("device: %x\n", device_id);
+
+		serial_printf("Vendor+device: %08x\n", __pci_config_read_long(bus, 0, 0, 0));
+		serial_printf("byte test: %x\n", __pci_config_read_byte(bus, 0, 0, 0));
+
+		//Uint32 class = __pci_config_read_long(bus, 0, 0, 0x8);
+		Uint32 class = 
+			pciConfigReadWord(bus, 0, 0, 0xa) << 16 |
+			pciConfigReadWord(bus, 0, 0, 0x8);
+		serial_printf("class: %08x\n", class);
+		class = __pci_config_read_long(bus, 0, 0, 0x8);
+		serial_printf("class: %08x\n", class);
+
+		Uint32 subsystem_vendor = __pci_config_read_short(bus, 0, 0, 0x2c);
+		Uint32 subsystem_id = __pci_config_read_short(bus, 0, 0, 0x2e);
+		serial_printf("subsystem vendor: %x\n", subsystem_vendor);
+		serial_printf("subsystem id: %x\n", subsystem_id);
+	
+		__pci_dump_device(bus, 0, 0);
+	}
+}
+
+void __pci_dump_device(Uint8 bus, Uint8 slot, Uint8 func)
+{
+	//serial_printf("pci 0000:%d:%d.%d", bus, slot, func);
 }
 
 void __pci_init()

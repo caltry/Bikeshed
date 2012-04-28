@@ -44,7 +44,7 @@ qemu:	usb.image
 	qemu usb.image -serial stdio
 
 walter:	usb.image
-	kvm usb.image -serial /dev/pts/1 -monitor stdio
+	kvm usb.image -serial /dev/pts/1 -monitor stdio -net nic -net user
 #
 # Special rule for creating the modification and offset programs
 #
