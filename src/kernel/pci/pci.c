@@ -3,6 +3,7 @@
 #include "../../boot/startup.h"
 #include "../memory/kmalloc.h"
 #include "../data_structures/linkedlist.h"
+#include "../lib/klib.h"
 
 linked_list_t* lst_pci_devices;
 
@@ -172,6 +173,43 @@ void __pci_scan_devices()
 				pci_config->header_type = __pci_config_read_byte(bus, slot, func, PCI_HEADER_TYPE);
 				pci_config->BIST = __pci_config_read_byte(bus, slot, func, PCI_BIST);
 
+				// Mask off the special MF flag
+				switch ((pci_config->header_type & 0x7))
+				{
+					case 0:
+						{
+							pci_config->type_0.bar_address_0 = __pci_config_read_long(bus, slot, func, 0x10);
+							pci_config->type_0.bar_address_1 = __pci_config_read_long(bus, slot, func, 0x14);
+							pci_config->type_0.bar_address_2 = __pci_config_read_long(bus, slot, func, 0x18);
+							pci_config->type_0.bar_address_3 = __pci_config_read_long(bus, slot, func, 0x1C);
+							pci_config->type_0.bar_address_4 = __pci_config_read_long(bus, slot, func, 0x20);
+							pci_config->type_0.bar_address_5 = __pci_config_read_long(bus, slot, func, 0x24);
+							pci_config->type_0.cardbus_cis_pointer = __pci_config_read_long(bus, slot, func, 0x28);
+							pci_config->type_0.subsystem_vendor_id = __pci_config_read_short(bus, slot, func, 0x2C);
+							pci_config->type_0.subsystem_id = __pci_config_read_short(bus, slot, func, 0x2E);
+							pci_config->type_0.expansion_rom_address = __pci_config_read_long(bus, slot, func, 0x30);
+							pci_config->type_0.capabilities_pointer = __pci_config_read_byte(bus, slot, func, 0x34);
+							pci_config->type_0.interrupt_line = __pci_config_read_byte(bus, slot, func, 0x3C);
+							pci_config->type_0.interrupt_pin = __pci_config_read_byte(bus, slot, func, 0x3D);
+							pci_config->type_0.min_grant = __pci_config_read_byte(bus, slot, func, 0x3E);
+							pci_config->type_0.max_latency = __pci_config_read_byte(bus, slot, func, 0x3F);
+						}
+						break;
+					case 1:
+						{
+
+						}
+						break;
+					case 2:
+						{
+						}
+						break;
+					default:
+						// Uh oh?
+						_kpanic("PCI", "Device found with bad header type\n", 0);
+						break;
+				}
+
 				// Add this device to our devices list
 				list_insert_next(lst_pci_devices, NULL, pci_config);
 			}
@@ -199,8 +237,33 @@ void __pci_dump_all_devices()
 		serial_printf("Cache Size   : %02xh\n", config->cache_line_size);
 		serial_printf("Latency Timer: %02xh\n", config->latency_timer);
 		serial_printf("Header Type  : %02xh\n", config->header_type);
-		serial_printf("BIST         : %02xh\n\n", config->BIST);
+		serial_printf("BIST         : %02xh\n", config->BIST);
 
+		switch ((config->header_type & 0x7))
+		{
+			case 0:
+				{
+					serial_printf("\nHeader type: 0\n");	
+					serial_printf("Bar address 0: %x\n", config->type_0.bar_address_0);
+					serial_printf("Bar address 1: %x\n", config->type_0.bar_address_1);
+					serial_printf("Bar address 2: %x\n", config->type_0.bar_address_2);
+					serial_printf("Bar address 3: %x\n", config->type_0.bar_address_3);
+					serial_printf("Bar address 4: %x\n", config->type_0.bar_address_4);
+					serial_printf("Bar address 5: %x\n", config->type_0.bar_address_5);
+					serial_printf("Carbus pointer: %x\n", config->type_0.cardbus_cis_pointer);
+					serial_printf("Subsystem Vendor ID: %x\n", config->type_0.subsystem_vendor_id);
+					serial_printf("Subsystem ID: %x\n", config->type_0.subsystem_id);
+					serial_printf("Expansion ROM addr: %x\n", config->type_0.expansion_rom_address);
+					serial_printf("Capabilities Pointer: %x\n", config->type_0.capabilities_pointer);
+					serial_printf("Interrupt line: %x\n", config->type_0.interrupt_line);
+					serial_printf("Interrupt pin: %x\n", config->type_0.interrupt_pin);
+					serial_printf("Min grant: %x\n", config->type_0.min_grant);
+					serial_printf("Max latency: %x\n", config->type_0.max_latency);
+				}
+				break;
+		}
+
+		serial_printf("\n");
 		node = list_next(node);
 	}
 }

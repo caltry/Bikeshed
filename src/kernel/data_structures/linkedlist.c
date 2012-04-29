@@ -24,7 +24,6 @@ void list_destroy(linked_list_t* list)
 
 	// Clear the list just in case
 	list->size = 0;
-	list->match = NULL;
 	list->destroy = NULL;
 	list->head = NULL;
 	list->tail = NULL;
