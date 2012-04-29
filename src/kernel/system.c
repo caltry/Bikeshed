@@ -239,6 +239,7 @@ void _init( void ) {
 
 	__kmem_init_kmalloc();
 
+	__pci_init();
 	__pci_dump_all_devices();
 
 	_q_init();		// must be first

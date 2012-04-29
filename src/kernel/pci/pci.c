@@ -1,6 +1,10 @@
 #include "pci.h"
 #include "../serial.h"
 #include "../../boot/startup.h"
+#include "../memory/kmalloc.h"
+#include "../data_structures/linkedlist.h"
+
+linked_list_t* lst_pci_devices;
 
 Uint32 __pci_config_read_long(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset)
 {
@@ -127,7 +131,7 @@ unsigned short pciConfigReadWord (unsigned short bus, unsigned short slot,
 	return (tmp);
 }
 
-void __pci_dump_all_devices()
+void __pci_scan_devices()
 {
 	for (Uint32 bus = 0; bus < 256; ++bus)
 	{
@@ -135,47 +139,69 @@ void __pci_dump_all_devices()
 		{
 			for (Uint32 func = 0; func < 8; ++func)
 			{
-				//Uint32 vendor = pciConfigReadWord(bus, 0, 0, 0);//__pci_config_read_short(bus, 0, 0, PCI_VENDOR_ID);
-				Uint32 vendor = __pci_config_read_short(bus, slot, 0, 0);
-				if (vendor == 0xFFFF) 
+				Uint32 vendor_id = __pci_config_read_short(bus, slot, 0, PCI_VENDOR_ID);
+				if (vendor_id == 0xFFFF) 
 				{
 					continue; 
 				}
 
-				Uint32 device_id = pciConfigReadWord(bus, slot, func, 0x2);//__pci_config_read_short(bus, 0, 0, 0x2);
-
+				Uint32 device_id = __pci_config_read_short(bus, slot, func, PCI_DEVICE_ID);
 				if (device_id == 0xFFFF)
 				{
 					continue;
 				}
 
-				// For class codes: (3 bytes) Class, Sub class, Prog IF
+				// Okay this is a valid pci device!
+				pci_config_t* pci_config = (pci_config_t *)__kmalloc(sizeof(pci_config_t));
 
-				serial_printf("pci 0000:%d:%d.%d\n", bus, slot, func);
-				serial_printf("vendor: %x\n", vendor);
-				serial_printf("device: %x\n", device_id);
-				device_id = __pci_config_read_short(bus, slot, func, 0x2);	
-				serial_printf("device: %x\n", device_id);
-				//serial_printf("Vendor+device: %08x\n", __pci_config_read_long(bus, slot, 0, 0));
-				//serial_printf("byte test: %x\n", __pci_config_read_byte(bus, slot, 0, 0));
+				pci_config->bus  = bus;
+				pci_config->slot = slot;
+				pci_config->function = func;
 
-				//Uint32 class = __pci_config_read_long(bus, 0, 0, 0x8);
-				Uint32 class = 
-					pciConfigReadWord(bus, slot, func, 0xa) << 16 |
-					pciConfigReadWord(bus, slot, func, 0x8);
-				serial_printf("class: %08x\n", class);
-				class = __pci_config_read_long(bus, slot, func, 0x8);
-				serial_printf("class: %08x\n", class);
+				pci_config->vendor_id = vendor_id;
+				pci_config->device_id = device_id;
 
-				Uint32 subsystem_vendor = __pci_config_read_short(bus, slot, func, 0x2c);
-				Uint32 subsystem_id = __pci_config_read_short(bus, slot, func, 0x2e);
-				serial_printf("subsystem vendor: %x\n", subsystem_vendor);
-				serial_printf("subsystem id: %x\n", subsystem_id);
+				Uint32 class = __pci_config_read_long(bus, slot, func, PCI_CLASS);
+				pci_config->base_class     = (class >> 24) & 0xFF;
+				pci_config->sub_class      = (class >> 16) & 0xFF;
+				pci_config->programming_if = (class >> 8) & 0xFF;
+				pci_config->revision       = class & 0xFF;
 
-				__pci_dump_device(bus, slot, func);
-				serial_printf("\n");
+				pci_config->cache_line_size = __pci_config_read_byte(bus, slot, func, PCI_CACHE_LINE_SIZE);
+				pci_config->latency_timer = __pci_config_read_byte(bus, slot, func, PCI_LATENCY_TIMER);
+				pci_config->header_type = __pci_config_read_byte(bus, slot, func, PCI_HEADER_TYPE);
+				pci_config->BIST = __pci_config_read_byte(bus, slot, func, PCI_BIST);
+
+				// Add this device to our devices list
+				list_insert_next(lst_pci_devices, NULL, pci_config);
 			}
 		}
+	}
+}
+
+void __pci_dump_all_devices()
+{
+	list_element_t* node = list_head(lst_pci_devices);			
+
+	serial_printf("\nPCI devices list:\n");
+
+	while (node != NULL)
+	{
+		pci_config_t* config = (pci_config_t *)list_data(node);
+
+		serial_printf("Bus: %d, Slot: %d, Function: %d\n", config->bus, config->slot, config->function);
+		serial_printf("Vendor ID    : %04xh\n", config->vendor_id);
+		serial_printf("Device ID    : %04xh\n", config->device_id);
+		serial_printf("Base Class   : %02xh\n", config->base_class);
+		serial_printf("Sub  Class   : %02xh\n", config->sub_class);
+		serial_printf("Prog IF      : %02xh\n", config->programming_if);
+		serial_printf("Revision     : %02xh\n", config->revision);
+		serial_printf("Cache Size   : %02xh\n", config->cache_line_size);
+		serial_printf("Latency Timer: %02xh\n", config->latency_timer);
+		serial_printf("Header Type  : %02xh\n", config->header_type);
+		serial_printf("BIST         : %02xh\n\n", config->BIST);
+
+		node = list_next(node);
 	}
 }
 
@@ -189,6 +215,7 @@ void __pci_dump_device(Uint8 bus, Uint8 slot, Uint8 func)
 
 void __pci_init()
 {
-	
+	list_init(lst_pci_devices, __kfree);	
+	__pci_scan_devices();
 }
 
