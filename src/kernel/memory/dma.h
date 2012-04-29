@@ -5,9 +5,9 @@
 
 /* Initialize the DMA memory allocator
  */
-void __dma_init();
+void __dma_init(void);
 
-void* __dma_get_address();
+void* __dma_get_address(void);
 
 void __dma_free_address(void* address);
 

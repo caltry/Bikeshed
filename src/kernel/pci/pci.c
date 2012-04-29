@@ -149,6 +149,8 @@ void __pci_dump_all_devices()
 					continue;
 				}
 
+				// For class codes: (3 bytes) Class, Sub class, Prog IF
+
 				serial_printf("pci 0000:%d:%d.%d\n", bus, slot, func);
 				serial_printf("vendor: %x\n", vendor);
 				serial_printf("device: %x\n", device_id);
@@ -180,6 +182,9 @@ void __pci_dump_all_devices()
 void __pci_dump_device(Uint8 bus, Uint8 slot, Uint8 func)
 {
 	//serial_printf("pci 0000:%d:%d.%d", bus, slot, func);
+	UNUSED(bus);
+	UNUSED(slot);
+	UNUSED(func);
 }
 
 void __pci_init()

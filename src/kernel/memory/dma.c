@@ -13,17 +13,19 @@ typedef struct Stack
 
 dma_stack_t dma_stack;
 
-static void* __dma_pop_stack()
+static void* __dma_pop_stack(void)
 {
-
+	return 0;
 }
 
 static void __dma_push_stack(void* address)
 {
-
+	UNUSED(address);
 }
 
 void __dma_init()
 {
 	// Push all the valid addresses onto the stack
+	__dma_push_stack(0);
+	__dma_pop_stack();
 }
