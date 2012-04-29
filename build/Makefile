@@ -1,5 +1,7 @@
 CFLAGS=-Wall -Werror -Wextra -pedantic -std=gnu99
 
+all: BuildImage FancyCat
+
 BuildImage: BuildImage.o
 	$(CC) $(CFLAGS) -o BuildImage $^
 

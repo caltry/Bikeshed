@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Put the end byte marker
-	char end[SECTOR_SIZE];	
+	unsigned char end[SECTOR_SIZE];
 	memset(&end[0], 0, sizeof(end));
 	end[0] = end[1] = end[2] = end[3] = 0xFF;
 	end[4] = end[5] = end[6] = end[7] = 0xFF;
