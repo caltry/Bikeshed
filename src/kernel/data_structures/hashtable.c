@@ -13,10 +13,10 @@ Int32 hash_string(const void* key)
 	{
 		val = (val << 4) + (*ptr);
 
-		if (temp = (val & 0xF0000000))
+		if ((temp = (val & 0xF0000000)) != 0)
 		{
-			val = val ^ (tmp >> 24);
-			val = val ^ tmp;
+			val = val ^ (temp >> 24);
+			val = val ^ temp;
 		}
 
 		++ptr;
@@ -29,9 +29,9 @@ Int32 hash_string(const void* key)
 
 static void hash_table_destroy_key_val(hash_table_t* hash_tbl, const void* data)
 {
-	key_val_t* key_val = (key_val_t *)data;
-
-
+//	key_val_t* key_val = (key_val_t *)data;
+	UNUSED(hash_tbl);
+	UNUSED(data);
 }
 
 Int32 hash_table_init(hash_table_t* hash_tbl, Int32 buckets, Int32 (*hash_func)(const void* key), Int32 (*match_func)(const void* key1, const void* key2), void (*destroy)(void* data))
@@ -67,20 +67,22 @@ void hash_table_destroy(hash_table_t* hash_tbl)
 	_kmemclr(hash_tbl, sizeof(hash_table_t));
 }
 
-Int32 hash_table_insert(hash_table_t* hash_tbl, const void* data)
+Int32 hash_table_insert(hash_table_t* hash_tbl, const void* key, const void* data)
 {
 	void* temp;
 
 	Int32 bucket, retval;
 
-	temp = (void *)data;
+	temp = (void *)key;
 
-	if (hash_table_lookup(hash_tbl, &temp) == 0)
+	void* data_ptr = NULL;
+
+	if (hash_table_lookup(hash_tbl, &temp, &data_ptr) == 0)
 	{
 		return 1;
 	}
 
-	bucket = hash_tbl->hash_func(data) % hash_tbl->buckets;
+	bucket = hash_tbl->hash_func(key) % hash_tbl->buckets;
 
 	if ((retval = list_insert_next(&hash_tbl->table[bucket], NULL, data)) == 0)
 	{

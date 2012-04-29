@@ -76,7 +76,8 @@ Int32 hash_table_remove(hash_table_t* hash_tbl, const void* key, void** data);
  *
  * Data should initialy point to the key of the element to look up. 
  * If the value is found in the table 
-Int32 hash_table_lookup(const hash_table_t* hash_tbl, void** data);
+ */
+Int32 hash_table_lookup(const hash_table_t* hash_tbl, const void* key, void** data);
 
 #define hash_table_size(hash_tbl) ((hash_tbl)->size)
 
