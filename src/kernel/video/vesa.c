@@ -47,22 +47,6 @@
 ** PUBLIC FUNCTIONS
 */
 
-void _vesa_init(void) {
-	//Uint16 video_mode;
-	VesaControllerInfo *info = (VesaControllerInfo *)VESA_INFO_ADDRESS;
-	_vesa_load_info(info);
-	_vesa_print_info(info);
-
-	Uint16 *modes = (Uint16 *)(info->video_modes);
-	_vesa_choose_mode(modes, 1024, 1024, 16);
-	//_vesa_load_mode_info(video_mode);
-
-	
-	//_vesa_print_mode_info(video_mode);
-
-	//_vesa_select_mode(261);
-}
-
 
 void _vesa_load_info(VesaControllerInfo *info) {
 	Registers regs = {di: (Uint16)((Uint32)info), ax: GET_CONTROLLER_INFO};
@@ -162,7 +146,7 @@ void _vesa_print_info(VesaControllerInfo *info) {
 
 
 void _vesa_print_mode_info_basic(int mode_num, VesaModeInfo *info) {
-	TRACE("%d: %dx%dx%d", mode_num, (Uint32)(info->x_resolution),
+	TRACE("%d: %dx%dx%d  ", mode_num, (Uint32)(info->x_resolution),
 		(Uint32)(info->y_resolution), (Uint32)(info->bits_per_pixel));
 }
 

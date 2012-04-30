@@ -39,7 +39,7 @@
 
 #include "bios.h"
 
-#include "vesa.h"
+#include "video.h"
 
 /*
 ** PUBLIC FUNCTIONS
@@ -281,7 +281,7 @@ void _init( void ) {
 	/*
 	** Start up the system graphics module
 	*/
-	_vesa_init();
+	_video_init();
 
 	/*
 	** Create the initial process

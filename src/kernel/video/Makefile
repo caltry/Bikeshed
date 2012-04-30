@@ -2,7 +2,7 @@ include ../../defs.mk
 
 CFLAGS += -I../../include -I../../ulib -I../../kernel/lib -I.. -I../../kernel/bios
 
-OBJ_FILES := vesa.o
+OBJ_FILES := vesa.o video.o graphics.o
 
 .PHONY: all
 

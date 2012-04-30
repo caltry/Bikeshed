@@ -86,7 +86,7 @@ typedef struct vesa_mode_info {
 	Uint8 rsvd_position;
 	Uint8 direct_color_attributes;
 
-	Uint32 framebuffer_address;
+	Uint32 frame_buffer_address;
 	Uint32 reserved_1;
 	Uint16 reserved_2;
 
