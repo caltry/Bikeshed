@@ -363,6 +363,26 @@ void __pci_dump_all_devices()
 	}
 }
 
+pci_config_t* __pci_find_by_class(Uint8 base_class, Uint8 sub_class, Uint8 prog_if)
+{
+	list_element_t* node = list_head(lst_pci_devices);
+
+	while (node != NULL)
+	{
+		pci_config_t* pci_info = (pci_config_t *)list_data(node);
+		if (pci_info->base_class == base_class && 
+				pci_info->sub_class == sub_class &&
+				pci_info->programming_if == prog_if)
+		{
+			return pci_info;
+		}
+
+		node = list_next(node);
+	}
+
+	return NULL;
+}
+
 void __pci_dump_device(Uint8 bus, Uint8 slot, Uint8 func)
 {
 	//serial_printf("pci 0000:%d:%d.%d", bus, slot, func);
