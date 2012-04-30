@@ -111,6 +111,7 @@ void __pci_dump_device(Uint8 bus, Uint8 slot, Uint8 func)
 }
 */
 
+// TODO REMOVE, this was a test function
 unsigned short pciConfigReadWord (unsigned short bus, unsigned short slot,
 		unsigned short func, unsigned short offset)
 {
@@ -197,11 +198,53 @@ void __pci_scan_devices()
 						break;
 					case 1:
 						{
-
+							pci_config->type_1.bar_address_0 = __pci_config_read_long(bus, slot, func, 0x10);
+							pci_config->type_1.bar_address_1 = __pci_config_read_long(bus, slot, func, 0x14);
+							pci_config->type_1.primary_bus_number = __pci_config_read_byte(bus, slot, func, 0x18);
+							pci_config->type_1.secondary_bus_number = __pci_config_read_byte(bus, slot, func, 0x19);
+							pci_config->type_1.subordinate_bus_number = __pci_config_read_byte(bus, slot, func, 0x1A);
+							pci_config->type_1.secondary_latency_timer = __pci_config_read_byte(bus, slot, func, 0x1B);
+							pci_config->type_1.io_base = __pci_config_read_byte(bus, slot, func, 0x1C);
+							pci_config->type_1.io_limit = __pci_config_read_byte(bus, slot, func, 0x1D);
+							pci_config->type_1.secondary_status = __pci_config_read_short(bus, slot, func, 0x1E);
+							pci_config->type_1.memory_base = __pci_config_read_short(bus, slot, func, 0x20);
+							pci_config->type_1.memory_limit = __pci_config_read_short(bus, slot, func, 0x22);
+							pci_config->type_1.prefetchable_memory_base = __pci_config_read_short(bus, slot, func, 0x24);
+							pci_config->type_1.prefetchable_memory_limit = __pci_config_read_short(bus, slot, func, 0x26);
+							pci_config->type_1.prefetchable_base_upper_32_bits = __pci_config_read_long(bus, slot, func, 0x28);
+							pci_config->type_1.prefetchable_memory_limit_upper_32_bits = __pci_config_read_long(bus, slot, func, 0x2C);
+							pci_config->type_1.io_base_upper_16_bits = __pci_config_read_short(bus, slot, func, 0x30);
+							pci_config->type_1.io_limit_upper_16_bits = __pci_config_read_short(bus, slot, func, 0x32);
+							pci_config->type_1.capability_pointer = __pci_config_read_byte(bus, slot, func, 0x34);
+							pci_config->type_1.expansion_rom_base_address = __pci_config_read_long(bus, slot, func, 0x38);
+							pci_config->type_1.interrupt_line = __pci_config_read_byte(bus, slot, func, 0x3C);
+							pci_config->type_1.interrupt_pin = __pci_config_read_byte(bus, slot, func, 0x3D);
+							pci_config->type_1.bridge_control = __pci_config_read_short(bus, slot, func, 0x3E);
 						}
 						break;
 					case 2:
 						{
+							pci_config->type_2.cardbus_socket_base_address = __pci_config_read_long(bus, slot, func, 0x10);
+							pci_config->type_2.offset_of_capabilities_list = __pci_config_read_byte(bus, slot, func, 0x14);
+							pci_config->type_2.secondary_status = __pci_config_read_short(bus, slot, func, 0x16);
+							pci_config->type_2.pci_bus_number = __pci_config_read_byte(bus, slot, func, 0x18);
+							pci_config->type_2.card_bus_number = __pci_config_read_byte(bus, slot, func, 0x19);
+							pci_config->type_2.subordinate_bus_number = __pci_config_read_byte(bus, slot, func, 0x1A);
+							pci_config->type_2.cardbus_latency_timer = __pci_config_read_byte(bus, slot, func, 0x1B);
+							pci_config->type_2.memory_base_address_0 = __pci_config_read_long(bus, slot, func, 0x1C);
+							pci_config->type_2.memory_limit_0 = __pci_config_read_long(bus, slot, func, 0x20);
+							pci_config->type_2.memory_base_address_1 = __pci_config_read_long(bus, slot, func, 0x24);
+							pci_config->type_2.memory_limit_1 = __pci_config_read_long(bus, slot, func, 0x28);
+							pci_config->type_2.io_base_address_0 = __pci_config_read_long(bus, slot, func, 0x2C);
+							pci_config->type_2.io_limit_0 = __pci_config_read_long(bus, slot, func, 0x30);
+							pci_config->type_2.io_base_address_1 = __pci_config_read_long(bus, slot, func, 0x34);
+							pci_config->type_2.io_limit_1 = __pci_config_read_long(bus, slot, func, 0x38);
+							pci_config->type_2.interrupt_line = __pci_config_read_byte(bus, slot, func, 0x3C);
+							pci_config->type_2.interrupt_pin = __pci_config_read_byte(bus, slot, func, 0x3D);
+							pci_config->type_2.bridge_control = __pci_config_read_short(bus, slot, func, 0x3E);
+							pci_config->type_2.subsystem_device_id = __pci_config_read_short(bus, slot, func, 0x40);
+							pci_config->type_2.subsystem_vendor_id = __pci_config_read_short(bus, slot, func, 0x42);
+							pci_config->type_2.pci_legacy_mode_base_address = __pci_config_read_long(bus, slot, func, 0x44);
 						}
 						break;
 					default:
@@ -259,6 +302,58 @@ void __pci_dump_all_devices()
 					serial_printf("Interrupt pin: %x\n", config->type_0.interrupt_pin);
 					serial_printf("Min grant: %x\n", config->type_0.min_grant);
 					serial_printf("Max latency: %x\n", config->type_0.max_latency);
+				}
+				break;
+			case 1:
+				{
+					serial_printf("\nHeader type: 1\n");
+					serial_printf("Bar address 0: %x\n", config->type_1.bar_address_0);
+					serial_printf("Bar address 1: %x\n", config->type_1.bar_address_1);
+					serial_printf("Primary bus number: %x\n", config->type_1.primary_bus_number);
+					serial_printf("Secondary bus number: %x\n", config->type_1.secondary_bus_number);
+					serial_printf("Subordinate bus number: %x\n", config->type_1.subordinate_bus_number);
+					serial_printf("Secondary latency timer: %x\n", config->type_1.secondary_latency_timer);
+					serial_printf("IO base: %x\n", config->type_1.io_base);
+					serial_printf("IO limit: %x\n", config->type_1.io_limit);
+					serial_printf("Secondary status: %x\n", config->type_1.secondary_status);
+					serial_printf("Memory base: %x\n", config->type_1.memory_base);
+					serial_printf("Memory limit: %x\n", config->type_1.memory_limit);
+					serial_printf("Prefetch memory base: %x\n", config->type_1.prefetchable_memory_base);
+					serial_printf("Prefetch memory limit: %x\n", config->type_1.prefetchable_memory_limit);
+					serial_printf("Prefetch base upper 32-bits: %x\n", config->type_1.prefetchable_base_upper_32_bits);
+					serial_printf("Prefetch limit upper 32-bits: %x\n", config->type_1.prefetchable_memory_limit_upper_32_bits);
+					serial_printf("IO base upper 16-bits: %x\n", config->type_1.io_base_upper_16_bits);
+					serial_printf("IO limit upper 16-bits: %x\n", config->type_1.io_limit_upper_16_bits);
+					serial_printf("Capability pointer: %x\n", config->type_1.capability_pointer);
+					serial_printf("Expansion ROM base address: %x\n", config->type_1.expansion_rom_base_address);
+					serial_printf("Interrupt line: %x\n", config->type_1.interrupt_line);
+					serial_printf("Interrupt pin: %x\n", config->type_1.interrupt_pin);
+					serial_printf("Bridge control: %x\n", config->type_1.bridge_control);
+				}
+				break;
+			case 2:
+				{
+					serial_printf("Cardbus socket base address: %x\n", config->type_2.cardbus_socket_base_address);
+					serial_printf("Offset of capabilities: %x\n", config->type_2.offset_of_capabilities_list);
+					serial_printf("Secondary status: %x\n", config->type_2.secondary_status);
+					serial_printf("PCI bus number: %x\n", config->type_2.pci_bus_number);
+					serial_printf("Cardbus bus number: %x\n", config->type_2.card_bus_number);
+					serial_printf("Subordinate bus number: %x\n", config->type_2.subordinate_bus_number);
+					serial_printf("Cardbus latency timer: %x\n", config->type_2.cardbus_latency_timer);
+					serial_printf("Memory base address 0: %x\n", config->type_2.memory_base_address_0);
+					serial_printf("Memory limit 0: %x\n", config->type_2.memory_limit_0);
+					serial_printf("Memory base address 1: %x\n", config->type_2.memory_base_address_1);
+					serial_printf("Memory limit 1: %x\n", config->type_2.memory_limit_1);
+					serial_printf("IO base address 0: %x\n", config->type_2.io_base_address_0);
+					serial_printf("IO limit 0: %x\n", config->type_2.io_limit_0);
+					serial_printf("IO base address 1: %x\n", config->type_2.io_base_address_1);
+					serial_printf("IO limit 1: %x\n", config->type_2.io_limit_1);
+					serial_printf("Interrupt line: %x\n", config->type_2.interrupt_line);
+					serial_printf("Interrupt pin: %x\n", config->type_2.interrupt_pin);
+					serial_printf("Bridge control: %x\n", config->type_2.bridge_control);
+					serial_printf("Subsystem device ID: %x\n", config->type_2.subsystem_device_id);
+					serial_printf("Subsystem vendor ID: %x\n", config->type_2.subsystem_vendor_id);
+					serial_printf("16-bit PC card legacy base address: %x\n", config->type_2.pci_legacy_mode_base_address);
 				}
 				break;
 		}

@@ -91,9 +91,9 @@ typedef struct PCIHeaderType2
 	Uint16 secondary_status;
 
 	Uint8 pci_bus_number;
-	Uint8 card_Bus_number;
+	Uint8 card_bus_number;
 	Uint8 subordinate_bus_number;
-	Uint8 carbus_latency_pointer;
+	Uint8 cardbus_latency_timer;
 
 	Uint32 memory_base_address_0;
 	Uint32 memory_limit_0;
