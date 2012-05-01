@@ -37,6 +37,12 @@
 
 void clear_screen(Screen *screen, Uint32 color);
 
+void draw_char(Screen *screen, char letter, int x, int y, Uint32 color);
+
+void draw_string(Screen *screen, char *string, int x, int y, Uint32 color);
+
+void test_pattern(Screen *screen);
+
 void set_pixel(Screen *screen, Uint32 x, Uint32 y, Uint32 color);
 
 void fill_rect(Screen *screen, Uint32 x, Uint32 y, Uint32 width, Uint32 height, Uint32 color);

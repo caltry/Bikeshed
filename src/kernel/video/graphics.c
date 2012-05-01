@@ -12,6 +12,8 @@
 
 #include "video.h"
 
+#include "font.h"
+
 #include "graphics.h"
 
 
@@ -107,8 +109,75 @@ void clear_screen(Screen *screen, Uint32 color) {
 }
 
 
-void set_pixel(Screen *screen, Uint32 x, Uint32 y, Uint32 color) {
+void draw_char(Screen *screen, char letter, int x, int y, Uint32 color) {
+	Uint8 *dest = (Uint8 *)(screen->frame_buffer) + (y * screen->pitch) + (x * 3);
 
+	// Only uppercase letters for now
+	if ((letter < 32) || (letter > 126)) return;
+	Uint32 index = (letter - 32) * 7;
+
+	Uint8 r = (Uint8)((color & 0xff0000) >> 16);
+	Uint8 g = (Uint8)((color & 0x00ff00) >> 8);
+	Uint8 b = (Uint8)(color & 0x0000ff);
+
+	for (int row = 0; row < 7; ++row) {
+		Uint8 row_data = font_data[index + row];
+
+		for (int i = 0; i < 3; ++i) {
+			for (int col = 0; col < 5; ++col) {
+				if ((row_data << col) & 0x10) {
+					dest[0] = dest[3] = dest[6] = b;
+					dest[1] = dest[4] = dest[7] = g;
+					dest[2] = dest[5] = dest[8] = r;
+				}
+
+				dest += 9;
+			}
+
+			dest = (Uint8 *)((Uint32)dest + screen->pitch - (9 * 5));
+		}
+	}
+}
+
+
+void draw_string(Screen *screen, char *string, int x, int y, Uint32 color) {
+	char *cur = string;
+	while (*cur != '\0') {
+		draw_char(screen, *cur, x, y, color);
+		x += (6 * 3);
+		cur++;
+	}
+}
+
+
+void test_pattern(Screen *screen) {
+	Uint8 *dest = (Uint8 *)(screen->frame_buffer);
+	Uint32 num = screen->size;
+
+	while( num -= 3 ) {
+		Uint32 shift = num % (screen->pitch + 1);
+
+		if (shift % 30 > 15) {
+			dest[0] = 0x00;
+			dest[1] = 0xaa;
+			dest[2] = 0xaa;
+		} else {
+			dest[0] = 0x22;
+			dest[1] = 0x22;
+			dest[2] = 0x22;
+		}
+
+		dest += 3;
+	}
+}
+
+
+void set_pixel(Screen *screen, Uint32 x, Uint32 y, Uint32 color) {
+	Uint8 *dest = (Uint8 *)(screen->frame_buffer);
+
+	dest[0] = (Uint8)(color & 0x0000ff);
+	dest[1] = (Uint8)((color & 0x00ff00) >> 8);
+	dest[2] = (Uint8)((color & 0xff0000) >> 16);
 }
 
 

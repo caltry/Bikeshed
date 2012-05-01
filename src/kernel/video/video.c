@@ -83,9 +83,13 @@ Status _video_init(void) {
 	_vesa_select_mode(280);
 
 	// Draw to the screen
-	clear_screen(screen, 0xa066b4);
-	fill_rect(screen, 50, 50, 1024 - 100, 768 - 100, 0xa3905f);
-	
+	clear_screen(screen, 0xbadf00d);
+	fill_rect(screen, 50, 50, 1024 - 100, 768 - 100, 0xdeadbeef);
+	//test_pattern(screen);
+	draw_string(screen, " !\"#$%&'()*+,-./0123456789:;<=>?@", 100, 100, 0x000000); //ABCDEFGHIJKLMNOPQRSTUVWXYZ", 100, 100, 0x000000);
+	draw_string(screen, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 100, 132, 0x000000);
+	draw_string(screen, "[\\]^_`abcdefghijklmnopqrstuvwxyz", 100, 164, 0x000000);
+
 	//TODO: save somewhere
 	//__kfree(screen);
 	
