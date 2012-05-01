@@ -100,16 +100,6 @@ enable_paging:
 	ret
 move_to_higher:
 
-/* Setup the C++ Support */
-	mov $start_ctors, %ebx
-	jmp skip_constructor
-call_constructor:
-	call *(%ebx)
-	add $4, %ebx
-skip_constructor:
-	cmp $end_ctors, %ebx
-	jb call_constructor
-/* End C++ setup support */
 
 #ifdef CLEAR_BSS_SEGMENT
 
@@ -143,17 +133,12 @@ clearbss:
 */
 	jmp	__isr_restore   // defined in isr_stubs.S
 
-/* Cleanup the C++ support */
-	mov $end_dtors, %ebx
-	jmp skip_destructors	
-call_destructor:
-	sub $4, %ebx
-	call *(%ebx)
-skip_destructors:
-	cmp $start_dtors, %ebx
-	ja call_destructor
-/* End cleanup of C++ support */
-
+/* Call the destructors for the C++ static objects
+ *
+ * An argument of 0 means call all of the destructors
+ */
+	push $0
+	call __cxa_finalize
 /*
 ** Returned from the main function!  Stop execution.
 */

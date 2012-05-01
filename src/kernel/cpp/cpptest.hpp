@@ -9,5 +9,20 @@ void _test_cpp(void);
 
 #ifdef __cplusplus
 }
+
+class Object
+{
+public:
+	Object(int i);
+	~Object();
+
+	void increment();
+	int get_i();
+
+private:
+	int _i;
+};
 #endif
+
+
 #endif

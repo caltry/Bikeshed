@@ -396,8 +396,8 @@ static int padstr( int x, int y, char *str, int len, int width, int leftadjust, 
 	return x;
 }
 
-static void __c_do_printf( int x, int y, char **f ){
-	char	*fmt = *f;
+static void __c_do_printf( int x, int y, const char **f ){
+	const char	*fmt = *f;
 	int	*ap;
 	char	buf[ 12 ];
 	char	ch;
@@ -500,11 +500,11 @@ static void __c_do_printf( int x, int y, char **f ){
 	}
 }
 
-void c_printf_at( unsigned int x, unsigned int y, char *fmt, ... ){
+void c_printf_at( unsigned int x, unsigned int y, const char *fmt, ... ){
 	__c_do_printf( x, y, &fmt );
 }
 
-void c_printf( char *fmt, ... ){
+void c_printf( const char *fmt, ... ){
 	__c_do_printf( -1, -1, &fmt );
 }
 
