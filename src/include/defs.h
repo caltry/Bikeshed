@@ -13,8 +13,6 @@
 #ifndef _DEFS_H
 #define _DEFS_H
 
-#include "headers.h"
-
 #define UNUSED(X) ((void)X)
 
 /*
