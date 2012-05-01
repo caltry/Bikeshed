@@ -9,20 +9,13 @@ typedef struct HashTable
 {
 	Int32 buckets;
 	Int32 (*hash_func) (const void* key);
-	Int32 (*match) (const void* key1, const void* key2);
 	void  (*destroy) (void* data);
 
 	Int32 size;
 	linked_list_t* table;
 } hash_table_t;
 
-typedef struct KeyValue
-{
-	const void* key;
-	const void* data;
-} key_val_t;
-
-typedef Int32 (*hash_func)(const void* key1, const void* key2);
+typedef Int32 (*hash_func)(const void* key);
 typedef Int32 (*match_func)(const void* key1, const void* key2);
 typedef Int32 (*destroy_func)(void* data);
 
@@ -48,7 +41,7 @@ Int32 hash_string(const void* key);
  *
  * Returns 0 if successful, -1 otherwise
  */
-Int32 hash_table_init(hash_table_t* hash_tbl, Int32 buckets, Int32 (*hash_func)(const void* key), Int32 (*match)(const void* key1, const void* key2), void (*destroy)(void* data));
+Int32 hash_table_init(hash_table_t* hash_tbl, Int32 buckets, Int32 (*hash_func)(const void* key),  void (*destroy)(void* data));
 
 /* Should be called when you're done using the hash_table_t structure. It will free
  * all of the internal hash table data structures and if destroy is not NULL it will

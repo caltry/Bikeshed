@@ -260,6 +260,50 @@ void __pci_scan_devices()
 	}
 }
 
+Uint32 __pci_get_memory_size(pci_config_t* config)
+{
+	switch (config->header_type & 0x7)
+	{
+		case 0:
+			{
+				//pci_config->type_0.bar_address_0 = __pci_config_read_long(bus, slot, func, 0x10);
+				//pci_config->type_0.bar_address_1 = __pci_config_read_long(bus, slot, func, 0x14);
+				//pci_config->type_0.bar_address_2 = __pci_config_read_long(bus, slot, func, 0x18);
+				//pci_config->type_0.bar_address_3 = __pci_config_read_long(bus, slot, func, 0x1C);
+				//pci_config->type_0.bar_address_4 = __pci_config_read_long(bus, slot, func, 0x20);
+				//pci_config->type_0.bar_address_5 = __pci_config_read_long(bus, slot, func, 0x24);
+				for (Uint32 offset = 0x10; offset <= 0x24; offset += 4)
+				{
+					Uint32 orig = __pci_config_read_long(config->bus, config->slot, config->function, offset);
+					__pci_config_write_long(config->bus, config->slot, config->function, offset, 0xFFFFFFFF);
+					Uint32 size = __pci_config_read_long(config->bus, config->slot, config->function, offset);
+					__pci_config_write_long(config->bus, config->slot, config->function, offset, orig);
+
+					size &= 0xFFFFFFF0;
+					size = ~size;
+					size += 1;
+
+					serial_printf("Orig 0x%x: %x\n", offset, orig);
+					serial_printf("Memory size required: 0x%x\n", size);
+				}
+
+			}
+			break;
+		case 1:
+			{
+
+			}
+			break;
+		case 2:
+			{
+
+			}
+			break;
+	}
+
+	return 0;
+}
+
 void __pci_dump_all_devices()
 {
 	list_element_t* node = list_head(lst_pci_devices);			
@@ -302,6 +346,8 @@ void __pci_dump_all_devices()
 					serial_printf("Interrupt pin: %x\n", config->type_0.interrupt_pin);
 					serial_printf("Min grant: %x\n", config->type_0.min_grant);
 					serial_printf("Max latency: %x\n", config->type_0.max_latency);
+
+					__pci_get_memory_size(config);
 				}
 				break;
 			case 1:

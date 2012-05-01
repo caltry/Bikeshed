@@ -1,6 +1,7 @@
 #include "e1000.h"
 #include "../pci/pci.h"
 #include "../lib/klib.h"
+#include "../serial.h"
 
 #define PCI_NETWORK_CLASS 0x02
 #define PCI_ETHERNET 0x00

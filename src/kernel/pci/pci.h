@@ -156,6 +156,7 @@ void __pci_config_write_short(Uint8 bus, Uint8 device, Uint8 function, Uint8 off
 void __pci_config_write_byte(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset, Uint8 val);
 
 pci_config_t* __pci_find_by_class(Uint8 base_class, Uint8 sub_class, Uint8 prog_if);
+Uint32 __pci_get_memory_size(pci_config_t* config);
 
 void __pci_scan_devices(void);
 void __pci_dump_all_devices(void);
