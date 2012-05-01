@@ -28,8 +28,10 @@
 #include "memory/physical.h"
 #include "memory/paging.h"
 #include "memory/kmalloc.h"
+#include "network/e1000.h"
 #include "pci/pci.h"
 #include "serial.h"
+#include "cpp/cpptest.hpp"
 
 // need init() address
 #include "users.h"
@@ -241,7 +243,10 @@ void _init( void ) {
 
 	__kmem_init_kmalloc();
 
-	//__pci_dump_all_devices();
+	__pci_init();
+	__pci_dump_all_devices();
+	__net_init();
+	_test_cpp();
 
 	_q_init();		// must be first
 	_pcb_init();

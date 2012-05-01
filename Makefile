@@ -29,6 +29,10 @@ src/prog.b: build_src
 build_src:
 	$(MAKE) -C src
 
+build/%: FORCE
+	make -C $(dir $@) $(notdir $@)
+FORCE:
+
 #
 # Targets for copying bootable image onto boot devices
 #
@@ -44,7 +48,7 @@ qemu:	usb.image
 	qemu usb.image -serial stdio
 
 walter:	usb.image
-	kvm usb.image -serial /dev/pts/1 -monitor stdio
+	kvm usb.image -serial /dev/pts/1 -monitor stdio -net nic -net user
 #
 # Special rule for creating the modification and offset programs
 #

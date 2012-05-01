@@ -4,6 +4,9 @@ CFLAGS += -I../include -I../ulib -I../kernel -I../kernel/lib -I../kernel/video -
 CFLAGS += -I../serial -I../applications -I ../kernel/bios
 CPPFLAGS += -I../boot -I../kernel/video
 
+CXXFLAGS += -I../include -I../ulib -I../kernel -I../kernel/lib -I../boot
+CXXFLAGS += -I../serial -I../applications -I ../kernel/bios
+
 SRC_FILES = $(DYN_SRC_FILES)
 OBJ_FILES = $(DYN_OBJ_FILES)
 

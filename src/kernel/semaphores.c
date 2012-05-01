@@ -96,7 +96,7 @@ void _sem_init( void ) {
 		_q_insert(_available_semaphores, &_sems[i], (Key) i);
 	}
 
-	TRACE( " semaphores" );
+	c_puts( " semaphores" );
 }
 
 /*
