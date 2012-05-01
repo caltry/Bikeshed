@@ -424,6 +424,8 @@ struct ext2_filesystem_context {
 
 	// The base address of the filesystem
 	Uint32 base_address;
+
+	char mountpoint[];
 };
 
 #endif // _EXT2_H

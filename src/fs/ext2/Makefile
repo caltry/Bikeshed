@@ -1,4 +1,5 @@
 include ../../defs.mk
+include ../../fs_defs.mk
 
 INCLUDES += -I../../include -I../..
 

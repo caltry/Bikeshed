@@ -1,7 +1,7 @@
 include ../defs.mk
 
 CFLAGS += -I../include -I../ulib -I../kernel -I../kernel/lib -I../boot
-CFLAGS += -I../serial -I../applications -I../kernel/bios -I..
+CFLAGS += -I../serial -I../applications -I../kernel/bios -I.. -I../fs
 CPPFLAGS += -I../boot
 
 SRC_FILES = $(DYN_SRC_FILES)

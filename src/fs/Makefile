@@ -1,6 +1,19 @@
 include ../defs.mk
+include ../fs_defs.mk
 
-CFLAGS += -I../include
+INCLUDES += -I../include -I../kernel -I../
+
+ifdef RAMDISK_VIRT_LOCATION
+CFLAGS += -DRAMDISK_VIRT_LOCATION=${RAMDISK_VIRT_LOCATION}
+endif
+
+ifdef RAMDISK_PHYS_LOCATION
+CFLAGS += -DRAMDISK_PHYS_LOCATION=${RAMDISK_PHYS_LOCATION}
+endif
+
+ifdef RAMDISK_SIZE_KiB
+CFLAGS += -DRAMDISK_SIZE_KiB=${RAMDISK_SIZE_KiB}
+endif
 
 SRC_FILES = $(DYN_SRC_FILES)
 OBJ_FILES = $(DYN_OBJ_FILES)

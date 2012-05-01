@@ -14,6 +14,13 @@
 #define true 1
 #define false 0
 
+#ifndef RAMDISK_VIRT_LOCATION
+#error "RAMDISK_VIRT_LOCATION not set!"
+#endif
+#ifndef RAMDISK_PHYS_LOCATION
+#error "RAMDISK_PHYS_LOCATION not set!"
+#endif
+
 static const char *NEWLINE = "\n\r";
 
 /*
@@ -21,12 +28,12 @@ static const char *NEWLINE = "\n\r";
  */
 void print_file_data(struct ext2_filesystem_context *context, const char *path);
 
-Uint get_block_size( struct ext2_superblock *sb )
+static inline Uint get_block_size( struct ext2_superblock *sb )
 {
 	return 1024 << sb->logarithmic_block_size;
 }
 
-void*
+static inline void*
 block_number_to_address( struct ext2_filesystem_context *context,
 			Uint32 one_indexed_block_number )
 {
@@ -38,19 +45,16 @@ block_number_to_address( struct ext2_filesystem_context *context,
 
 void _fs_ext2_init()
 {
-#if RAMDISK_PHYS_LOCATION != RAMDISK_VIRT_LOCATION
-#error "This driver needs to be modified to support virual memory"
-#endif
-	ext2_debug_dump();
+	ext2_debug_dump( (void*) RAMDISK_VIRT_LOCATION );
 }
 
-void ext2_debug_dump()
+void ext2_debug_dump( void *virtual_address )
 {
-	struct ext2_superblock *sb = get_superblock( RAMDISK_VIRT_LOCATION );
+	struct ext2_superblock *sb = get_superblock( (Uint32) virtual_address );
 	serial_printf( "Dumping superblock located at: %x\n\r", (long) sb );
 	print_superblock_data( sb );
 
-	struct ext2_filesystem_context context = { sb, RAMDISK_VIRT_LOCATION };
+	struct ext2_filesystem_context context = { sb, (Uint32) virtual_address };
 
 
 	serial_string("==\n\r");

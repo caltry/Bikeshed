@@ -31,6 +31,7 @@
 #include "pci/pci.h"
 #include "serial.h"
 #include "fs/ext2/ext2.h"
+#include "vfs_init.h"
 
 // need init() address
 #include "users.h"
@@ -250,6 +251,7 @@ void _init( void ) {
 	_sched_init();
 	_sem_init();
 	_clock_init();
+	_init_all_ramdisks();
 	_fs_ext2_init();
 
 	c_puts( "\n" );

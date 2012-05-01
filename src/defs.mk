@@ -8,11 +8,6 @@
 #
 USER_OPTIONS = -DCLEAR_BSS_SEGMENT -DSP2_CONFIG -DISR_DEBUGGING_CODE
 
-# Location of our ramdisk in memory. We'll need to know both the physical
-# and virtual addresses when we go above the 1MiB line.
-RAMDISK_VIRT_LOCATION := 0x80000
-RAMDISK_PHYS_LOCATION := $(RAMDISK_VIRT_LOCATION)
-
 #
 # YOU SHOULD NOT NEED TO CHANGE ANYTHING BELOW THIS POINT!!!
 #

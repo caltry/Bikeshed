@@ -1,4 +1,4 @@
-include src/defs.mk
+include src/fs_defs.mk
 
 BUILDIMAGE = build/BuildImage
 FANCYCAT   = build/FancyCat
@@ -45,7 +45,7 @@ usb:	usb.image
 	dd if=usb.image of=/local/devices/disk
 
 bikeshed_fs:
-	dd if=/dev/zero of=bikeshed_fs bs=1K count=120
+	dd if=/dev/zero of=bikeshed_fs bs=1K count=$(RAMDISK_SIZE_KiB)
 	mke2fs -O^resize_inode,^sparse_super -m0 -F -L bikeshed bikeshed_fs
 
 # Run the OS in qemu

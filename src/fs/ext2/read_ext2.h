@@ -4,8 +4,6 @@
 #include "types.h"
 #include "ext2.h"
 
-void ext2_debug_dump(void);
-
 struct ext2_superblock *get_superblock( Uint32 filesystem_start );
 
 /*
@@ -27,5 +25,7 @@ struct ext2_superblock *get_superblock( Uint32 filesystem_start );
  * 2048 inodes per group
  */
 void print_superblock_data(struct ext2_superblock *sb);
+
+void ext2_debug_dump( void *virtual_address );
 
 #endif // _READ_EXT2_H
