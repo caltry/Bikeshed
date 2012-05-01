@@ -16,8 +16,8 @@ USER_OPTIONS = -DCLEAR_BSS_SEGMENT -DSP2_CONFIG -DISR_DEBUGGING_CODE
 
 INCLUDES = -I.
 
-DYN_SRC_FILES = $(shell ls *.[chsS])
-DYN_OBJ_FILES = $(shell ls *.[csS] | sed 's/\(.*\).[csS]/\1.o/g')
+DYN_SRC_FILES = $(shell ls *.[chsS] *.cpp 2> /dev/null)
+DYN_OBJ_FILES = $(shell ls *.[csS] *.cpp 2> /dev/null | sed -e 's/^\(.*\).[csS]$$/\1.o/g' -e 's/^\(.*\).cpp$$/\1.o/g')
 
 #
 # Compilation/assembly/linking commands and options
@@ -29,6 +29,9 @@ CPPFLAGS = $(USER_OPTIONS) -nostdinc $(INCLUDES)
 CC = gcc
 CFLAGS += -std=gnu99 -fno-stack-protector -fno-builtin -Wall -Wextra 
 CFLAGS += -Wstrict-prototypes -m32 $(CPPFLAGS)
+
+CXX = g++
+CXXFLAGS += -m32 -nostdlib -fno-builtin -nostartfiles -nodefaultlibs -fno-exceptions -fno-rtti -fno-stack-protector -Wall -Wextra
 
 AS = as
 ASFLAGS = --32 -n32 
@@ -72,3 +75,6 @@ AR := ar -cr
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
+
+.cpp.o:
+	$(CXX) $(CXXFLAGS) -c $*.cpp
