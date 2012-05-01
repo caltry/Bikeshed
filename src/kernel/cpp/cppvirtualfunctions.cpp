@@ -13,6 +13,7 @@ extern "C"
 // Implementation and information is taken from http://wiki.osdev.org/C%2B%2B
 extern "C" void __cxa_pure_virtual()
 {
+	const char message[] = "Pure virtual function implementation not found!\n";
 	// Error because this should be impossible
-	_kpanic("C++", "Pure virtual function implementation not found!\n", 0);
+	_kpanic("C++", message, (Status)0);
 }

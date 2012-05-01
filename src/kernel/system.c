@@ -31,6 +31,7 @@
 #include "network/e1000.h"
 #include "pci/pci.h"
 #include "serial.h"
+#include "cpp/cppinit.h"
 #include "cpp/cpptest.hpp"
 
 // need init() address
@@ -238,8 +239,11 @@ void _init( void ) {
 	serial_install();
 	__phys_initialize_bitmap();
 	__virt_initialize_paging();
-
 	__kmem_init_kmalloc();
+
+	// Initialize C++ support, we do this after the memory is intialized so static/global
+	// C++ objects can use the new operator in their constructors
+	__cpp_init();
 
 	__pci_init();
 	__pci_dump_all_devices();
