@@ -133,8 +133,12 @@ clearbss:
 */
 	jmp	__isr_restore   // defined in isr_stubs.S
 
-/* Call the destructors for the C++ static objects */
-	call __cpp_deinit
+/* Call the destructors for the C++ static objects
+ *
+ * An argument of 0 means call all of the destructors
+ */
+	push $0
+	call __cxa_finalize
 /*
 ** Returned from the main function!  Stop execution.
 */
