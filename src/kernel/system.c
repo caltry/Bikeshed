@@ -28,6 +28,7 @@
 #include "memory/physical.h"
 #include "memory/paging.h"
 #include "memory/kmalloc.h"
+#include "network/e1000.h"
 #include "pci/pci.h"
 #include "serial.h"
 #include "fs/ext2/ext2.h"
@@ -241,7 +242,9 @@ void _init( void ) {
 
 	__kmem_init_kmalloc();
 
-	//__pci_dump_all_devices();
+	__pci_init();
+	__pci_dump_all_devices();
+	__net_init();
 
 	_q_init();		// must be first
 	_pcb_init();

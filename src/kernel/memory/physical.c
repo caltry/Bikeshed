@@ -19,6 +19,7 @@ static Uint32 memory_hi  = 0;
 #define BITS_IN_INTEGER (sizeof(Uint32) * 8)
 
 #define ADDR_TO_INDEX(x) ((x) / PAGE_SIZE / BITS_IN_INTEGER)
+#define ADDR_TO_OFFSET(x) (((X) / PAGE_SIZE) % BITS_IN_INTEGER)
 
 void __phys_initialize_bitmap()
 {
@@ -111,27 +112,41 @@ Uint32 __phys_get_free_page_count()
 
 void __phys_set_bit(void* address)
 {
-	// TODO check bounds
-	// address / 4096;
-	Uint32 offset = (Uint32)address >> 12;
-	Uint32 index = offset / sizeof(Uint32);
-	__phys_bitmap_4k[index] |= 1 << (offset % BITS_IN_INTEGER);
+	Uint32 index = ADDR_TO_INDEX(address);
+	if (index >= __phys_bitmap_4k_elements)
+	{
+		// Don't run off the end of the array!
+		return;
+	}
+
+	Uint32 offset = ADDR_TO_OFFSET(address);
+	__phys_bitmap_4k[index] |= (1 << offset);
 }
 
 Uint32 __phys_check_bit(void* address)
 {
-	// TODO check bounds
-	Uint32 offset = (Uint32)address >> 12;
-	Uint32 index = offset / sizeof(Uint32);
-	return __phys_bitmap_4k[index];
+	Uint32 index = ADDR_TO_INDEX(address);
+	if (index >= __phys_bitmap_4k_elements)
+	{
+		// Don't run off the end of the array!
+		return;
+	}
+
+	Uint32 offset = ADDR_TO_OFFSET(address);
+	return (__phys_bitmap_4k[index] & ~(1 << offset)) > 0;
 }
 
 void __phys_unset_bit(void* address)
 {
-	// TODO check bounds
-	Uint32 offset = (Uint32)address >> 12;
-	Uint32 index = offset / sizeof(Uint32);
-	__phys_bitmap_4k[index] &= ~(1 << (offset % BITS_IN_INTEGER));
+	Uint32 index = ADDR_TO_INDEX(address);
+	if (index >= __phys_bitmap_4k_elements)
+	{
+		// Don't run off the end of the array!
+		return;
+	}
+
+	Uint32 offset = ADDR_TO_OFFSET(address);
+	__phys_bitmap_4k[index] &= ~(1 << offset);
 }
 
 void* __phys_get_free_4k()
