@@ -8,6 +8,8 @@ extern "C" {
 void _test_cpp(void);
 
 #ifdef __cplusplus
+}
+
 class Object
 {
 public:
@@ -20,7 +22,6 @@ public:
 private:
 	int _i;
 };
-}
 #endif
 
 
