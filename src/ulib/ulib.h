@@ -300,6 +300,30 @@ Status sem_wait( Sem sem );
 
 Status sem_try_wait( Sem sem );
 
+/*
+** lock_init - Creates a lock
+*/
+Status lock_init( Lock* lock );
+
+/*
+** lock_destroy - Destroys a lock
+*/
+Status lock_destroy( Lock lock );
+
+/*
+** lock_lock - Locks a semaphore with the given locking mode.
+**
+** usage:	status = lock_lock( lock, LOCK_READ )
+*/
+Status lock_lock( Lock lock, LockMode mode );
+
+/*
+** lock_unlock - Unlocks a semaphore with the given locking mode.
+**
+** usage:	status = lock_unlock( lock, LOCK_WRITE )
+*/
+Status lock_unlock( Lock lock, LockMode mode );
+
 #endif
 
 #endif

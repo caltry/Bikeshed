@@ -46,6 +46,10 @@ typedef enum stat {
 	STATUS_SENTINEL
 } Status;
 
+typedef enum lockmode {
+	LOCK_READ=0, LOCK_WRITE
+} LockMode;
+
 // Key type (used for ordering things)
 
 typedef union key {
@@ -65,6 +69,10 @@ typedef	Uint32		Time;
 // Semaphore
 
 typedef Uint32		Sem;
+
+// Lock
+
+typedef Uint32		Lock;
 
 #endif
 

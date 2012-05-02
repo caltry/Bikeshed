@@ -17,6 +17,7 @@
 #include "pcbs.h"
 #include "scheduler.h"
 #include "semaphores.h"
+#include "locks.h"
 #include "sio.h"
 #include "syscalls.h"
 #include "system.h"
@@ -589,6 +590,37 @@ static void _sys_sem_try_wait( Pcb *pcb ) {
 }
 
 
+
+
+/*
+** _sys_lock_init - Attempts to create a new lock.
+*/
+static void _sys_lock_init( Pcb *pcb ) {
+	RET(pcb) = _lock_new( (Lock*) ARG(pcb)[1] );
+}
+
+/*
+** _sys_lock_destroy - Destroys a lock.
+*/
+static void _sys_lock_destroy( Pcb *pcb ) {
+	RET(pcb) = _lock_destroy( (Lock) ARG(pcb)[1]);
+}
+
+/*
+** _sys_lock_lock - Locks a lock
+*/
+static void _sys_lock_lock( Pcb *pcb ) {
+	RET(pcb) = _lock_lock( (Lock) ARG(pcb)[1], (LockMode) ARG(pcb)[2], pcb );
+}
+
+/*
+** _sys_lock_unlock - Unlocks a lock
+*/
+static void _sys_lock_unlock( Pcb *pcb ) {
+	RET(pcb) = _lock_unlock( (Lock) ARG(pcb)[1], (LockMode) ARG(pcb)[2], pcb );
+}
+
+
 /*
 ** PUBLIC FUNCTIONS
 */
@@ -639,7 +671,11 @@ void _syscall_init( void ) {
 	_syscall_tbl[ SYS_sem_destroy ]      = _sys_sem_destroy;
 	_syscall_tbl[ SYS_sem_post ]      = _sys_sem_post;
 	_syscall_tbl[ SYS_sem_wait ]      = _sys_sem_wait;
-	_syscall_tbl[ SYS_sem_try_wait ]      = _sys_sem_try_wait;
+	_syscall_tbl[ SYS_sem_try_wait ]  = _sys_sem_try_wait;
+	_syscall_tbl[ SYS_lock_init ]	  = _sys_lock_init;
+	_syscall_tbl[ SYS_lock_destroy ]  = _sys_lock_destroy;
+	_syscall_tbl[ SYS_lock_lock ] 	  = _sys_lock_lock;
+	_syscall_tbl[ SYS_lock_unlock ]	  = _sys_lock_unlock;
 
 //	these are syscalls we elected not to implement
 //	_syscall_tbl[ SYS_set_pid ]    = _sys_set_pid;
