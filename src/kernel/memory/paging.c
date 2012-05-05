@@ -4,7 +4,8 @@
 #include "x86arch.h"
 #include "scheduler.h"
 
-#include "../lib/klib.h"
+//#include "../lib/klib.h"
+#include "lib/klib.h"
 
 struct Page 
 {

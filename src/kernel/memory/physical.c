@@ -18,8 +18,8 @@ static Uint32 memory_hi  = 0;
 
 #define BITS_IN_INTEGER (sizeof(Uint32) * 8)
 
-#define ADDR_TO_INDEX(x) ((x) / PAGE_SIZE / BITS_IN_INTEGER)
-#define ADDR_TO_OFFSET(x) (((X) / PAGE_SIZE) % BITS_IN_INTEGER)
+#define ADDR_TO_INDEX(x) ((Uint32)(x) / PAGE_SIZE / BITS_IN_INTEGER)
+#define ADDR_TO_OFFSET(x) (((Uint32)(x) / PAGE_SIZE) % BITS_IN_INTEGER)
 
 void __phys_initialize_bitmap()
 {
@@ -129,7 +129,7 @@ Uint32 __phys_check_bit(void* address)
 	if (index >= __phys_bitmap_4k_elements)
 	{
 		// Don't run off the end of the array!
-		return;
+		return 1;
 	}
 
 	Uint32 offset = ADDR_TO_OFFSET(address);

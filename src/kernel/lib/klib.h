@@ -86,7 +86,7 @@ void _kmemcpy( void *destination, void *source, Uint32 length );
 ** argument is to be printed as part of the panic message
 */
 
-void _kpanic( char *mod, char *msg, Status code );
+void _kpanic( const char *mod, const char *msg, Status code );
 
 /* Returns a random unsigned 32-bit integer
  *

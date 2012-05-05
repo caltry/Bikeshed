@@ -121,7 +121,7 @@ void c_puts( char *str );
 **		a list of what is implemented).
 ** Arguments:	printf-style format and optional values
 */
-void c_printf( char *fmt, ... );
+void c_printf( const char *fmt, ... );
 
 /*
 ** Name:	c_scroll
@@ -178,7 +178,7 @@ void c_puts_at( unsigned int x, unsigned int y, char *str );
 **		a list of what is implemented).
 ** Arguments:	coordinates, printf-style format, optional values
 */
-void c_printf_at( unsigned int x, unsigned int y, char *fmt, ... );
+void c_printf_at( unsigned int x, unsigned int y, const char *fmt, ... );
 
 /*
 ** Name:	c_clearscreen

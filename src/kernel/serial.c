@@ -148,16 +148,16 @@ static int padstr(char *str, int len, int width, int leftadjust, int padchar){
 	return x;
 }
 
-static void __serial_printf(char **f);
+static void __serial_printf(const char **f);
 
-void serial_printf(char *fmt, ...)
+void serial_printf(const char *fmt, ...)
 {
 	__serial_printf(&fmt);	
 }
 
-static void __serial_printf(char **f)
+static void __serial_printf(const char **f)
 {
-	char *fmt = *f;
+	const char *fmt = *f;
 	int	 *ap;
 	char buf[ 12 ];
 	char ch;

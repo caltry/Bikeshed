@@ -95,7 +95,7 @@ void _kmemcpy( void *destination, void *source, Uint32 length ) {
 ** if 'code' is invalid, it will be printed in integer form
 */
 
-void _kpanic( char *mod, char *msg, Status code ) {
+void _kpanic( const char *mod, const char *msg, Status code ) {
 
 	c_puts( "\n\n***** KERNEL PANIC *****\n\n" );
 	c_printf( "Module: %s\n", mod );
