@@ -56,9 +56,10 @@ void ext2_debug_dump( void *virtual_address )
 
 	struct ext2_filesystem_context context = { sb, (Uint32) virtual_address };
 
-
 	serial_string("==\n\r");
 	print_file_data( &context, "/" );
+	serial_string("== get_dir_ents_root ==\n\r");
+	print_dir_ents_root( &context );
 	serial_string("==\n\r");
 }
 
@@ -264,5 +265,53 @@ void print_file_data(struct ext2_filesystem_context *context, const char *path)
 	{
 		//TODO
 		serial_string( "print_file_data in " __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) " unimplemented" );
+	}
+}
+
+void print_dir_ents_root( struct ext2_filesystem_context *context )
+{
+	struct ext2_inode *dir_file = get_inode(context,context->sb->first_inode);
+
+	Uint32 block_size = get_block_size( context->sb );
+
+	for
+	(Uint32 inode_block_idx = 0;
+	inode_block_idx < EXT2_INODE_TOTAL_BLOCKS;
+	inode_block_idx++)
+	{
+		// TODO: Support indirect, dub. indirect, trip. indirect blocks
+		if( inode_block_idx >= EXT2_INODE_DIRECT_BLOCKS )
+		{
+			_kpanic( "ext2", "No support for indirect blocks",
+				FEATURE_UNIMPLEMENTED );
+		}
+
+		Uint32 block_number = dir_file->blocks[inode_block_idx];
+		struct ext2_directory_entry *file =
+			(struct ext2_directory_entry*)
+			block_number_to_address( context, block_number );
+		struct ext2_directory_entry *first_file = file;
+
+		/* Keep printing out entries until we've reached the end. */
+		while( file->inode_number )
+		{
+			print_directory_entry_data( file );
+			file = ((void*) file) + file->entry_length;
+
+			// If the next directory entry is in the next inode
+			if( file > (first_file + block_size) )
+			{
+				break; // To the outer `for' loop
+			}
+		}
+
+		// If we've reached this point, we either ran out of file
+		// entires or just need to read the next block.
+		if( file->inode_number )
+		{
+			continue; // To the next block
+		} else {
+			break;	// We've seen all of the file entries.
+		}
 	}
 }
