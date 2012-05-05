@@ -14,7 +14,9 @@ Near future
 - ls -R / (hardcoded)	=> (get_dir_ents_rec :: LinkedList dirent)
 - ls (not hardcoded)	=> (get_dir_ents :: [Char] -> LinkedList dirent)
 
-- Populated ext2 fs
+* Populated ext2 fs
+
+- indirect, dub. indirect and trip. indirect blocks
 
 - cat test.txt (hardcoded)
 - cat (not hardcoded)

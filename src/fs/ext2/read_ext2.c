@@ -215,7 +215,7 @@ void print_file_data(struct ext2_filesystem_context *context, const char *path)
 	struct ext2_superblock *sb = context->sb;
 	serial_printf( "sb: %x\n\r", (unsigned long) sb );
 
-	struct ext2_inode *current_inode = get_inode( context, sb->first_inode );
+	struct ext2_inode *current_inode = get_inode( context, EXT2_INODE_ROOT );
 
 	struct ext2_directory_entry *current_dir_entry;
 	const char *current_path = path;
@@ -270,7 +270,7 @@ void print_file_data(struct ext2_filesystem_context *context, const char *path)
 
 void print_dir_ents_root( struct ext2_filesystem_context *context )
 {
-	struct ext2_inode *dir_file = get_inode(context,context->sb->first_inode);
+	struct ext2_inode *dir_file = get_inode(context, EXT2_INODE_ROOT);
 
 	Uint32 block_size = get_block_size( context->sb );
 

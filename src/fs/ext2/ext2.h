@@ -306,6 +306,12 @@ typedef enum {
 	reserved	= 0x80000000
 } inode_flags;
 
+/*
+ * Reserved inodes
+ */
+#define EXT2_INODE_BAD  1	// Inode for bad blocks
+#define EXT2_INODE_ROOT 2	// The inode where '/' is located
+
 struct ext2_inode {
 	// File mode bitmasks
 	Uint16 mode;
