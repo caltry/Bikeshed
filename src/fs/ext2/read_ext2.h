@@ -26,6 +26,17 @@ struct ext2_superblock *get_superblock( Uint32 filesystem_start );
  */
 void print_superblock_data(struct ext2_superblock *sb);
 
+/*
+ * Dump a bunch of debugging info to serial.
+ */
 void ext2_debug_dump( void *virtual_address );
+
+/*
+ * List the contents of the root directory.
+ *
+ * XXX: This function is being used as scaffolding and will eventually be
+ * removed.
+ */
+void print_dir_ents_root( struct ext2_filesystem_context *context );
 
 #endif // _READ_EXT2_H
