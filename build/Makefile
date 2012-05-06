@@ -8,6 +8,10 @@ BuildImage: BuildImage.o
 FancyCat: FancyCat.o
 	$(CC) $(CFLAGS) -o FancyCat $^
 
+.PHONY: populate_ramdisk
+populate_ramdisk: bikeshed_fs
+	debugfs -w -f debugfs_commands.debugfs $^
+
 clean:
 	$(RM) BuildImage BuildImage.o
 	$(RM) FancyCat FancyCat.o

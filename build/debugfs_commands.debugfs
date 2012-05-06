@@ -1,0 +1,2 @@
+lcd ramdisk_staging
+write test.txt test.txt
