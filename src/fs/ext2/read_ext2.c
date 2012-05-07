@@ -320,6 +320,13 @@ void print_dir_ents_root( struct ext2_filesystem_context *context )
 }
 
 
+/*
+ * A proof of concept towards implementing read(). It's easier to just dump the
+ * data to serial than actually repackage it for now!
+ *
+ * For an ext2 _context_, read the file given by its _inode_num_ and print out
+ * _nbytes_ of it.
+ */
 void
 ext2_print_file_by_inode
 	(struct ext2_filesystem_context *context,
