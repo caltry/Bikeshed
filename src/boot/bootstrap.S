@@ -426,139 +426,203 @@ switch:
 	mov $BOOT_SEGMENT, %bx
 	mov %bx, %ds
 
-load_stuff:
-	movl flag, %eax
-	inc %eax
-	movl %eax, flag
+	/* Okay load some modules! */
+load_loop:
+	call load_module /* EAX contains -1 if we're done */
+	cmpl $0xFFFFFFFF, %eax
+	jne load_loop
 
-	/* We're in real-mode */
-	movw $1, %ax
-	movw $BUFFER_SEG, %bx
-	movw %bx, %es 
-	movw $BUFFER_OFF, %bx
-	call readprog
-
-	/* Read the current block size */
-	movl %es:(0), %eax /* Load location */
-	movl %eax, load_location /* Save it */
-
-	cmpl $0xFFFFFFFF, %eax /* We need to jump to the kernel */
-	jne dont_jump_to_kernel
-
+	/* The kernel expects to be in protected mode */
 	call switch_to_protected_mode
 	.code32
 
-	/* HUZAH! JUMP TO THE KERNEL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+	/* No more modules to load, lets jump to the kernel! */
 	movl kernel_location+BOOT_ADDRESS, %eax
 	push %eax
 	ret
+
 	/* In case the kernel returns */
-	cli 
+	cli
 stop_executing:
 	hlt
 	jmp stop_executing
 
+	/* The rest of the code is still 16-bits! */
 	.code16
-dont_jump_to_kernel:
 
-	movl kernel_location, %edx /* Check if we've set the kernel location */
-	testl %edx, %edx
-	jnz skip_kernel_loc
-	movl %eax, kernel_location
-skip_kernel_loc:
+.code16
+load_module:
+	pushw %bx
+	pushw %cx
+	pushw %dx
+	pushw %es
 
-	movl %es:(4), %eax /* Get how much we need to load (in sectors) */
-	dec %eax /* Subtract one, because we just loaded it */
-	movl %eax, remaining /* Save it! */
-
-continue_loading:
-	movl remaining, %eax /* Remaining is the total number of sectors left */
-	movl $BUFFER_SECTORS, %ecx /* Check if the remaining amount of sectors is > MAX_SECTORS */
-	cmpl %eax, %ecx /* Compare EDX TO ECX */
-	jge enough_sectors
-
-	movl %ecx, %eax /* We tried to load too many sectors, load fewer */
-
-enough_sectors: /* There are enough sectors */
-	
-	/* Subtract eax from remaining */	
-	/* Save the number of sectors to read on the stack for
-	   later in the copy_copy method
-	 */
-	push %eax
-
-	testl %eax, %eax /* Don't load 0 more sectors! */
-	jz skip_second_load
-
-	movl remaining, %edx
-	subl %eax, %edx
-	movl %edx, remaining
-
-	/* Load as many as we can */
+	/* Read in 1 sector of information */
+	movw $1, %ax
+	movw $BUFFER_SEG, %bx
+	movw %bx, %es
+	movw $BUFFER_OFF, %bx
 	call readprog
 
-skip_second_load: /* Okay we have read 0 or more sectors */
+	/* Get the load location */
+	movl %es:(0), %eax /* The first part of the header is the load location */
+	cmpl $0xFFFFFFFF, %eax /* Check the load location, -1 is an invalid load location */
+	je exit_load_module /* This was the end of modules marker, quit */
 
-	pop %ecx /* This is the original amount to read, ecx is not touched by switch_to_protected_mode */
+	/* Okay this is a valid module, lets continue loading */
+	movl %eax, load_location /* Save the load location */
 
-	/* Goto protected mode */				
+	/* Also if it's the first module, save it into kernel location */
+	movl kernel_location, %ebx
+	testl %ebx, %ebx
+	jnz kernel_location_already_saved
+	movl %eax, kernel_location /* Save the kernel's location as well */
+kernel_location_already_saved:
+
+	movl %es:(4), %eax /* Grab the size of the module in sectors */
+	movl %eax, remaining /* Save the size in sectors */
+
+	/* Copy this first sector over */
+	movl $BUFFER_START_PROTECTED_MODE, %eax /* We want to skip the header information */
+	movl $1, %ebx /* We've only read one sector so far */
+	call copy_buffer
+
+	/* This is a one time deal, since we skipped the first 8 bytes, but we loaded
+	 * and copied 512 bytes with the copy_buffer, we need to fix the load_location
+	 * by subtracting 8 bytes, otherwise we have a hole in our data
+	 */
+	movl load_location, %edx
+	subl $8, %edx
+	movl %edx, load_location
+
+	/* Check if there's any more left to load */
+load_module_loop:
+	movl remaining, %eax
+	testl %eax, %eax
+	jz exit_load_module /* If there's nothing left, exit */
+
+	/* We need to load more! */
+	movl remaining, %eax 
+	movl $BUFFER_SECTORS, %ecx /* Check if we're loading too much */
+	cmpl %eax, %ecx
+	jge load_module_enough_sectors
+
+	movl %ecx, %eax /* We're loading too much, fix it! */
+
+load_module_enough_sectors:
+	/* Read in some sectors */
+	pushw %ax /* Save EAX in case readprog modifies it */
+
+	movw $BUFFER_SEG, %bx
+	movw %bx, %es
+	movw $BUFFER_OFF, %bx
+	call readprog
+
+	popw %bx /* Restore the sector count, in bx for preparation to call copy_buffer */
+	movl $BUFFER_START, %eax /* We don't want to skip the first 8 bytes this time! */
+	call copy_buffer
+
+	jmp load_module_loop /* Loop back to the top where we check the remaining count */
+
+exit_load_module:
+	popw %es
+	popw %dx
+	popw %cx
+	popw %bx
+	ret
+
+/* Copies data from a buffer to a 32-bit address
+ *
+ * Paramters:
+ *    EAX - The source address
+ *    EBX - The number of sectors to copy 
+ *
+ * This method uses load_location to find the Destination
+ * address, it will also update load_location and remaining
+ * with the appropriate values after copying
+ */
+COPY_BUFFER_OLD_ESP: .quad 0x0
+COPY_BUFFER_OLD_EBP: .quad 0x0
+ .code16
+copy_buffer:
+	pushw %cx
+	pushw %dx
+	/* Switch to protected mode uses only EAX and EBX so lets not use those! */
+	movl %eax, %ecx
+	movl %ebx, %edx
+
+	/* The switch methods try to save and restore the stack
+	 * only they're expected to be called in a certain order
+	 * which we are not following. So we save our stack data
+	 * manually
+	 */
+	movl %esp, COPY_BUFFER_OLD_ESP
+	movl %ebp, COPY_BUFFER_OLD_EBP
+
+	/* We need to switch into protected mode */
 	call switch_to_protected_mode
 	.code32
 
-	/* Yay we're in protected mode */
-	movl $BUFFER_START_PROTECTED_MODE, %edx /* Source pointer */
-	movl load_location+BOOT_ADDRESS, %eax   /* Load address/Destination pointer */
-	/*movl current_load+BOOT_ADDRESS, %ecx  */     /* Amount to read, stored in ECX */
-	inc %ecx
-	shl $9, %ecx
+	/* Restore our registers */
+	movl %ecx, %eax
+	movl %edx, %ebx
 
-	/* Adjust load_location in case there's another loop */
-	movl %ecx, %ebx
-	addl %eax, %ebx
-	movl %ebx, load_location+BOOT_ADDRESS
+	/* Grab the current load location */
+	movl load_location+BOOT_ADDRESS, %edx
 
-copy_copy:
-	movb (%edx), %bl 
-	movb %bl, (%eax)
-	dec %ecx
-	inc %eax
-	inc %edx
-	testl %ecx, %ecx
-	jnz copy_copy
+	/* Update remaining while we're here */
+	movl remaining+BOOT_ADDRESS, %ecx
+	subl %ebx, %ecx
+	movl %ecx, remaining+BOOT_ADDRESS
 
+	/* Multiply EBX by 512 to get the number of bytes to copy */
+	shl $9, %ebx
+
+copy_loop:
+	movl (%eax), %ecx /* EAX is the source */
+	movl %ecx, (%edx) /* EDX is the destination */
+	subl $4, %ebx
+	addl $4, %eax
+	addl $4, %edx
+	testl %ebx, %ebx
+	jnz copy_loop
+
+	/* Save the new load location for next time */
+	movl %edx, load_location+BOOT_ADDRESS
+
+	/* Before returning we need to switch to real mode */
 	call switch_to_real_mode
 	.code16
 
-	movl remaining, %eax
-	testl %eax, %eax
-	jz load_stuff 
+	/* Restore the stack pointers */
+	movl COPY_BUFFER_OLD_ESP, %esp
+	movl COPY_BUFFER_OLD_EBP, %ebp
 
-	/* Reset the buffer to the beginning and read more */
-	/* EAX contains the remaining amount */
-	movw $BUFFER_SEG, %bx
-	movw %bx, %es 
-	movw $BUFFER_OFF, %bx
-
-	jmp continue_loading
+	popw %dx
+	popw %cx
+	ret
 
 /*
 ** Switches from protected mode to real mode
 */
+PROT_MODE_ESP: .quad 0x0
+PROT_MODE_EBP: .quad 0x0
 .code32
 .globl switch_to_real_mode
 switch_to_real_mode:
 	cli
 	
 	/* Save the current ESP and EBP values */
-	movl %esp, %eax
-	movl %eax, RM_SAVED_ESP
-	movl %ebp, RM_SAVED_EBP
+	movl %esp, PROT_MODE_ESP
+	movl %ebp, PROT_MODE_EBP
 	
 	/* Set up the real mode stack */
 	movl (%esp), %ecx /* copy the return address to the real stack */
-	movw %cx, (REAL_STACK+BOOT_ADDRESS)
+	movl REAL_MODE_ESP+BOOT_ADDRESS, %edx
+	movw %cx, (%edx)
 	
-	movl $(REAL_STACK+BOOT_ADDRESS), %eax /* switch to using the real mode stack */
+	movl REAL_MODE_ESP+BOOT_ADDRESS, %esp /* switch to using the real mode stack */
+	movl REAL_MODE_EBP+BOOT_ADDRESS, %ebp
 	
 	/* Fix esp and ebp */
 	subl $BOOT_ADDRESS, %eax
@@ -609,16 +673,21 @@ _real_mode_segment:
 	sti
 	ret
 
-
 /*
 ** Returns to protected mode from real mode
 */
+REAL_MODE_ESP: .quad 0x0
+REAL_MODE_EBP: .quad 0x0
 .globl switch_to_protected_mode
 switch_to_protected_mode:
 .code16
 	cli
 	movb $0x08, %al /* Disable NMIs */
 	outb %al, $0x70
+
+	/* Save the current ESP and EBP */
+	movl %esp, REAL_MODE_ESP
+	movl %ebp, REAL_MODE_EBP
 	
 	/* Load the protected mode IDT */
 	lidt (idt_48)
@@ -657,12 +726,13 @@ _protected_mode_segment:
 	andl $0x0000FFFF, %ebx
 	
 	/* Switch to the protected mode stack */
-	movl RM_SAVED_ESP, %eax /* restore saved ESP and EBP */
-	movl %eax, %esp
-	movl RM_SAVED_EBP, %ebp
+	movl PROT_MODE_ESP+BOOT_ADDRESS, %eax /* restore saved ESP and EBP */
+	movl PROT_MODE_EBP+BOOT_ADDRESS, %ebp
 	
 	push %ebx
 	ret
+
+	.code16
 
 .code16
 real_idt:
