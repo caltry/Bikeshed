@@ -489,7 +489,7 @@ kernel_location_already_saved:
 
 	/* This is a one time deal, since we skipped the first 8 bytes, but we loaded
 	 * and copied 512 bytes with the copy_buffer, we need to fix the load_location
-	 * by subtracting 8 bytes, otherwise we have a hole in our data
+	 * by subtracting 8 bytes, otherwise we'll have a hole in our data
 	 */
 	movl load_location, %edx
 	subl $8, %edx
@@ -537,7 +537,7 @@ exit_load_module:
  *    EAX - The source address
  *    EBX - The number of sectors to copy 
  *
- * This method uses load_location to find the Destination
+ * This method uses load_location to find the destination
  * address, it will also update load_location and remaining
  * with the appropriate values after copying
  */
