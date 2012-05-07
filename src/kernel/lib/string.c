@@ -16,6 +16,23 @@ const char* strchr( const char *str, char c )
 	return str;
 }
 
+const char* strrchr( const char *str, char c )
+{
+	const char* last_location = strchr( str, c );
+	str++;
+
+	while( *str != null_chr )
+	{
+		if( *str == c )
+		{
+			last_location = str;
+		}
+		str++;
+	}
+
+	return last_location;
+}
+
 int strncmp( const char *s1, const char *s2, unsigned int n )
 {
 	for(	unsigned int i = 0;
