@@ -261,8 +261,6 @@ void _init( void ) {
 	_sched_init();
 	_sem_init();
 	_clock_init();
-	_init_all_ramdisks();
-	_fs_ext2_init();
 
 	c_puts( "\n" );
 
