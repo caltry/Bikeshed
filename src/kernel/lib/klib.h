@@ -72,7 +72,7 @@ void _kmemclr( void *buffer, Uint32 length );
 ** may not correctly deal with overlapping buffers
 */
 
-void _kmemcpy( void *destination, void *source, Uint32 length );
+void _kmemcpy( void *destination, const void *source, Uint32 length );
 
 /*
 ** _kpanic - kernel-level panic routine
