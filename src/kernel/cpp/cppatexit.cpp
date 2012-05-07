@@ -5,6 +5,7 @@ extern "C"
 {
 	#include "memory/kmalloc.h"
 	#include "serial.h"
+	#include "defs.h"
 
 	struct atexit_entry
 	{

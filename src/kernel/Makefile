@@ -1,7 +1,7 @@
 include ../defs.mk
 
 CFLAGS += -I../include -I../ulib -I../kernel -I../kernel/lib -I../boot
-CFLAGS += -I../serial -I../applications -I ../kernel/bios
+CFLAGS += -I../serial -I../applications -I../kernel/bios -I.. -I../fs
 CPPFLAGS += -I../boot
 
 CXXFLAGS += -I../include -I../ulib -I../kernel -I../kernel/lib -I../boot

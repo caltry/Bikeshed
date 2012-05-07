@@ -1,0 +1,29 @@
+Tasks for ext2:
+
+( Legend:
+	- Not started
+	* work in progress
+	+ completed
+)
+
+Near future
+===========
+
++ ls / (hardcoded, to serial)
+* ls / (hardcoded)	=> (get_dir_ents_root :: LinkedList dirent)
+- ls -R / (hardcoded)	=> (get_dir_ents_rec :: LinkedList dirent)
+- ls (not hardcoded)	=> (get_dir_ents :: [Char] -> LinkedList dirent)
+
+- Populated ext2 fs
+
+- cat test.txt (hardcoded)
+- cat (not hardcoded)
+
+- Something to translate from a locical locaton (byte 12345 into the file) to
+  a block.
+
+
+Buildsystem
+===========
+- Make bikeshed_fs depend on src/fs_defs.mk
+- Make ext2* depend on src/fs_defs.mk

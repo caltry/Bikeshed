@@ -31,6 +31,8 @@
 #include "network/e1000.h"
 #include "pci/pci.h"
 #include "serial.h"
+#include "fs/ext2/ext2.h"
+#include "vfs_init.h"
 #include "cpp/cppinit.h"
 #include "cpp/cpptest.hpp"
 
@@ -259,6 +261,8 @@ void _init( void ) {
 	_sched_init();
 	_sem_init();
 	_clock_init();
+	_init_all_ramdisks();
+	_fs_ext2_init();
 
 	c_puts( "\n" );
 

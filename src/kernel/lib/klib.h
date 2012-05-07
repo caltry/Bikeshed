@@ -13,7 +13,7 @@
 #ifndef _KLIB_H
 #define _KLIB_H
 
-#include "headers.h"
+#include "types.h"
 
 /*
 ** General (C and/or assembly) definitions

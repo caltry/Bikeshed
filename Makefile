@@ -1,3 +1,4 @@
+include src/fs_defs.mk
 
 BUILDIMAGE = build/BuildImage
 FANCYCAT   = build/FancyCat
@@ -8,14 +9,14 @@ FANCYCAT   = build/FancyCat
 # Default target:  usb.image
 #
 
-usb.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE) $(FANCYCAT)
+usb.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE) $(FANCYCAT) bikeshed_fs
 	$(BUILDIMAGE) -d usb -o build.image -b src/boot/bootstrap.b dummy 0x10000
-	$(FANCYCAT) 0x100000 src/prog.b 0x200000 src/real.b
+	$(FANCYCAT) 0x100000 src/prog.b 0x200000 src/real.b $(RAMDISK_PHYS_LOCATION) bikeshed_fs
 	/bin/cat build.image image.dat > usb.image
 
-floppy.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE) $(FANCYCAT)
+floppy.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE) $(FANCYCAT) bikeshed_fs
 	$(BUILDIMAGE) -d floppy -o build.image -b src/boot/bootstrap.b dummy 0x10000
-	$(FANCYCAT) 0x100000 src/prog.b
+	$(FANCYCAT) 0x100000 src/prog.b 0x200000 src/real.b $(RAMDISK_PHYS_LOCATION) bikeshed_fs
 	/bin/cat build.image image.dat > floppy.image
 
 #
@@ -43,9 +44,13 @@ floppy:	floppy.image
 usb:	usb.image
 	dd if=usb.image of=/local/devices/disk
 
+bikeshed_fs:
+	dd if=/dev/zero of=bikeshed_fs bs=1K count=$(RAMDISK_SIZE_KiB)
+	mke2fs -O^resize_inode,^sparse_super -m0 -F -L bikeshed bikeshed_fs
+
 # Run the OS in qemu
 qemu:	usb.image
-	qemu usb.image -serial stdio
+	qemu-system-x86_64 usb.image -serial stdio
 
 walter:	usb.image
 	kvm usb.image -serial /dev/pts/1 -monitor stdio -net nic -net user
@@ -62,6 +67,7 @@ $(BUILDIMAGE):
 clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C build clean
+	$(RM) bikeshed_fs
 
 realclean: clean
 	$(RM) usb.image floppy.image

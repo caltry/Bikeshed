@@ -32,6 +32,7 @@ const char *_kstatus_strings[] = {
 	"not found",		/* NOT_FOUND */
 	"no queues",		/* NO_QUEUES */
 	"bad priority"		/* BAD_PRIO */
+	"feature not supported" /* FEATURE_UNIMPLEMENTED */
 };
 
 /*
