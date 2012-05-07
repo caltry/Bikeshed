@@ -4,9 +4,11 @@
 
 #include "string.h"
 
+static const char null_chr = '\0';
+
 const char* strchr( const char *str, char c )
 {
-	while( str != '\0' && *str != c )
+	while( *str != null_chr && *str != c )
 	{
 		str++;
 	}
