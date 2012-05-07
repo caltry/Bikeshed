@@ -61,6 +61,9 @@ void ext2_debug_dump( void *virtual_address )
 	serial_string("== get_dir_ents_root ==\n\r");
 	print_dir_ents_root( &context );
 	serial_string("==\n\r");
+	serial_string("== Printing out a test file: test.txt ==\n\r");
+	ext2_print_file_by_inode( &context, 12, 1111 );
+	serial_string("==\n\r");
 }
 
 
@@ -312,6 +315,55 @@ void print_dir_ents_root( struct ext2_filesystem_context *context )
 			continue; // To the next block
 		} else {
 			break;	// We've seen all of the file entries.
+		}
+	}
+}
+
+
+void
+ext2_print_file_by_inode
+	(struct ext2_filesystem_context *context,
+	Uint32 inode_num,
+	Uint nbytes )
+{
+	struct ext2_inode *fp = get_inode( context, inode_num );
+	Uint32 block_size = get_block_size( context->sb );
+
+	for
+	(Uint32 inode_block_idx = 0;
+	inode_block_idx < EXT2_INODE_TOTAL_BLOCKS;
+	inode_block_idx++)
+	{
+		// TODO: Support indirect, dub. indirect, trip. indirect blocks
+		if( inode_block_idx >= EXT2_INODE_DIRECT_BLOCKS )
+		{
+			_kpanic( "ext2", "No support for indirect blocks",
+				FEATURE_UNIMPLEMENTED );
+		}
+
+		Uint32 block_number = fp->blocks[inode_block_idx];
+		const char *data = (const char*)
+			block_number_to_address( context, block_number );
+
+		/* Keep printing out entries until we've reached the end. */
+		if( nbytes < block_size )
+		{
+			char local_block_buffer[block_size];
+			_kmemcpy( local_block_buffer, data, nbytes );
+			local_block_buffer[nbytes] = '\0';
+			serial_string( local_block_buffer );
+
+			// We've reached the end of the file. Time to leave.
+			break;
+		} else {
+			char local_block_buffer[block_size+1];
+			_kmemcpy( local_block_buffer, data, block_size );
+			local_block_buffer[block_size] = '\0';
+			serial_string( local_block_buffer );
+
+			// There's more to read
+			nbytes -= block_size;
+			continue;
 		}
 	}
 }
