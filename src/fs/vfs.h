@@ -81,7 +81,7 @@ VFSStatus close( FileDescriptor fd );
  * 	E_OK	If we read any number of bytes.
  * 	E_IO	If there was some I/O error.
  */
-VFSStatus read( FileDescriptor fd, void *buf, Uint nbytes, Uint bytes_read );
+VFSStatus read( FileDescriptor fd, void *buf, Uint nbytes, Uint *bytes_read );
 
 /*
  * Write _nbytes_ bytes from a _buf_ to a file described in the file descriptor
