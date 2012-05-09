@@ -9,16 +9,10 @@
 #ifndef _VIDEO_H
 #define _VIDEO_H
 
-/*
-** General (C and/or assembly) definitions
-*/
-
-#ifndef __ASM__20113__
-
 #include "headers.h"
 
 /*
-** Start of C-only definitions
+** General C definitions
 */
 
 /*
@@ -38,12 +32,12 @@ typedef struct screen {
 ** Globals
 */
 
+Screen *kScreen;
+
 /*
 ** Prototypes
 */
 
 Status _video_init(void);
-
-#endif
 
 #endif
