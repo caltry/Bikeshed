@@ -6,14 +6,25 @@
 
 #define ONE_KILOBYTE  (1024)
 #define ONE_MEGABYTE  (1024 * ONE_KILOBYTE) 
-#define SIXTEEN_MEG   (16 * ONE_MEGABYTE)
 #define SIXTY_FOUR_KB (64 * ONE_KILOBYTE) 
+#define SIXTEEN_MEG   (16 * ONE_MEGABYTE)
 
 #include "headers.h"
 
-//////////////////////////////
+/* This symbol is defined in a linker script and 
+ * it is placed at the end of the kernel. So if you
+ * want to find out where the end of the kernel is
+ * you would do &KERNEL_END
+ */
 extern Uint32 KERNEL_END;
 
+/* These two variables are setup in the __phys_initialize_bitmap()
+ * method. The KERNEL_SIZE is adjusted to include the physical memory
+ * bitmap.
+ *
+ * PHYSICAL_MEM_SIZE is calculated from the MMAP_EXT_HI/LO variables 
+ * saved by the bootloader during startup
+ */
 Uint32 KERNEL_SIZE;
 Uint32 PHYSICAL_MEM_SIZE;
 
