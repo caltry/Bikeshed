@@ -37,11 +37,11 @@
 
 void clear_screen(Screen *screen, Uint32 color);
 
-void draw_char(Screen *screen, char letter, int x, int y, Uint32 color);
+void draw_char(Screen *screen, char letter, int x, int y, int scale, Uint32 color);
 
-void draw_string(Screen *screen, char *string, int x, int y, Uint32 color);
+void draw_string(Screen *screen, char *string, int x, int y, int scale, Uint32 color);
 
-void test_pattern(Screen *screen);
+void draw_chars(Screen *screen, char *start, char *end, int x, int y, int scale, Uint32 color);
 
 void set_pixel(Screen *screen, Uint32 x, Uint32 y, Uint32 color);
 
