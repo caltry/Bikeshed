@@ -55,12 +55,6 @@ begtext:
 	movw	$REAL_STACK, %ax	/* and the stack starts 0x4000 beyond that */
 	movw	%ax, %sp
 
-	movl $TARGET_STACK, %ebx
-	xor %ax, %ax
-	mov %ax, %es
-	movl %ebx, %es:(RM_SAVED_ESP)
-	movl %ebx, %es:(RM_SAVED_EBP)
-
 /*
 ** Next, verify that the disk is there and working.
 */
