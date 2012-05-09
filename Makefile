@@ -49,11 +49,17 @@ bikeshed_fs:
 	mke2fs -O^resize_inode,^sparse_super -m0 -F -L bikeshed bikeshed_fs
 
 # Run the OS in qemu
-qemu:	usb.image
-	qemu-system-x86_64 usb.image -serial stdio
+qemu: 
+	CFLAGS=-DQEMU_SERIAL $(MAKE) usb.image
+	qemu-system-x86_64 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial stdio -net user -net nic,model=i82559er
 
-walter:	usb.image
-	kvm usb.image -serial /dev/pts/1 -monitor stdio -net nic -net user
+walter:	
+	CFLAGS=-DQEMU_SERIAL $(MAKE) usb.image
+	kvm -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er
+
+mit: 
+	CFLAGS=-DQEMU_SERIAL $(MAKE) usb.image
+	~/qemu/bin/qemu -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er
 #
 # Special rule for creating the modification and offset programs
 #

@@ -23,7 +23,6 @@
 #include "scheduler.h"
 #include "semaphores.h"
 
-// TODO XXX ADDED REMOVE
 #include "bootstrap.h"
 #include "memory/physical.h"
 #include "memory/paging.h"
