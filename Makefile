@@ -11,7 +11,7 @@ FANCYCAT   = build/FancyCat
 
 usb.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE) $(FANCYCAT) bikeshed_fs
 	$(BUILDIMAGE) -d usb -o build.image -b src/boot/bootstrap.b dummy 0x10000
-	$(FANCYCAT) 0x100000 src/prog.b 0x200000 src/real.b $(RAMDISK_PHYS_LOCATION) bikeshed_fs
+	$(FANCYCAT) 0x100000 src/prog.b 0x200000 src/real.b $(RAMDISK_PHYS_LOCATION) bikeshed_fs 0x800000 file
 	/bin/cat build.image image.dat > usb.image
 
 floppy.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE) $(FANCYCAT) bikeshed_fs
@@ -50,10 +50,10 @@ bikeshed_fs:
 
 # Run the OS in qemu
 qemu:	usb.image
-	qemu-system-x86_64 usb.image -serial stdio
+	qemu-system-x86_64 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial stdio
 
 walter:	usb.image
-	kvm usb.image -serial /dev/pts/1 -monitor stdio -net nic -net user
+	kvm -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net nic -net user
 #
 # Special rule for creating the modification and offset programs
 #
