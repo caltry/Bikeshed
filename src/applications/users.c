@@ -14,6 +14,9 @@
 
 #include "users.h"
 
+#include "video.h"
+#include "gconsole.h"
+
 /*
 ** USER PROCESSES
 **
@@ -942,7 +945,7 @@ void user_sem_test_try_wait( void ) {
 
 void init( void ) {
 	int i;
-	//Pid pid;
+	Pid pid;
 	Time time;
 	Status status;
 
@@ -952,6 +955,18 @@ void init( void ) {
 
 	// we'll start the first three "manually"
 	// by doing fork() and exec() ourselves
+
+	// Create a process to update the graphic display
+	if (kScreen != NULL) {
+		status = fork( &pid );
+		if( status != SUCCESS ) {
+			prt_status( "init: can't fork() video, status %s\n", status );
+		} else if( pid == 0 ) {
+			status = exec( gconsole_run );
+			prt_status( "init: can't exec() video, status %s\n", status );
+			exit();
+		}
+	}
 
 #ifdef SPAWN_A
 	status = fork( &pid );

@@ -12,6 +12,9 @@
 **
 */
 
+#include "semaphores.h"
+#include "scheduler.h"
+
 #include "video.h"
 #include "graphics.h"
 
@@ -33,6 +36,9 @@ unsigned int	scroll_max_x, scroll_max_y;
 unsigned int	cursor_x, cursor_y;
 unsigned int	min_x, min_y;
 unsigned int	max_x, max_y;
+
+int 			dirty;
+Sem				repaint_sem;
 
 char screen[SCREEN_X_SIZE * SCREEN_Y_SIZE];
 
@@ -516,11 +522,30 @@ void gconsole_init( void ){
 	*/
 	cursor_y = min_y;
 	cursor_x = min_x;
+
+	dirty = 0;
+	repaint_sem = _sem_new();
 }
 
 
 void gconsole_flush(void) {
-	gconsole_draw(0, 0);
+	_sem_wait(repaint_sem, _current);
+	dirty = 1;
+	_sem_post(repaint_sem);
+}
+
+
+void gconsole_run(void) {
+	while( 1 ) {
+		_sem_wait(repaint_sem, _current);
+		if (dirty) {
+			gconsole_draw(16, 16);
+			dirty = 0;
+		}
+		_sem_post(repaint_sem);
+
+		msleep(10);
+	}
 }
 
 
