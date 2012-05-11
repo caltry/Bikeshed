@@ -37,12 +37,12 @@ int strncmp( const char *s1, const char *s2, unsigned int n )
 {
 	for
 	(unsigned int i = 0;
-	i < n && s1 != '\0' && s2 != '\0';
+	i < n && *s1 != null_chr && *s2 != null_chr;
 	++i, ++s1, ++s2 )
 	{
-		if( s1 != s2 )
+		if( *s1 != *s2 )
 		{
-			return s1-s2;
+			return (*s1)-(*s2);
 		}
 	}
 
