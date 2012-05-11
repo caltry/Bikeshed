@@ -51,18 +51,16 @@
 */
 
 Status _video_init(void) {
-	//Uint16 video_mode;
 	VesaControllerInfo *info = (VesaControllerInfo *)VESA_INFO_ADDRESS;
 	_vesa_load_info(info);
 	_vesa_print_info(info);
 
-	//Uint16 *modes = (Uint16 *)(info->video_modes);
-	//_vesa_choose_mode(modes, 1024, 768, 24);
-	//_vesa_load_mode_info(video_mode);
-	//_vesa_print_mode_info(video_mode);
+	Uint16 *modes = (Uint16 *)(info->video_modes);
+	Uint16 mode_num = _vesa_choose_mode(modes, 1024, 768);
 
 	VesaModeInfo *mode = (VesaModeInfo *)VESA_MODE_ADDRESS;
-	_vesa_load_mode_info(280, mode);
+	_vesa_load_mode_info(mode_num, mode);
+	_vesa_print_mode_info(mode_num, mode);
 	
 	// Collect details about the screen
 	kScreen = __kmalloc(sizeof(Screen));
@@ -80,7 +78,7 @@ Status _video_init(void) {
 	}
 
 	// Switch to the mode
-	_vesa_select_mode(280);
+	_vesa_select_mode(mode_num);
 
 	// Create the default screen background
 	clear_screen(kScreen, 0x6B8A8B);

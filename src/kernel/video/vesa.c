@@ -61,10 +61,19 @@ void _vesa_load_info(VesaControllerInfo *info) {
 }
 
 
-Uint16 _vesa_choose_mode(Uint16 *modes, int width, int height, int bpp) {
+static Int32 abs(Int32 value) {
+	if (value < 0)
+		value = -value;
+
+	return value;
+}
+
+
+Uint16 _vesa_choose_mode(Uint16 *modes, int width, int height) {
 	VesaModeInfo *mode = (VesaModeInfo *)VESA_MODE_ADDRESS;
-	Uint16 best_mode = 0x13;
-	Uint32 best_diff = 0;
+	Uint16 best_mode = 0;
+	Uint32 best_diff, diff = 0;
+	Uint32 best_bpp = 0;
 
 	TRACE("Searching for a decent video mode...\n");
 	
@@ -80,6 +89,9 @@ Uint16 _vesa_choose_mode(Uint16 *modes, int width, int height, int bpp) {
 		if ((mode->memory_model != PACKED_PIXELS) &&
 			(mode->memory_model != DIRECT_COLOR)) continue;
 
+		// Make sure we support the color depth
+		if (!SUPPORTED_DEPTH(mode->bits_per_pixel)) continue;
+
 		// Only consider modes with a width <= to the desired width
 		if (mode->x_resolution > width) continue;
 
@@ -89,7 +101,15 @@ Uint16 _vesa_choose_mode(Uint16 *modes, int width, int height, int bpp) {
 			TRACE("\n");
 
 		// Compare this mode to the previous best mode
+		diff = abs((mode->x_resolution * mode->y_resolution)
+			 - (width * height));
 
+		if ((best_diff > diff) || ((best_diff == diff)
+			&& (mode->bits_per_pixel > best_bpp)))
+		{
+			best_mode = modes[i];
+			best_diff = diff;
+		}
 	}
 	TRACE("\n");
 

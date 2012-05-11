@@ -34,6 +34,9 @@
 #define DIRECT_COLOR				6
 
 
+#define SUPPORTED_DEPTH(x)				(x == 24)
+
+
 #ifndef __ASM__20113__
 
 #include "headers.h"
@@ -109,7 +112,7 @@ void _vesa_init(void);
 
 void _vesa_load_info(VesaControllerInfo *info);
 void _vesa_load_mode_info(Uint16 mode, VesaModeInfo *info);
-Uint16 _vesa_choose_mode(Uint16 *modes, int x, int y, int bpp);
+Uint16 _vesa_choose_mode(Uint16 *modes, int x, int y);
 void _vesa_select_mode(Uint16 mode);
 
 void _vesa_print_info(VesaControllerInfo *info);
