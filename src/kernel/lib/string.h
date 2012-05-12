@@ -11,7 +11,7 @@
  * Returns a pointer to the location of _c_ in _str_ or a '\0' if none was
  * found.
  */
-const char* strchr( const char *str, char c );
+const char* _kstrchr( const char *str, char c );
 
 /*
  * Find the last occurrence of the character _c_ in _str_.
@@ -19,11 +19,11 @@ const char* strchr( const char *str, char c );
  * Returns a pointer to the location of the last _c_ in _str_ or a '\0' if none
  * was found.
  */
-const char* strrchr( const char *str, char c);
+const char* _kstrrchr( const char *str, char c);
 
 /*
  * Compare the two strings up, but only compare up to _n_ numbers.
  */
-int strncmp( const char *s1, const char *s2, unsigned int n );
+int _kstrncmp( const char *s1, const char *s2, unsigned int n );
 
 #endif //_STRING_H_

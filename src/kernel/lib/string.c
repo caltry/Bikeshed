@@ -6,7 +6,7 @@
 
 static const char null_chr = '\0';
 
-const char* strchr( const char *str, char c )
+const char* _kstrchr( const char *str, char c )
 {
 	while( *str != null_chr && *str != c )
 	{
@@ -16,10 +16,9 @@ const char* strchr( const char *str, char c )
 	return str;
 }
 
-const char* strrchr( const char *str, char c )
+const char* _kstrrchr( const char *str, char c )
 {
-	const char* last_location = strchr( str, c );
-	str++;
+	const char* last_location = _kstrchr( str, c );
 
 	while( *str != null_chr )
 	{
@@ -33,7 +32,7 @@ const char* strrchr( const char *str, char c )
 	return last_location;
 }
 
-int strncmp( const char *s1, const char *s2, unsigned int n )
+int _kstrncmp( const char *s1, const char *s2, unsigned int n )
 {
 	for
 	(unsigned int i = 0;
