@@ -4,6 +4,11 @@
 #include "types.h"
 #include "ext2.h"
 
+/*
+ * The location of the inital ramdisk for Bikeshed.
+ */
+extern struct ext2_filesystem_context *bikeshed_ramdisk_context;
+
 typedef enum {
 	EXT2_READ_SUCCESS = 0,
 	EXT2_READ_FILE_NOT_FOUND = 1,
@@ -35,7 +40,7 @@ void print_superblock_data(struct ext2_superblock *sb);
 /*
  * Dump a bunch of debugging info to serial.
  */
-void ext2_debug_dump( void *virtual_address );
+void ext2_debug_dump( struct ext2_filesystem_context *context );
 
 
 /*****************

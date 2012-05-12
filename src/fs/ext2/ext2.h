@@ -41,6 +41,11 @@
 #define DIRECTORY_SEPARATOR '/'
 
 /*
+ * The location of the inital ramdisk for Bikeshed.
+ */
+extern struct ext2_filesystem_context *bikeshed_ramdisk_context;
+
+/*
  * A hook for the kernel to call when enabling ext2.
  */
 void _fs_ext2_init(void);

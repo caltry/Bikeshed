@@ -8,6 +8,7 @@
 #include "types.h"
 #include "read_ext2.h"
 #include "kernel/serial.h"
+#include "kernel/memory/kmalloc.h"
 #include "kernel/lib/klib.h"
 #include "kernel/lib/string.h"
 #include "cpp_magic.h"
@@ -25,6 +26,11 @@
 #define DEBUG_FILESYSTEM true
 
 static const char *NEWLINE = "\n\r";
+
+/*
+ * The location of the inital ramdisk for Bikeshed.
+ */
+struct ext2_filesystem_context *bikeshed_ramdisk_context;
 
 /*
  * Private helper function definitions.
@@ -85,16 +91,19 @@ get_file_from_dir_path( struct ext2_filesystem_context *context,
 
 void _fs_ext2_init()
 {
-	ext2_debug_dump( (void*) RAMDISK_VIRT_LOCATION );
+	bikeshed_ramdisk_context = __kmalloc( sizeof( struct ext2_filesystem_context ) );
+	bikeshed_ramdisk_context->sb = get_superblock( RAMDISK_VIRT_LOCATION );
+	bikeshed_ramdisk_context->base_address = (Uint32) RAMDISK_VIRT_LOCATION;
+	ext2_debug_dump( bikeshed_ramdisk_context );
 }
 
-void ext2_debug_dump( void *virtual_address )
+void ext2_debug_dump( struct ext2_filesystem_context *context_ptr )
 {
-	struct ext2_superblock *sb = get_superblock( (Uint32) virtual_address );
+	struct ext2_superblock *sb = context_ptr->sb;
 	serial_printf( "Dumping superblock located at: %x\n\r", (long) sb );
 	print_superblock_data( sb );
 
-	struct ext2_filesystem_context context = { sb, (Uint32) virtual_address };
+	struct ext2_filesystem_context context = *context_ptr;
 
 	serial_string("==\n\r");
 	print_file_data( &context, "/" );
