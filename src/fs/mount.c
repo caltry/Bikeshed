@@ -31,11 +31,12 @@ static FSType get_filesystem_type( void *address )
 MountStatus mount_ramdisk( void *address, char *path )
 {
 	FSType fs_type = get_filesystem_type( address );
+	(void) path;
 
 	if( fs_type == fs_ext2 )
 	{
 		struct ext2_filesystem_context *context =
-			ext2_mount_ramdisk( address, path );
+			ext2_mount_ramdisk( address );
 		// TODO: Keep track of where the filesystems are mounted
 		(void)context;
 

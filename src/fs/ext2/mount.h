@@ -11,6 +11,6 @@
  * Mount a ramdisk found at the given virtual address onto the _mountpoint_
  */
 struct ext2_filesystem_context*
-ext2_mount_ramdisk( void *virtual_address, char *mountpoint);
+ext2_mount_ramdisk( void *virtual_address );
 
 #endif //_EXT2_MOUNT_H
