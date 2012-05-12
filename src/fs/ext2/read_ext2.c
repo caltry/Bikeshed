@@ -71,9 +71,10 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 			struct ext2_inode *directory_ino,
 			const char *filename );
 
-Uint32 ext2_print_file_by_inode
+Uint32 ext2_read_file_by_inode
 	(struct ext2_filesystem_context *context,
 	struct ext2_directory_entry *file,
+	char *buffer,
 	Uint start,
 	Uint nbytes );
 
@@ -98,11 +99,14 @@ void ext2_debug_dump( void *virtual_address )
 	serial_string("== Printing out a test file: test.txt <12> ==\n\r");
 	struct ext2_inode *root_ino = get_inode( &context, EXT2_INODE_ROOT );
 	struct ext2_directory_entry *test_file = get_file_from_dir_inode( &context, root_ino, "test.txt" );
+	char test_buffer[1112];
 	Uint32 bytes_read;
-	bytes_read = ext2_print_file_by_inode( &context, test_file, 0, 100 );
+	bytes_read = ext2_read_file_by_inode( &context, test_file, test_buffer, 0, 100 );
 	serial_printf( "\n\r%d bytes read\n\r", bytes_read );
-	bytes_read = ext2_print_file_by_inode( &context, test_file, 100, 1111);
+	bytes_read = ext2_read_file_by_inode( &context, test_file, test_buffer + 100, 100, 1111);
 	serial_printf( "%d bytes read\n\r", bytes_read );
+	test_buffer[1111] = '\0';
+	serial_string( test_buffer );
 	serial_string("==\n\r");
 }
 
@@ -371,9 +375,10 @@ void print_dir_ents_root( struct ext2_filesystem_context *context )
  * Returns the number of bytes read.
  */
 Uint32
-ext2_print_file_by_inode
+ext2_read_file_by_inode
 	(struct ext2_filesystem_context *context,
 	struct ext2_directory_entry *file,
+	char *buffer,
 	Uint start,
 	Uint nbytes )
 {
@@ -421,10 +426,7 @@ ext2_print_file_by_inode
 		/* Keep printing out entries until we've reached the end. */
 		if( remaining_bytes < block_size )
 		{
-			char local_block_buffer[block_size];
-			_kmemcpy( local_block_buffer, data, remaining_bytes );
-			local_block_buffer[remaining_bytes] = '\0';
-			serial_string( local_block_buffer );
+			_kmemcpy( buffer, data, remaining_bytes );
 
 			// We've reached the end of the file. Time to leave.
 			remaining_bytes = 0;
@@ -433,8 +435,7 @@ ext2_print_file_by_inode
 			serial_string(__FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) "\n\r");
 			char local_block_buffer[block_size+1-block_offset];
 			_kmemcpy( local_block_buffer, data, block_size-block_offset );
-			local_block_buffer[block_size] = '\0';
-			serial_string( local_block_buffer );
+			buffer += block_size;
 
 			// There's more to read
 			remaining_bytes -= block_size;
