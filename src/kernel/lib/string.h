@@ -26,4 +26,9 @@ const char* _kstrrchr( const char *str, char c);
  */
 int _kstrncmp( const char *s1, const char *s2, unsigned int n );
 
+/*
+ * Find the length of a cstring.
+ */
+unsigned int _kstrlen( const char *string );
+
 #endif //_STRING_H_

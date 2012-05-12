@@ -47,3 +47,14 @@ int _kstrncmp( const char *s1, const char *s2, unsigned int n )
 
 	return 0;
 }
+
+unsigned int strlen( const char *string )
+{
+	unsigned int i = 0;
+	while( *string++ )
+	{
+		++i;
+	}
+
+	return i;
+}
