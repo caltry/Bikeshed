@@ -18,8 +18,8 @@ Near future
 
 - indirect, dub. indirect and trip. indirect blocks
 
-- cat test.txt (hardcoded)
-- cat (not hardcoded)
+* cat test.txt (hardcoded)
++ cat (not hardcoded)
 
 - Something to translate from a locical locaton (byte 12345 into the file) to
   a block.

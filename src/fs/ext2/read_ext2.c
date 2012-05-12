@@ -9,6 +9,7 @@
 #include "read_ext2.h"
 #include "kernel/serial.h"
 #include "kernel/lib/klib.h"
+#include "kernel/lib/string.h"
 #include "cpp_magic.h"
 
 #define true 1
@@ -20,6 +21,8 @@
 #ifndef RAMDISK_PHYS_LOCATION
 #error "RAMDISK_PHYS_LOCATION not set!"
 #endif
+
+#define DEBUG_FILESYSTEM true
 
 static const char *NEWLINE = "\n\r";
 
@@ -43,6 +46,36 @@ block_number_to_address( struct ext2_filesystem_context *context,
 		+ (block_number * get_block_size(context->sb));
 }
 
+/*
+ * Get the next directory entry.
+ *
+ * This has *no* guarentee that there will actually be a directory entry, but
+ * is more like an array++ operator. It's entirely possible that the dirent
+ * returned isn't even in the same block. You should check for this.
+ */
+static inline struct ext2_directory_entry*
+get_next_dirent( struct ext2_directory_entry *dirent )
+{
+	return ((void*) dirent) + dirent->entry_length;
+}
+
+struct ext2_inode*
+get_inode( struct ext2_filesystem_context *context, Uint32 inode_number );
+
+/*
+ * Find the inode number of a file, given the inode of the directory that it's
+ * in.
+ */
+Uint32
+get_file_from_dir_inode( struct ext2_filesystem_context *context,
+			struct ext2_inode *directory_ino,
+			const char *filename );
+
+void ext2_print_file_by_inode
+	(struct ext2_filesystem_context *context,
+	Uint32 inode_num,
+	Uint nbytes );
+
 void _fs_ext2_init()
 {
 	ext2_debug_dump( (void*) RAMDISK_VIRT_LOCATION );
@@ -61,8 +94,10 @@ void ext2_debug_dump( void *virtual_address )
 	serial_string("== get_dir_ents_root ==\n\r");
 	print_dir_ents_root( &context );
 	serial_string("==\n\r");
-	serial_string("== Printing out a test file: test.txt ==\n\r");
-	ext2_print_file_by_inode( &context, 12, 1111 );
+	serial_string("== Printing out a test file: test.txt <12> ==\n\r");
+	struct ext2_inode *root_ino = get_inode( &context, EXT2_INODE_ROOT );
+	Uint32 test_ino = get_file_from_dir_inode( &context, root_ino, "test.txt" );
+	ext2_print_file_by_inode( &context, test_ino, 1111 );
 	serial_string("==\n\r");
 }
 
@@ -299,7 +334,8 @@ void print_dir_ents_root( struct ext2_filesystem_context *context )
 		while( file->inode_number )
 		{
 			print_directory_entry_data( file );
-			file = ((void*) file) + file->entry_length;
+			//file = ((void*) file) + file->entry_length;
+			file = get_next_dirent( file );
 
 			// If the next directory entry is in the next inode
 			if( file > (first_file + block_size) )
@@ -373,4 +409,71 @@ ext2_print_file_by_inode
 			continue;
 		}
 	}
+}
+
+Uint32
+get_file_from_dir_inode( struct ext2_filesystem_context *context,
+			struct ext2_inode *directory_ino,
+			const char *filename )
+{
+	Uint32 block_size = get_block_size( context->sb );
+
+	serial_string( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) "\n\r");
+	serial_string("get_file_from_dir_inode(");
+	serial_string(filename);
+	serial_string(")\n\r");
+
+	for(	Uint32 inode_block_idx = 0;
+		inode_block_idx < EXT2_INODE_TOTAL_BLOCKS;
+		inode_block_idx++)
+	{
+		if( inode_block_idx >= EXT2_INODE_DIRECT_BLOCKS )
+		{
+			_kpanic( "ext2", "I don't support extended blocks yet!", FEATURE_UNIMPLEMENTED );
+		}
+
+		Uint32 block_number = directory_ino->blocks[inode_block_idx];
+
+		struct ext2_directory_entry *dirent =
+			(struct ext2_directory_entry*)
+			block_number_to_address(context, block_number);
+		struct ext2_directory_entry *first_dirent = dirent;
+
+		/* Keep going until the inode number is zero */
+		while( dirent->inode_number )
+		{
+#if DEBUG_FILESYSTEM
+			serial_string( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__)
+				" trying file: ");
+			serial_string( dirent->filename );
+			serial_printf( " <%d>", dirent->inode_number );
+			serial_printf( ", with length: %d  ", dirent->name_length);
+			serial_printf( "strncmp(): %d\n\r", _kstrncmp( filename, dirent->filename, dirent->name_length ));
+#endif
+
+			// If this is the file we're looking for, we're done!
+			if( !_kstrncmp( filename, dirent->filename, dirent->name_length ) )
+			{
+				return dirent->inode_number;
+			} else {
+				dirent = get_next_dirent( dirent );
+
+				if( dirent > (first_dirent + block_size) )
+				{
+					break; // To outer `for' loop
+				}
+			}
+		}
+
+		// If we've reached this point, we either ran out of file
+		// entires or just need to read the next block.
+		if( dirent->inode_number )
+		{
+			continue; // To next block
+		} else {
+			break;	// We've seen all of the file entries.
+		}
+	}
+
+	return 0;
 }
