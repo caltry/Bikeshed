@@ -38,6 +38,8 @@
 
 #define EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER 0x1
 
+#define DIRECTORY_SEPARATOR '/'
+
 /*
  * A hook for the kernel to call when enabling ext2.
  */
@@ -305,6 +307,12 @@ typedef enum {
 	journal_data	= 0x4000, // Journal file data
 	reserved	= 0x80000000
 } inode_flags;
+
+/*
+ * Reserved inodes
+ */
+#define EXT2_INODE_BAD  1	// Inode for bad blocks
+#define EXT2_INODE_ROOT 2	// The inode where '/' is located
 
 struct ext2_inode {
 	// File mode bitmasks

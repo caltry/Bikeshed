@@ -44,9 +44,12 @@ floppy:	floppy.image
 usb:	usb.image
 	dd if=usb.image of=/local/devices/disk
 
-bikeshed_fs:
+.PHONY: bikeshed_fs
+bikeshed_fs: build/debugfs_commands.debugfs
 	dd if=/dev/zero of=bikeshed_fs bs=1K count=$(RAMDISK_SIZE_KiB)
 	mke2fs -O^resize_inode,^sparse_super -m0 -F -L bikeshed bikeshed_fs
+	ln -f bikeshed_fs build/bikeshed_fs
+	make -C build/ populate_ramdisk
 
 # Run the OS in qemu
 qemu:	usb.image
@@ -67,9 +70,10 @@ $(BUILDIMAGE):
 clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C build clean
-	$(RM) bikeshed_fs
 
 realclean: clean
 	$(RM) usb.image floppy.image
 	$(RM) image.dat
 	$(RM) build.image
+	$(RM) bikeshed_fs
+	$(RM) build/bikeshed_fs

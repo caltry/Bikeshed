@@ -9,6 +9,7 @@
 #include "read_ext2.h"
 #include "kernel/serial.h"
 #include "kernel/lib/klib.h"
+#include "kernel/lib/string.h"
 #include "cpp_magic.h"
 
 #define true 1
@@ -20,6 +21,8 @@
 #ifndef RAMDISK_PHYS_LOCATION
 #error "RAMDISK_PHYS_LOCATION not set!"
 #endif
+
+#define DEBUG_FILESYSTEM true
 
 static const char *NEWLINE = "\n\r";
 
@@ -43,6 +46,43 @@ block_number_to_address( struct ext2_filesystem_context *context,
 		+ (block_number * get_block_size(context->sb));
 }
 
+/*
+ * Get the next directory entry.
+ *
+ * This has *no* guarentee that there will actually be a directory entry, but
+ * is more like an array++ operator. It's entirely possible that the dirent
+ * returned isn't even in the same block. You should check for this.
+ */
+static inline struct ext2_directory_entry*
+get_next_dirent( struct ext2_directory_entry *dirent )
+{
+	return ((void*) dirent) + dirent->entry_length;
+}
+
+struct ext2_inode*
+get_inode( struct ext2_filesystem_context *context, Uint32 inode_number );
+
+/*
+ * Find the inode number of a file, given the inode of the directory that it's
+ * in.
+ */
+struct ext2_directory_entry*
+get_file_from_dir_inode( struct ext2_filesystem_context *context,
+			struct ext2_inode *directory_ino,
+			const char *filename );
+
+Uint32 ext2_read_file_by_inode
+	(struct ext2_filesystem_context *context,
+	struct ext2_directory_entry *file,
+	void *buffer,
+	Uint start,
+	Uint nbytes );
+
+struct ext2_directory_entry*
+get_file_from_dir_path( struct ext2_filesystem_context *context,
+			const char *dirpath,
+			const char *filename );
+
 void _fs_ext2_init()
 {
 	ext2_debug_dump( (void*) RAMDISK_VIRT_LOCATION );
@@ -60,6 +100,26 @@ void ext2_debug_dump( void *virtual_address )
 	print_file_data( &context, "/" );
 	serial_string("== get_dir_ents_root ==\n\r");
 	print_dir_ents_root( &context );
+	serial_string("==\n\r");
+	serial_string("== Printing out the message of the day! ==\n\r");
+	char test_buffer[1112];
+	ext2_read_status read_error;
+	read_error = ext2_raw_read( &context, "/etc/motd", test_buffer, 0, 0, 100 );
+	if( read_error )
+	{
+		serial_printf( "Unable to read \'/etc/motd\', error# %d\n\r",
+		               read_error );
+		return;
+	}
+	read_error = ext2_raw_read(&context, "/etc/motd", test_buffer+100, 0, 100,1111-100);
+	if( read_error )
+	{
+		serial_printf( "Unable to read \'/etc/motd\', error# %d\n\r",
+		               read_error );
+		return;
+	}
+	test_buffer[1111] = '\0';
+	serial_string( test_buffer );
 	serial_string("==\n\r");
 }
 
@@ -215,7 +275,7 @@ void print_file_data(struct ext2_filesystem_context *context, const char *path)
 	struct ext2_superblock *sb = context->sb;
 	serial_printf( "sb: %x\n\r", (unsigned long) sb );
 
-	struct ext2_inode *current_inode = get_inode( context, sb->first_inode );
+	struct ext2_inode *current_inode = get_inode( context, EXT2_INODE_ROOT );
 
 	struct ext2_directory_entry *current_dir_entry;
 	const char *current_path = path;
@@ -270,7 +330,7 @@ void print_file_data(struct ext2_filesystem_context *context, const char *path)
 
 void print_dir_ents_root( struct ext2_filesystem_context *context )
 {
-	struct ext2_inode *dir_file = get_inode(context,context->sb->first_inode);
+	struct ext2_inode *dir_file = get_inode(context, EXT2_INODE_ROOT);
 
 	Uint32 block_size = get_block_size( context->sb );
 
@@ -296,7 +356,8 @@ void print_dir_ents_root( struct ext2_filesystem_context *context )
 		while( file->inode_number )
 		{
 			print_directory_entry_data( file );
-			file = ((void*) file) + file->entry_length;
+			//file = ((void*) file) + file->entry_length;
+			file = get_next_dirent( file );
 
 			// If the next directory entry is in the next inode
 			if( file > (first_file + block_size) )
@@ -313,5 +374,253 @@ void print_dir_ents_root( struct ext2_filesystem_context *context )
 		} else {
 			break;	// We've seen all of the file entries.
 		}
+	}
+}
+
+
+/*
+ * A proof of concept towards implementing read(). It's easier to just dump the
+ * data to serial than actually repackage it for now!
+ *
+ * For an ext2 _context_, read the file given by its _inode_num_ and print out
+ * _nbytes_ of it.
+ *
+ * Returns the number of bytes read.
+ */
+Uint32
+ext2_read_file_by_inode
+	(struct ext2_filesystem_context *context,
+	struct ext2_directory_entry *file,
+	void *buffer,
+	Uint start,
+	Uint nbytes )
+{
+	Uint32 inode_num = file->inode_number;
+	struct ext2_inode *fp = get_inode( context, inode_num );
+	Uint32 block_size = get_block_size( context->sb );
+
+	// Avoid reading off of the end of a file.
+	if( fp->size < (nbytes+start) )
+	{
+		// Don't try to start reading past the end of the file!
+		if( start > fp->size )
+		{
+			nbytes = 0;
+		} else {
+			nbytes = fp->size - start;
+		}
+	}
+	Uint remaining_bytes = nbytes;
+	serial_printf( "going to read %d bytes\n\r", nbytes );
+
+	// The number of blocks that we need to skip before reading
+	Uint32 first_inode_block = start / block_size;
+
+	// The number of bytes into the first block that we need to skip
+	Uint32 block_offset = start % block_size;
+
+	for
+	(Uint32 inode_block_idx = first_inode_block;
+	inode_block_idx < EXT2_INODE_TOTAL_BLOCKS;
+	inode_block_idx++)
+	{
+		// TODO: Support indirect, dub. indirect, trip. indirect blocks
+		if( inode_block_idx >= EXT2_INODE_DIRECT_BLOCKS )
+		{
+			_kpanic( "ext2", "No support for indirect blocks",
+				FEATURE_UNIMPLEMENTED );
+		}
+
+		Uint32 block_number = fp->blocks[inode_block_idx];
+		const char *data = (const char*)
+			(block_offset + ((void*)
+			block_number_to_address( context, block_number )));
+
+		/* Keep printing out entries until we've reached the end. */
+		if( remaining_bytes < block_size )
+		{
+			_kmemcpy( buffer, data, remaining_bytes );
+
+			// We've reached the end of the file. Time to leave.
+			remaining_bytes = 0;
+			break;
+		} else {
+			serial_string(__FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) "\n\r");
+			char local_block_buffer[block_size+1-block_offset];
+			_kmemcpy( local_block_buffer, data, block_size-block_offset );
+			buffer += block_size;
+
+			// There's more to read
+			remaining_bytes -= block_size;
+			continue;
+		}
+
+		// Reset the block offset -- we only use it once!
+		block_offset = 0;
+	}
+
+	return nbytes-remaining_bytes;
+}
+
+struct ext2_directory_entry*
+get_file_from_dir_inode( struct ext2_filesystem_context *context,
+			struct ext2_inode *directory_ino,
+			const char *filename )
+{
+	Uint32 block_size = get_block_size( context->sb );
+
+	serial_string( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) "\n\r");
+	serial_string("get_file_from_dir_inode(");
+	serial_string(filename);
+	serial_string(")\n\r");
+
+	for(	Uint32 inode_block_idx = 0;
+		inode_block_idx < EXT2_INODE_TOTAL_BLOCKS;
+		inode_block_idx++)
+	{
+		if( inode_block_idx >= EXT2_INODE_DIRECT_BLOCKS )
+		{
+			_kpanic( "ext2", "I don't support extended blocks yet!", FEATURE_UNIMPLEMENTED );
+		}
+
+		Uint32 block_number = directory_ino->blocks[inode_block_idx];
+
+		struct ext2_directory_entry *dirent =
+			(struct ext2_directory_entry*)
+			block_number_to_address(context, block_number);
+		struct ext2_directory_entry *first_dirent = dirent;
+
+		/* Keep going until the inode number is zero */
+		while( dirent->inode_number )
+		{
+#if DEBUG_FILESYSTEM
+			serial_string( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__)
+				" trying file: ");
+			serial_string( dirent->filename );
+			serial_printf( " <%d>", dirent->inode_number );
+			serial_printf( ", with length: %d  ", dirent->name_length);
+			serial_printf( "strncmp(): %d\n\r", _kstrncmp( filename, dirent->filename, dirent->name_length ));
+#endif
+
+			// If this is the file we're looking for, we're done!
+			if( !_kstrncmp( filename, dirent->filename, dirent->name_length ) )
+			{
+				return dirent;
+			} else {
+				dirent = get_next_dirent( dirent );
+
+				if( dirent > (first_dirent + block_size) )
+				{
+					break; // To outer `for' loop
+				}
+			}
+		}
+
+		// If we've reached this point, we either ran out of file
+		// entires or just need to read the next block.
+		if( dirent->inode_number )
+		{
+			continue; // To next block
+		} else {
+			break;	// We've seen all of the file entries.
+		}
+	}
+
+	return 0;
+}
+
+struct ext2_directory_entry*
+get_file_from_dir_path( struct ext2_filesystem_context *context,
+			const char *dirpath,
+			const char *filename )
+{
+	serial_printf("get_file_from_dir_path( %s, %s )\n\r", dirpath, filename);
+
+	if( dirpath[0] == DIRECTORY_SEPARATOR )
+	{
+		dirpath++;
+
+		// Don't skip the first slash if we really want the root dir!
+		if( !(dirpath[0]) )
+		{
+			dirpath--;
+		}
+	}
+	const char *slash = _kstrchr( dirpath, DIRECTORY_SEPARATOR );
+	Uint dir_name_length = slash - dirpath;
+
+	// Mutable dirpath (+1 for null character)
+	char current_dir_name[_kstrlen(dirpath)+1];
+
+
+	struct ext2_inode *root_inode;
+	root_inode = get_inode(context, EXT2_INODE_ROOT );
+	struct ext2_inode *current_inode = root_inode;
+
+	struct ext2_directory_entry *current_dirent = 0;
+	do {
+		_kmemcpy( current_dir_name, dirpath, dir_name_length );
+		current_dir_name[dir_name_length] = '\0';
+		dirpath += dir_name_length+1;
+
+		current_dirent = get_file_from_dir_inode( context, current_inode, current_dir_name );
+
+		// We didn't find the file or directory we were looking for
+		if( current_dirent == 0 )
+		{
+			return 0;
+		}
+
+		dir_name_length = _kstrchr(dirpath, DIRECTORY_SEPARATOR) - dirpath;
+
+		serial_printf( "fetching new dir inode: %d\n\r",
+				 current_dirent->inode_number );
+		current_inode = get_inode(context, current_dirent->inode_number);
+	} while( *dirpath );
+
+	struct ext2_inode *dirent_inode;
+	dirent_inode = get_inode( context, current_dirent->inode_number );
+	return get_file_from_dir_inode( context, dirent_inode, filename );
+}
+
+ext2_read_status
+ext2_raw_read
+	(struct ext2_filesystem_context *context,
+	const char *path,
+	void *buffer,
+	Uint *bytes_read,
+	Uint start,
+	Uint nbytes)
+{
+	if( !bytes_read )
+	{
+		Uint throwaway = 0;
+		bytes_read = &throwaway;
+	}
+	*bytes_read = 0;
+
+	if( path[0] != DIRECTORY_SEPARATOR )
+	{
+		return EXT2_READ_NO_LEADING_SLASH;
+	}
+
+	// Split up the path into the filename and dirname components
+	Uint path_length = _kstrlen( path );
+	const char *filename = _kstrrchr( path, DIRECTORY_SEPARATOR ) + 1;
+
+	// Set up the directory name, keep the trailing slash, ignore filename.
+	char dirname[path_length+1];
+	_kmemcpy( dirname, path, path_length );
+	((char *)_kstrrchr( dirname, DIRECTORY_SEPARATOR ))[1] = '\0';
+
+	struct ext2_directory_entry* file =
+		get_file_from_dir_path( context, dirname, filename );
+
+	if( file )
+	{
+		*bytes_read = ext2_read_file_by_inode(context, file, buffer, start, nbytes);
+		return EXT2_READ_SUCCESS;
+	} else {
+		return EXT2_READ_FILE_NOT_FOUND;
 	}
 }

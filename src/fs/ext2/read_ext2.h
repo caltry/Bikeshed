@@ -4,6 +4,12 @@
 #include "types.h"
 #include "ext2.h"
 
+typedef enum {
+	EXT2_READ_SUCCESS = 0,
+	EXT2_READ_FILE_NOT_FOUND = 1,
+	EXT2_READ_NO_LEADING_SLASH = 2
+} ext2_read_status;
+
 struct ext2_superblock *get_superblock( Uint32 filesystem_start );
 
 /*
@@ -30,6 +36,36 @@ void print_superblock_data(struct ext2_superblock *sb);
  * Dump a bunch of debugging info to serial.
  */
 void ext2_debug_dump( void *virtual_address );
+
+
+/*****************
+ * File contents *
+ *****************/
+
+/*
+ * For this mounted filesystem _context_, read _nbytes_ from _path_,
+ * starting _start_ bytes into the file. Store the read data into the _buffer_.
+ * Records the number of _bytes_read_.
+ *
+ * Returns a status:
+ * 	EXT2_READ_SUCCESS if we successfully read >= 0 bytes.
+ * 	EXT2_READ_FILE_NOT_FOUND if we couldn't find the requested file.
+ * 	EXT2_READ_NO_LEADING_SLASH if the path doesn't include a fully
+ * 	                           qualified directory name (e.g. "/text.txt")
+ */
+ext2_read_status
+ext2_raw_read
+	(struct ext2_filesystem_context *context, 
+	const char *path,
+	void *buffer,
+	Uint *bytes_read,
+	Uint start,
+	Uint nbytes);
+
+
+/***************
+ * Directories *
+ ***************/
 
 /*
  * List the contents of the root directory.
