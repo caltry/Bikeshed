@@ -74,7 +74,7 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 Uint32 ext2_read_file_by_inode
 	(struct ext2_filesystem_context *context,
 	struct ext2_directory_entry *file,
-	char *buffer,
+	void *buffer,
 	Uint start,
 	Uint nbytes );
 
@@ -101,21 +101,23 @@ void ext2_debug_dump( void *virtual_address )
 	serial_string("== get_dir_ents_root ==\n\r");
 	print_dir_ents_root( &context );
 	serial_string("==\n\r");
-	serial_string("== Printing out a test file: test.txt <12> ==\n\r");
-	struct ext2_inode *root_ino = get_inode( &context, EXT2_INODE_ROOT );
-	struct ext2_directory_entry *test_file = get_file_from_dir_inode( &context, root_ino, "test.txt" );
-	test_file = get_file_from_dir_path( &context, "/etc/", "motd" );
-	if( !test_file )
+	serial_string("== Printing out the message of the day! ==\n\r");
+	char test_buffer[1112];
+	ext2_read_status read_error;
+	read_error = ext2_raw_read( &context, "/etc/motd", test_buffer, 0, 0, 100 );
+	if( read_error )
 	{
-		serial_string("File not found: /etc/motd\n\r");
+		serial_printf( "Unable to read \'/etc/motd\', error# %d\n\r",
+		               read_error );
 		return;
 	}
-	char test_buffer[1112];
-	Uint32 bytes_read;
-	bytes_read = ext2_read_file_by_inode( &context, test_file, test_buffer, 0, 100 );
-	serial_printf( "\n\r%d bytes read\n\r", bytes_read );
-	bytes_read = ext2_read_file_by_inode( &context, test_file, test_buffer + 100, 100, 1111-100);
-	serial_printf( "%d bytes read\n\r", bytes_read );
+	read_error = ext2_raw_read(&context, "/etc/motd", test_buffer+100, 0, 100,1111-100);
+	if( read_error )
+	{
+		serial_printf( "Unable to read \'/etc/motd\', error# %d\n\r",
+		               read_error );
+		return;
+	}
 	test_buffer[1111] = '\0';
 	serial_string( test_buffer );
 	serial_string("==\n\r");
@@ -389,7 +391,7 @@ Uint32
 ext2_read_file_by_inode
 	(struct ext2_filesystem_context *context,
 	struct ext2_directory_entry *file,
-	char *buffer,
+	void *buffer,
 	Uint start,
 	Uint nbytes )
 {
@@ -544,7 +546,7 @@ get_file_from_dir_path( struct ext2_filesystem_context *context,
 			dirpath--;
 		}
 	}
-	char *slash = _kstrchr( dirpath, DIRECTORY_SEPARATOR );
+	const char *slash = _kstrchr( dirpath, DIRECTORY_SEPARATOR );
 	Uint dir_name_length = slash - dirpath;
 
 	// Mutable dirpath (+1 for null character)
@@ -579,4 +581,46 @@ get_file_from_dir_path( struct ext2_filesystem_context *context,
 	struct ext2_inode *dirent_inode;
 	dirent_inode = get_inode( context, current_dirent->inode_number );
 	return get_file_from_dir_inode( context, dirent_inode, filename );
+}
+
+ext2_read_status
+ext2_raw_read
+	(struct ext2_filesystem_context *context,
+	const char *path,
+	void *buffer,
+	Uint *bytes_read,
+	Uint start,
+	Uint nbytes)
+{
+	if( !bytes_read )
+	{
+		Uint throwaway = 0;
+		bytes_read = &throwaway;
+	}
+	*bytes_read = 0;
+
+	if( path[0] != DIRECTORY_SEPARATOR )
+	{
+		return EXT2_READ_NO_LEADING_SLASH;
+	}
+
+	// Split up the path into the filename and dirname components
+	Uint path_length = _kstrlen( path );
+	const char *filename = _kstrrchr( path, DIRECTORY_SEPARATOR ) + 1;
+
+	// Set up the directory name, keep the trailing slash, ignore filename.
+	char dirname[path_length+1];
+	_kmemcpy( dirname, path, path_length );
+	((char *)_kstrrchr( dirname, DIRECTORY_SEPARATOR ))[1] = '\0';
+
+	struct ext2_directory_entry* file =
+		get_file_from_dir_path( context, dirname, filename );
+
+	if( file )
+	{
+		*bytes_read = ext2_read_file_by_inode(context, file, buffer, start, nbytes);
+		return EXT2_READ_SUCCESS;
+	} else {
+		return EXT2_READ_FILE_NOT_FOUND;
+	}
 }
