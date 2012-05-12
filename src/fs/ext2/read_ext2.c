@@ -66,14 +66,15 @@ get_inode( struct ext2_filesystem_context *context, Uint32 inode_number );
  * Find the inode number of a file, given the inode of the directory that it's
  * in.
  */
-Uint32
+struct ext2_directory_entry*
 get_file_from_dir_inode( struct ext2_filesystem_context *context,
 			struct ext2_inode *directory_ino,
 			const char *filename );
 
-void ext2_print_file_by_inode
+Uint32 ext2_print_file_by_inode
 	(struct ext2_filesystem_context *context,
-	Uint32 inode_num,
+	struct ext2_directory_entry *file,
+	Uint start,
 	Uint nbytes );
 
 void _fs_ext2_init()
@@ -96,8 +97,12 @@ void ext2_debug_dump( void *virtual_address )
 	serial_string("==\n\r");
 	serial_string("== Printing out a test file: test.txt <12> ==\n\r");
 	struct ext2_inode *root_ino = get_inode( &context, EXT2_INODE_ROOT );
-	Uint32 test_ino = get_file_from_dir_inode( &context, root_ino, "test.txt" );
-	ext2_print_file_by_inode( &context, test_ino, 1111 );
+	struct ext2_directory_entry *test_file = get_file_from_dir_inode( &context, root_ino, "test.txt" );
+	Uint32 bytes_read;
+	bytes_read = ext2_print_file_by_inode( &context, test_file, 0, 100 );
+	serial_printf( "\n\r%d bytes read\n\r", bytes_read );
+	bytes_read = ext2_print_file_by_inode( &context, test_file, 100, 1111);
+	serial_printf( "%d bytes read\n\r", bytes_read );
 	serial_string("==\n\r");
 }
 
@@ -362,18 +367,42 @@ void print_dir_ents_root( struct ext2_filesystem_context *context )
  *
  * For an ext2 _context_, read the file given by its _inode_num_ and print out
  * _nbytes_ of it.
+ *
+ * Returns the number of bytes read.
  */
-void
+Uint32
 ext2_print_file_by_inode
 	(struct ext2_filesystem_context *context,
-	Uint32 inode_num,
+	struct ext2_directory_entry *file,
+	Uint start,
 	Uint nbytes )
 {
+	Uint32 inode_num = file->inode_number;
 	struct ext2_inode *fp = get_inode( context, inode_num );
 	Uint32 block_size = get_block_size( context->sb );
 
+	// Avoid reading off of the end of a file.
+	if( fp->size < (nbytes+start) )
+	{
+		// Don't try to start reading past the end of the file!
+		if( start > fp->size )
+		{
+			nbytes = 0;
+		} else {
+			nbytes = fp->size - start;
+		}
+	}
+	Uint remaining_bytes = nbytes;
+	serial_printf( "going to read %d bytes\n\r", nbytes );
+
+	// The number of blocks that we need to skip before reading
+	Uint32 first_inode_block = start / block_size;
+
+	// The number of bytes into the first block that we need to skip
+	Uint32 block_offset = start % block_size;
+
 	for
-	(Uint32 inode_block_idx = 0;
+	(Uint32 inode_block_idx = first_inode_block;
 	inode_block_idx < EXT2_INODE_TOTAL_BLOCKS;
 	inode_block_idx++)
 	{
@@ -386,32 +415,40 @@ ext2_print_file_by_inode
 
 		Uint32 block_number = fp->blocks[inode_block_idx];
 		const char *data = (const char*)
-			block_number_to_address( context, block_number );
+			(block_offset + ((void*)
+			block_number_to_address( context, block_number )));
 
 		/* Keep printing out entries until we've reached the end. */
-		if( nbytes < block_size )
+		if( remaining_bytes < block_size )
 		{
 			char local_block_buffer[block_size];
-			_kmemcpy( local_block_buffer, data, nbytes );
-			local_block_buffer[nbytes] = '\0';
+			_kmemcpy( local_block_buffer, data, remaining_bytes );
+			local_block_buffer[remaining_bytes] = '\0';
 			serial_string( local_block_buffer );
 
 			// We've reached the end of the file. Time to leave.
+			remaining_bytes = 0;
 			break;
 		} else {
-			char local_block_buffer[block_size+1];
-			_kmemcpy( local_block_buffer, data, block_size );
+			serial_string(__FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) "\n\r");
+			char local_block_buffer[block_size+1-block_offset];
+			_kmemcpy( local_block_buffer, data, block_size-block_offset );
 			local_block_buffer[block_size] = '\0';
 			serial_string( local_block_buffer );
 
 			// There's more to read
-			nbytes -= block_size;
+			remaining_bytes -= block_size;
 			continue;
 		}
+
+		// Reset the block offset -- we only use it once!
+		block_offset = 0;
 	}
+
+	return nbytes-remaining_bytes;
 }
 
-Uint32
+struct ext2_directory_entry*
 get_file_from_dir_inode( struct ext2_filesystem_context *context,
 			struct ext2_inode *directory_ino,
 			const char *filename )
@@ -454,7 +491,7 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 			// If this is the file we're looking for, we're done!
 			if( !_kstrncmp( filename, dirent->filename, dirent->name_length ) )
 			{
-				return dirent->inode_number;
+				return dirent;
 			} else {
 				dirent = get_next_dirent( dirent );
 
