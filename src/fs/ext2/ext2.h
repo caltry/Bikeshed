@@ -38,6 +38,8 @@
 
 #define EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER 0x1
 
+#define DIRECTORY_SEPARATOR '/'
+
 /*
  * A hook for the kernel to call when enabling ext2.
  */

@@ -24,7 +24,7 @@ Near future
 + cat (not hardcoded)
 
 - read( path, start, bytes )
-	- by path
+	+ by path (need a wrapper function for get_file_from_dir_path)
 	* offset
 	* into a buffer
 	- syscall

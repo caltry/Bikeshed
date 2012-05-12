@@ -78,6 +78,11 @@ Uint32 ext2_read_file_by_inode
 	Uint start,
 	Uint nbytes );
 
+struct ext2_directory_entry*
+get_file_from_dir_path( struct ext2_filesystem_context *context,
+			const char *dirpath,
+			const char *filename );
+
 void _fs_ext2_init()
 {
 	ext2_debug_dump( (void*) RAMDISK_VIRT_LOCATION );
@@ -99,11 +104,17 @@ void ext2_debug_dump( void *virtual_address )
 	serial_string("== Printing out a test file: test.txt <12> ==\n\r");
 	struct ext2_inode *root_ino = get_inode( &context, EXT2_INODE_ROOT );
 	struct ext2_directory_entry *test_file = get_file_from_dir_inode( &context, root_ino, "test.txt" );
+	test_file = get_file_from_dir_path( &context, "/etc/", "motd" );
+	if( !test_file )
+	{
+		serial_string("File not found: /etc/motd\n\r");
+		return;
+	}
 	char test_buffer[1112];
 	Uint32 bytes_read;
 	bytes_read = ext2_read_file_by_inode( &context, test_file, test_buffer, 0, 100 );
 	serial_printf( "\n\r%d bytes read\n\r", bytes_read );
-	bytes_read = ext2_read_file_by_inode( &context, test_file, test_buffer + 100, 100, 1111);
+	bytes_read = ext2_read_file_by_inode( &context, test_file, test_buffer + 100, 100, 1111-100);
 	serial_printf( "%d bytes read\n\r", bytes_read );
 	test_buffer[1111] = '\0';
 	serial_string( test_buffer );
@@ -514,4 +525,58 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 	}
 
 	return 0;
+}
+
+struct ext2_directory_entry*
+get_file_from_dir_path( struct ext2_filesystem_context *context,
+			const char *dirpath,
+			const char *filename )
+{
+	serial_printf("get_file_from_dir_path( %s, %s )\n\r", dirpath, filename);
+
+	if( dirpath[0] == DIRECTORY_SEPARATOR )
+	{
+		dirpath++;
+
+		// Don't skip the first slash if we really want the root dir!
+		if( !(dirpath[0]) )
+		{
+			dirpath--;
+		}
+	}
+	char *slash = _kstrchr( dirpath, DIRECTORY_SEPARATOR );
+	Uint dir_name_length = slash - dirpath;
+
+	// Mutable dirpath (+1 for null character)
+	char current_dir_name[_kstrlen(dirpath)+1];
+
+
+	struct ext2_inode *root_inode;
+	root_inode = get_inode(context, EXT2_INODE_ROOT );
+	struct ext2_inode *current_inode = root_inode;
+
+	struct ext2_directory_entry *current_dirent = 0;
+	do {
+		_kmemcpy( current_dir_name, dirpath, dir_name_length );
+		current_dir_name[dir_name_length] = '\0';
+		dirpath += dir_name_length+1;
+
+		current_dirent = get_file_from_dir_inode( context, current_inode, current_dir_name );
+
+		// We didn't find the file or directory we were looking for
+		if( current_dirent == 0 )
+		{
+			return 0;
+		}
+
+		dir_name_length = _kstrchr(dirpath, DIRECTORY_SEPARATOR) - dirpath;
+
+		serial_printf( "fetching new dir inode: %d\n\r",
+				 current_dirent->inode_number );
+		current_inode = get_inode(context, current_dirent->inode_number);
+	} while( *dirpath );
+
+	struct ext2_inode *dirent_inode;
+	dirent_inode = get_inode( context, current_dirent->inode_number );
+	return get_file_from_dir_inode( context, dirent_inode, filename );
 }

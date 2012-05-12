@@ -1,2 +1,6 @@
 lcd ramdisk_staging
 write test.txt test.txt
+lcd etc
+mkdir etc
+cd etc
+write motd motd
