@@ -38,6 +38,13 @@
 
 #define EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER 0x1
 
+#define DIRECTORY_SEPARATOR '/'
+
+/*
+ * The location of the inital ramdisk for Bikeshed.
+ */
+extern struct ext2_filesystem_context *bikeshed_ramdisk_context;
+
 /*
  * A hook for the kernel to call when enabling ext2.
  */
@@ -306,6 +313,12 @@ typedef enum {
 	reserved	= 0x80000000
 } inode_flags;
 
+/*
+ * Reserved inodes
+ */
+#define EXT2_INODE_BAD  1	// Inode for bad blocks
+#define EXT2_INODE_ROOT 2	// The inode where '/' is located
+
 struct ext2_inode {
 	// File mode bitmasks
 	Uint16 mode;
@@ -424,8 +437,6 @@ struct ext2_filesystem_context {
 
 	// The base address of the filesystem
 	Uint32 base_address;
-
-	char mountpoint[];
 };
 
 #endif // _EXT2_H

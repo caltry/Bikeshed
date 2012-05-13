@@ -14,10 +14,20 @@ Near future
 - ls -R / (hardcoded)	=> (get_dir_ents_rec :: LinkedList dirent)
 - ls (not hardcoded)	=> (get_dir_ents :: [Char] -> LinkedList dirent)
 
-- Populated ext2 fs
+- Expose file length
 
-- cat test.txt (hardcoded)
-- cat (not hardcoded)
+* Populated ext2 fs
+
+- indirect, dub. indirect and trip. indirect blocks
+
+* cat test.txt (hardcoded)
++ cat (not hardcoded)
+
+- read( path, start, bytes )
+	+ by path (need a wrapper function for get_file_from_dir_path)
+	* offset
+	* into a buffer
+	- syscall
 
 - Something to translate from a locical locaton (byte 12345 into the file) to
   a block.

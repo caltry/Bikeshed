@@ -12,7 +12,10 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
+#include "klib.h"
+#include "c_io.h"
+#include "defs.h"
+#include "support.h"
 
 /*
 ** PUBLIC GLOBAL VARIABLES
@@ -67,7 +70,7 @@ void _kmemclr( void *buffer, Uint32 length ) {
 ** may not correctly deal with overlapping buffers
 */
 
-void _kmemcpy( void *destination, void *source, Uint32 length ) {
+void _kmemcpy( void *destination, const void *source, Uint32 length ) {
 	register unsigned char *dst = (unsigned char *)destination;
 	register unsigned char *src = (unsigned char *)source;
 	register Uint32 num = length;
