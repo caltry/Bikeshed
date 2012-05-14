@@ -357,7 +357,7 @@ typedef struct {
 							 modify another section in the file. Relocation offsets designate
 							 a storage unit within the second section */
 	Elf32_Word  r_info;
-	Elf32_Sword r_addend; /* This membver specifies a constant addend used to compute the
+	Elf32_Sword r_addend; /* This member specifies a constant addend used to compute the
 							 value to be stored into the relocatable field */
 } Elf32_Rela;
 

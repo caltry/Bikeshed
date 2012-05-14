@@ -161,7 +161,7 @@ void __pci_config_write_byte(Uint8 bus, Uint8 device, Uint8 function, Uint8 offs
 
 /* Search all the PCI devices found for a specific class or PCI device
  *
- * Returns NULL if no PCI device matching the class, sub_class and prog_if
+ * Returns NULL if no PCI device matching the class, sub_class and prog_if is found
  */
 const pci_config_t* __pci_find_by_class(Uint8 base_class, Uint8 sub_class, Uint8 prog_if);
 
