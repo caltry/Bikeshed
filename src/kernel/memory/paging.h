@@ -16,11 +16,11 @@ typedef struct Page
 */
 #define PAGE_SIZE 4096
 
-#define PRESENT 	0x1
-#define READ_WRITE 	0x2
-#define USER 		0x4
-#define WRITE_THRU	0x8
-#define CACHE_DISABLE 0x10
+#define PG_PRESENT 		 0x1
+#define PG_READ_WRITE 	 0x2
+#define PG_USER 		 0x4
+#define PG_WRITE_THRU	 0x8
+#define PG_CACHE_DISABLE 0x10
 
 struct Page;
 typedef struct Page page_t;
