@@ -293,7 +293,7 @@ Uint32 __pci_get_memory_size(pci_config_t* config)
 					serial_printf("Orig 0x%x: %x\n", offset, orig);
 					serial_printf("Memory size required: 0x%x\n", size);
 					/* We need to mark these addresses as used, and identity map them! */
-					void* start_addr = (orig & 0xFFFFF000);
+					void* start_addr = (void *)(orig & 0xFFFFF000);
 					// Skip addresses that are 0x0 or below 1MiB which is already identity mapped
 					if (start_addr != (void *)0x0 && start_addr > (void *)0x100000)
 					{
@@ -301,7 +301,7 @@ Uint32 __pci_get_memory_size(pci_config_t* config)
 						for (; start_addr < end_addr; start_addr += PAGE_SIZE)
 						{
 							__phys_set_bit(start_addr);
-							__virt_map_page(start_addr, start_addr, READ_WRITE);
+							__virt_map_page(start_addr, start_addr, PG_READ_WRITE);
 						}
 					}
 				}

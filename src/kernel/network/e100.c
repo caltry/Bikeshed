@@ -187,7 +187,7 @@ clear_interrupt(Uint16 flags)
 }
 
 static inline Uint16 
-read_scb_status()
+read_scb_status(void)
 {
 	return base_address_16[SCB_STATUS_WORD];
 }
@@ -198,7 +198,7 @@ write_scb_command(Uint16 value)
 	base_address_16[SCB_COMMAND_WORD] = value;
 }
 
-static void reset_e100()
+static void reset_e100(void)
 {
 	// Get the base memory address
 	base_address_8  = (Uint8  *)pci_e100->type_0.bar_address[0];
@@ -211,7 +211,7 @@ static void reset_e100()
 
 	
 	
-	__install_isr(config->type_0.interrupt_pin, __isr_nic_card);		
+	__install_isr(pci_e100->type_0.interrupt_pin, __isr_nic_card);		
 }
 
 void __net_init(void)
@@ -231,5 +231,5 @@ void __net_init(void)
 		serial_printf("Bar #%d Requires 0x%x bytes\n", i, pci_e100->type_0.bar_sizes[i]);
 	}
 	
-	reset_e100(pci_e100);
+	reset_e100();
 }

@@ -1,11 +1,14 @@
 #include "elf.h"
 #include "defs.h"
+#include "fs/ext2/ext2.h"
 #include "fs/ext2/read_ext2.h"
 #include "memory/kmalloc.h"
 #include "memory/physical.h"
 #include "memory/paging.h"
 #include "lib/klib.h"
-//#include "pcbs.h"
+#include "boot/bootstrap.h"
+#include "syscalls.h"
+#include "pcbs.h"
 
 
 Status _elf_load_from_file(Pcb* pcb, const char* file_name)
@@ -18,20 +21,20 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	// Try to open the file
 	Elf32_Ehdr* elf32_hdr = (Elf32_Ehdr *)__kmalloc(sizeof(Elf32_Ehdr));
 
-	Uint8 bytes_read = 0;
+	Uint bytes_read = 0;
 	ext2_read_status ext2_status =
-		ext2_raw_read(file_name, elf32_hdr, &bytes_read, 0, sizeof(Elf32_Ehdr));
+		ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)elf32_hdr, &bytes_read, 0, sizeof(Elf32_Ehdr));
 
 	if (ext2_status != EXT2_READ_SUCCESS /* Couldn't read the file */
 		   || bytes_read < sizeof(Elf32_Ehdr) /* Clearly not an ELF file */
-		   || elf32_hdr.e_magic != ELF_MAGIC_NUM /* Need the magic number! */
-		   || elf32_hdr.e_type != ET_EXEC /* Don't support relocatable or dynamic files yet */
-		   || elf32_hdr.e_machine != EM_386 /* Make sure it's for our architecture */
-		   || elf32_hdr.e_entry != 0x0 /* Need an entry point */
-		   || elf32_hdr.e_version != EV_CURRENT /* We don't support extensions right now */
-		   || elf32_hdr.e_phoff == 0 /* If there are no program headers, what do we load? */
-		   || elf32_hdr.e_phnum == 0) /* ... */
-		// || elf32_hdr.e_ehsize != sizeof(Elf32_Ehdr)) /* The header size should match our struct */
+		   || elf32_hdr->e_magic != ELF_MAGIC_NUM /* Need the magic number! */
+		   || elf32_hdr->e_type != ET_EXEC /* Don't support relocatable or dynamic files yet */
+		   || elf32_hdr->e_machine != EM_386 /* Make sure it's for our architecture */
+		   || elf32_hdr->e_entry != 0x0 /* Need an entry point */
+		   || elf32_hdr->e_version != EV_CURRENT /* We don't support extensions right now */
+		   || elf32_hdr->e_phoff == 0 /* If there are no program headers, what do we load? */
+		   || elf32_hdr->e_phnum == 0) /* ... */
+		// || elf32_hdr->e_ehsize != sizeof(Elf32_Ehdr)) /* The header size should match our struct */
 	{
 		// Problem opening the file
 		__kfree(elf32_hdr);
@@ -48,8 +51,8 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	Uint32 pheader_tbl_size = sizeof(Elf32_Phdr) * elf32_hdr->e_phnum;
 	Elf32_Phdr* pheaders = (Elf32_Phdr *)__kmalloc(pheader_tbl_size);
 
-	ext2_status =
-		ext2_raw_read(file_name, pheaders, &bytes_read, elf32_hdr->e_phoff, pheader_tbl_size);
+	ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)pheaders, 
+			&bytes_read, elf32_hdr->e_phoff, pheader_tbl_size);
 
 	if (ext2_status != EXT2_READ_SUCCESS
 			|| bytes_read < pheader_tbl_size)
@@ -78,7 +81,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 			void* end_address   = (void *)(start_address + cur_phdr->p_memsz);
 			for (; start_address < end_address; start_address += PAGE_SIZE)
 			{
-				__virt_map_page(__phys_get_free_4k(), start_address, READ_WRITE | USER)	
+				__virt_map_page(__phys_get_free_4k(), start_address, PG_READ_WRITE | PG_USER);
 			}
 
 			// Lets zero it out, we only need to zero the remaining bytes, p_filesz
@@ -89,8 +92,8 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 			// Now we have to read it in from the file
 			if (cur_phdr->p_filesz > 0)
 			{
-				ext2_status = ext2_raw_read(file_name, cur_phdr->p_vaddr, &bytes_read, 
-						cur_phdr->p_offset, cur_phdr->filesz);
+				ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)cur_phdr->p_vaddr, 
+						&bytes_read, cur_phdr->p_offset, cur_phdr->p_filesz);
 			}
 		}
 	}
@@ -99,6 +102,11 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	
 
 	// Setup the PCB information
+	// TODO do we need to do this? or will that be done by fork?
+	//
+	// How it should work at system boot:
+	//
+	// Kernel calls fork() 
 	pcb->stack = 0;// TODO Allocate a stack
 	pcb->page_directory = 0; // TODO assign the new page directory
 	pcb->pid = 0;
@@ -113,7 +121,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	pcb->context->fs = GDT_DATA;
 	pcb->context->gs = GDT_DATA;
 
-	pcb->context->eflags = DEFAULT_EFLAGS;
+	pcb->context->eflags = DEFAULT_EFLAGS; // We want to come back in RING 3!
 
 	__kfree(pheaders);
 	__kfree(elf32_hdr);

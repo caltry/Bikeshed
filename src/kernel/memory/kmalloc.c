@@ -43,7 +43,7 @@ void __kmem_init_kmalloc()
 	void* start_address = kernel_heap.start_address;
 	for (Uint32 i = 0; i < HEAP_INITIAL_PAGES; ++i)
 	{
-		__virt_map_page(__phys_get_free_4k(), start_address, READ_WRITE | PRESENT);
+		__virt_map_page(__phys_get_free_4k(), start_address, PG_READ_WRITE | PG_PRESENT);
 		start_address += PAGE_SIZE;
 	}
 
@@ -128,7 +128,7 @@ void* __kmalloc(Uint32 size)
 
 			serial_string("Alloc page\n");
 			// Allocate a page to the end of the heap
-			__virt_map_page(__phys_get_free_4k(), kernel_heap.end_address, READ_WRITE | PRESENT);
+			__virt_map_page(__phys_get_free_4k(), kernel_heap.end_address, PG_READ_WRITE | PG_PRESENT);
 			kernel_heap.end_address += PAGE_SIZE;
 		}
 
