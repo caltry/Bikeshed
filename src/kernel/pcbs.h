@@ -10,8 +10,8 @@
 ** Description:	PCB module definitions
 */
 
-#ifndef _PCBS_H
-#define _PCBS_H
+#ifndef __PCBS_H__
+#define __PCBS_H__
 
 #include "headers.h"
 #include "memory/paging.h"

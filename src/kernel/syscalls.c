@@ -20,6 +20,7 @@
 #include "sio.h"
 #include "syscalls.h"
 #include "system.h"
+#include "elf/elf.h"
 
 #include "startup.h"
 
@@ -538,7 +539,8 @@ static void _sys_exec( Pcb *pcb ) {
 
 	// invoke the common code for process creation
 
-	status = _create_process( pcb, ARG(pcb)[1] );
+	//status = _create_process( pcb, ARG(pcb)[1] );
+	status = _elf_load_from_file( pcb, (const char *)ARG(pcb)[1] );
 
 	// we only need to assign this if the creation failed
 	// for some reason - otherwise, this process never

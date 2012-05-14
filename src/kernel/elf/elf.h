@@ -2,10 +2,13 @@
  * to load programs into memory
  */
 
-#ifndef __ELF_H__
-#define __ELF_H__
+#ifndef __ELF_KLOADER_H__
+#define __ELF_KLOADER_H__
 
 #include "types.h"
+
+struct pcb;
+typedef struct pcb Pcb;
 
 /* These data structures and types were taken from the ELF specification */
 
@@ -350,9 +353,93 @@ typedef struct {
 #define ELF32_R_INFO(s,t) (((s) << 8) + (Uint8)(t))
 
 typedef struct {
-	Elf32_Addr  r_offset;
+	Elf32_Addr  r_offset; /* Section offset. The relocation section itself describes how to 
+							 modify another section in the file. Relocation offsets designate
+							 a storage unit within the second section */
 	Elf32_Word  r_info;
-	Elf32_Sword r_addend;
+	Elf32_Sword r_addend; /* This membver specifies a constant addend used to compute the
+							 value to be stored into the relocatable field */
 } Elf32_Rela;
+
+/* ELF program header */
+typedef struct {
+	Elf32_Word p_type; /* Tells what kind of segment this array element describes or how
+						  to interpret the array of elements */
+	Elf32_Off  p_offset; /* The offset from the beginning of the file at which the first
+							byte of the segment resides */
+	Elf32_Addr p_vaddr; /* The virtual address at which the first byte of the segment resides
+						   in memory */
+	Elf32_Addr p_paddr; /* Segments physical address, ignored */
+	Elf32_Word p_filesz; /* The number of bytes in the file image of the segment, may be zero */
+	Elf32_Word p_memsz; /* The number of bytes in the memory image of the segment, may be zero */
+	Elf32_Word p_flags; /* Flags relevant to the segment */
+	Elf32_Word p_align; /* 0 and 1 mean no alignment required. p_align should be positive, integral
+						   power of 2, and p_vaddr should equal p_offset % p_align */
+} Elf32_Phdr;
+/****/
+
+/* ELF program types */
+#define PT_NULL 0 /* Array element is unused */
+#define PT_LOAD 1 /* Specifies a loadable segment. described by p_filesz and p_memsz. The bytes
+					 from the file are mapped to the beginning of the memory segment. If the
+					 segments memory size (p_memsz) is larger than the file size (p_filesz) the
+					 "extra" bytes are defined to hold the value 0 and to follow the segment's
+					 initialized area. The file size my not be larger than the memory size. Loadable
+					 segment entries in the program header table appear in ascending order, sorted
+					 on the p_vaddr member */
+#define PT_DYNAMIC 2 /* Dynamic linking information */
+#define PT_INTERP 3 /* The location and size of a null terminated path name to invoke as an interpreter.
+					   This segment type is meaningful only for executable files. It may not occur more
+					   than once in a file. If it is present it must precede any loadable segment entry */
+#define PT_NOTE 4 /* Auxilary information */
+#define PT_SHLIB 5 /* Is reserved but has unspecified semantics. Programs with this do not conform to
+					  the ABI */
+#define PT_PHDR 6 /* Specifies the location and size of the program header table itself, both in the file
+					 and in the memory image of the program. This segment type may not occur more than once
+					 in a file. Moreover it may occur only if the program header table is part of the 
+					 memory image of the program. If it is present, it must precede any loadable segment
+					 entry */
+#define PT_LOPROC 0x70000000 /* LOPROC - HIPROC (inclusive) is reserved for processor specific semantics */
+#define PT_HIPROC 0x7fffffff
+/****/
+
+/* Determining the base address 
+ * 
+ * To compute the base address, one determines the memory address associated with the lowest p_vaddr value
+ * for a PT_LOAD segment. One then obtains the base address by truncating the memory address to the nearest
+ * multiple of the maxiumum page size. Depending on the type of file being loaded into memory, the memory
+ * address might or might not match the p_vaddr values.
+ *
+ * The .bss section has the type SHT_NOBITS. Although it occupies no space in the file, it contributes to
+ * the segment's memory image. Normally these uninitialized data reside at the end of the segment, making
+ * p_memsz larger than p_filesz in the associated program header element
+ */
+
+
+/* Program loading
+ *
+ *                             ELF File         Virtual Address
+ *                      .---------------------.
+ *                    0 |     ELF Header      |
+ *                      |---------------------|
+ * Program header table |                     |
+ *                      |---------------------|
+ *                      |  Other information  |
+ *                      |---------------------|
+ *                0x100 |    Text segment     | 0x8048100
+ *                      |        ...          |
+ *                      |    0x2be00 bytes    | 0x8073eff
+ *                      |---------------------|
+ *              0x2bf00 |    Data Segment     | 0x8074f00
+ *                      |        ...          |
+ *                      |    0x4e00 bytes     | 0x8079cff
+ *                      |---------------------|
+ *              0x30d00 |  Ohter information  |
+ *                      |        ....         |
+ *                      '---------------------'
+ *
+ */
+
+Status _elf_load_from_file(Pcb* pcb, const char* file_name);
 
 #endif

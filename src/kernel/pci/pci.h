@@ -27,12 +27,9 @@
 
 typedef struct PCIHeaderType0
 {
-	Uint32 bar_address_0;
-	Uint32 bar_address_1;
-	Uint32 bar_address_2;
-	Uint32 bar_address_3;
-	Uint32 bar_address_4;
-	Uint32 bar_address_5;
+	Uint32 bar_address[6];
+
+	Uint32 bar_sizes[6];
 
 	Uint32 cardbus_cis_pointer;
 	Uint16 subsystem_vendor_id;
@@ -163,8 +160,20 @@ void __pci_config_write_short(Uint8 bus, Uint8 device, Uint8 function, Uint8 off
 void __pci_config_write_byte(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset, Uint8 val);
 
 /* Search all the PCI devices found for a specific class or PCI device
+ *
+ * Returns NULL if no PCI device matching the class, sub_class and prog_if
  */
-pci_config_t* __pci_find_by_class(Uint8 base_class, Uint8 sub_class, Uint8 prog_if);
+const pci_config_t* __pci_find_by_class(Uint8 base_class, Uint8 sub_class, Uint8 prog_if);
+
+/* Search for a PCI device by its vendor and class 
+ *
+ * Returns NULL if there is no device matching that vendor and device id on the
+ * PCI bus
+ */
+const pci_config_t* __pci_find_by_device(Uint16 vendor_id, Uint16 device_id);
+
+/* Find out how much memory a PCI device requires
+ */
 Uint32 __pci_get_memory_size(pci_config_t* config);
 
 /* Scans all PCI devices on all buses

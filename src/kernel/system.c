@@ -27,7 +27,7 @@
 #include "memory/physical.h"
 #include "memory/paging.h"
 #include "memory/kmalloc.h"
-#include "network/e1000.h"
+#include "network/e100.h"
 #include "pci/pci.h"
 #include "serial.h"
 #include "fs/ext2/ext2.h"
@@ -202,7 +202,7 @@ Status _create_process( Pcb *pcb, Uint32 entry ) {
 
 void _init( void ) {
 	Pcb *pcb;
-	Status status;
+	//Status status;
 
 	/*
 	** BOILERPLATE CODE - taken from basic framework
@@ -301,6 +301,12 @@ void _init( void ) {
 		_kpanic( "_init", "first stack alloc failed\n", FAILURE );
 	}
 
+	/* HALT here, processes exec is currently broken */
+	while (1) {
+		asm volatile("cli");
+		asm volatile("hlt");
+	}
+
 	/*
 	** Next, set up various PCB fields
 	*/
@@ -313,10 +319,10 @@ void _init( void ) {
 	** Set up the initial process context.
 	*/
 
-	status = _create_process( pcb, (Uint32) init );
+	/*status = _create_process( pcb, (Uint32) init );
 	if( status != SUCCESS ) {
 		_kpanic( "_init", "create init process status %s\n", status );
-	}
+	}*/
 
 	/*
 	** Make it the first process

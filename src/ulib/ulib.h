@@ -213,14 +213,14 @@ Status set_time(Time time);
 /*
 ** exec - replace a process with a different program
 **
-** usage:	status = exec(entry);
+** usage:	status = exec("/path/to/program");
 **
 ** returns:
 **	does not return (if the attempt succeeds)
 **      failure status of the replacement attempt (if the attempt fails)
 */
 
-Status exec(void (*entry)(void));
+Status exec(const char* program_path);
 
 /*
 ** bogus - a bogus system call, for testing our syscall ISR
@@ -245,19 +245,19 @@ void prt_status( char *msg, Status stat );
 ** spawn - create a new process running a different program
 **		at standard priority
 **
-** usage:  status = spawn( &pid, entry );
+** usage:  status = spawn( &pid, "/path/to/program" );
 */
 
-Status spawn( Pid *pid, void (*entry)(void) );
+Status spawn( Pid *pid, const char* program_path );
 
 /*
 ** spawnp - create a new process running a different program at
 **		a specific process priority
 **
-** usage:  status = spawnp( &pid, prio, entry );
+** usage:  status = spawnp( &pid, prio, "/path/to/program" );
 */
 
-Status spawnp( Pid *pid, Prio prio, void (*entry)(void) );
+Status spawnp( Pid *pid, Prio prio, const char* program_path );
 
 
 /*
