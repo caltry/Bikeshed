@@ -1,6 +1,6 @@
 include ../../defs.mk
 
-CFLAGS += -I../../include -I../../ulib -I../../kernel/lib -I.. -I../../kernel/bios
+CFLAGS += -I../../include -I../../ulib -I../../kernel/lib -I.. -I../../kernel/bios -I../../applications
 
 OBJ_FILES := vesa.o video.o graphics.o
 

@@ -59,8 +59,6 @@ void gconsole_draw(unsigned int x, unsigned int y);
 
 void gconsole_flush(void);
 
-void gconsole_run(void);
-
 /*****************************************************************************
 **
 ** SCROLLING OUTPUT ROUTINES

@@ -21,6 +21,9 @@
 
 typedef struct screen {
 	Uint16 *frame_buffer;
+	Uint16 *back_buffer;
+	Sem buffer_lock;
+
 	Uint16 width;
 	Uint16 height;
 	Uint16 bpp;
@@ -39,5 +42,10 @@ Screen *kScreen;
 */
 
 Status _video_init(void);
+
+Uint16 *_video_aquire_buffer(Screen *screen);
+void _video_release_buffer(Screen *screen);
+
+void _video_run(void);
 
 #endif

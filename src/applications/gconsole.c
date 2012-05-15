@@ -524,28 +524,15 @@ void gconsole_init( void ){
 	cursor_x = min_x;
 
 	dirty = 0;
-	repaint_sem = _sem_new();
+	//sem_init(&repaint_sem);
+	//sem_post(repaint_sem);
 }
 
 
 void gconsole_flush(void) {
-	_sem_wait(repaint_sem, _current);
-	dirty = 1;
-	_sem_post(repaint_sem);
-}
-
-
-void gconsole_run(void) {
-	while( 1 ) {
-		_sem_wait(repaint_sem, _current);
-		if (dirty) {
-			gconsole_draw(16, 16);
-			dirty = 0;
-		}
-		_sem_post(repaint_sem);
-
-		msleep(10);
-	}
+	//sem_wait(repaint_sem);
+	//dirty = 1;
+	//sem_post(repaint_sem);
 }
 
 
@@ -563,6 +550,10 @@ void gconsole_draw(unsigned int x, unsigned int y) {
 			end += SCREEN_MAX_X;
 			y += 16;
 		}
+
+		//sem_wait(repaint_sem);
+		//dirty = 0;
+		//sem_post(repaint_sem);
 	}
 }
 

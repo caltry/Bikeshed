@@ -286,12 +286,7 @@ void _init( void ) {
 	*/
 
 	_bios_init();
-
-
-	/*
-	** Start up the system graphics module
-	*/
-	_video_init();
+	
 
 	/*
 	** Create the initial process

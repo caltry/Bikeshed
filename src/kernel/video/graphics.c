@@ -47,7 +47,7 @@
 
 
 void fill_rect(Screen *screen, Uint32 x, Uint32 y, Uint32 width, Uint32 height, Uint32 color) {
-	Uint8 *start = (Uint8 *)(screen->frame_buffer) + (y * screen->pitch) + (x * 3);
+	Uint8 *start = (Uint8 *)_video_aquire_buffer(screen) + (y * screen->pitch) + (x * 3);
 
 	Uint8 r = (Uint8)((color & 0xff0000) >> 16);
 	Uint8 g = (Uint8)((color & 0x00ff00) >> 8);
@@ -65,6 +65,8 @@ void fill_rect(Screen *screen, Uint32 x, Uint32 y, Uint32 width, Uint32 height, 
 
 		start = (Uint8 *)((Uint32)start + screen->pitch);
 	}
+
+	_video_release_buffer(screen);
 }
 
 
@@ -74,7 +76,7 @@ void fill_rect(Screen *screen, Uint32 x, Uint32 y, Uint32 width, Uint32 height, 
 
 
 void clear_screen(Screen *screen, Uint32 color) {
-	Uint8 *dest = (Uint8 *)(screen->frame_buffer);
+	Uint8 *dest = (Uint8 *)_video_aquire_buffer(screen);
 	Uint32 num = screen->size;
 
 	Uint8 r = (Uint8)((color & 0xff0000) >> 16);
@@ -88,11 +90,13 @@ void clear_screen(Screen *screen, Uint32 color) {
 
 		dest += 3;
 	}
+
+	_video_release_buffer(screen);
 }
 
 
 void draw_char(Screen *screen, char letter, int x, int y, int scale, Uint32 color) {
-	Uint8 *dest = (Uint8 *)(screen->frame_buffer) + (y * screen->pitch) + (x * 3);
+	Uint8 *dest = (Uint8 *)_video_aquire_buffer(screen) + (y * screen->pitch) + (x * 3);
 
 	// Only uppercase letters for now
 	if ((letter < 32) || (letter > 126)) return;
@@ -119,6 +123,8 @@ void draw_char(Screen *screen, char letter, int x, int y, int scale, Uint32 colo
 			dest = (Uint8 *)((Uint32)dest + screen->pitch - (scale * 3 * 5));
 		}
 	}
+
+	_video_release_buffer(screen);
 }
 
 
@@ -142,9 +148,11 @@ void draw_chars(Screen *screen, char *start, char *end, int x, int y, int scale,
 
 
 void set_pixel(Screen *screen, Uint32 x, Uint32 y, Uint32 color) {
-	Uint8 *dest = (Uint8 *)(screen->frame_buffer);
+	Uint8 *dest = (Uint8 *)_video_aquire_buffer(screen);
 
 	dest[0] = (Uint8)(color & 0x0000ff);
 	dest[1] = (Uint8)((color & 0x00ff00) >> 8);
 	dest[2] = (Uint8)((color & 0xff0000) >> 16);
+
+	_video_release_buffer(screen);
 }

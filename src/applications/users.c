@@ -956,16 +956,14 @@ void init( void ) {
 	// we'll start the first three "manually"
 	// by doing fork() and exec() ourselves
 
-	// Create a process to update the graphic display
-	if (kScreen != NULL) {
-		status = fork( &pid );
-		if( status != SUCCESS ) {
-			prt_status( "init: can't fork() video, status %s\n", status );
-		} else if( pid == 0 ) {
-			status = exec( gconsole_run );
-			prt_status( "init: can't exec() video, status %s\n", status );
-			exit();
-		}
+	// Create a process to update the video display
+	status = fork( &pid );
+	if( status != SUCCESS ) {
+		prt_status( "init: can't fork() _video_run, status %s\n", status );
+	} else if( pid == 0 ) {
+		status = exec( _video_run );
+		prt_status( "init: can't exec() _video_run, status %s\n", status );
+		exit();
 	}
 
 #ifdef SPAWN_A
