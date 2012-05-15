@@ -58,11 +58,11 @@ Status _lock_destroy( Lock lock );
 Status _lock_lock( Lock lock, LockMode mode, Pcb *pcb );
 
 /*
-** _lock_unlock( Lock, LockMode, Pcb* )
+** _lock_unlock( Lock, LockMode )
 ** 
 ** Unlocks a lock with the given mode
 */
-Status _lock_unlock( Lock lock, LockMode mode, Pcb *pcb );
+Status _lock_unlock( Lock lock, LockMode mode );
 
 #endif
 

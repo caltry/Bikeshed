@@ -617,7 +617,7 @@ static void _sys_lock_lock( Pcb *pcb ) {
 ** _sys_lock_unlock - Unlocks a lock
 */
 static void _sys_lock_unlock( Pcb *pcb ) {
-	RET(pcb) = _lock_unlock( (Lock) ARG(pcb)[1], (LockMode) ARG(pcb)[2], pcb );
+	RET(pcb) = _lock_unlock( (Lock) ARG(pcb)[1], (LockMode) ARG(pcb)[2] );
 }
 
 
