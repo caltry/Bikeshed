@@ -12,7 +12,11 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
+#include "types.h"
+#include "c_io.h"
+#include "support.h"
+#include "lib/klib.h"
+#include "system.h"
 
 #include <x86arch.h>
 #include "startup.h"

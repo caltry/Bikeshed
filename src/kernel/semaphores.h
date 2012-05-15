@@ -11,7 +11,7 @@
 #ifndef _SEMAPHORES_H
 #define _SEMAPHORES_H
 
-#include "headers.h"
+#include "types.h"
 
 /*
 ** General (C and/or assembly) definitions

@@ -12,7 +12,7 @@
 
 #define	__ASM__20113__
 
-#include "syscalls.h"
+#include "../kernel/syscalls.h"
 
 /*
 ** System call stubs

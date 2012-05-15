@@ -1,4 +1,5 @@
 #include "pci.h"
+#include "defs.h"
 #include "serial.h"
 #include "../../boot/startup.h"
 #include "memory/kmalloc.h"

@@ -1,5 +1,7 @@
 #include "dma.h"
 
+#include "defs.h"
+
 typedef struct Stack_Node
 {
 	struct Stack_Node* next;

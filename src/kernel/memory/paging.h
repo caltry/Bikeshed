@@ -1,7 +1,7 @@
 #ifndef __PAGING_H__
 #define __PAGING_H__
 
-#include "headers.h"
+#include "types.h"
 /*
 typedef struct Page
 {

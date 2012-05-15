@@ -10,6 +10,7 @@
 #include "syscalls.h"
 #include "pcbs.h"
 
+extern void exit(void);
 
 Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 {

@@ -1,7 +1,7 @@
 #ifndef __E1000_H__
 #define __E1000_H__
 
-#include "headers.h"
+#include "types.h"
 
 #define E100_VENDOR 0x8086
 //#define E100_DEVICE 0x1229

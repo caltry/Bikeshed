@@ -12,7 +12,8 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
+#include "defs.h"
+#include "types.h"
 
 #include "system.h"
 #include "clock.h"
@@ -22,6 +23,9 @@
 #include "sio.h"
 #include "scheduler.h"
 #include "semaphores.h"
+#include "c_io.h"
+#include "lib/klib.h"
+#include "support.h"
 
 #include "bootstrap.h"
 #include "memory/physical.h"
@@ -40,7 +44,7 @@
 #include "users.h"
 
 // need the exit() prototype
-#include "ulib.h"
+//#include "ulib.h"
 
 #include "bios.h"
 

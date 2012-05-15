@@ -1,5 +1,6 @@
 #include "linkedlist.h"
-#include "../memory/kmalloc.h"
+#include "defs.h"
+#include "memory/kmalloc.h"
 
 void list_init(linked_list_t* list, void (*destroy)(void *data))
 {

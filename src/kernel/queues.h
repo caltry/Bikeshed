@@ -13,7 +13,7 @@
 #ifndef _QUEUES_H
 #define _QUEUES_H
 
-#include "headers.h"
+#include "types.h"
 
 /*
 ** General (C and/or assembly) definitions

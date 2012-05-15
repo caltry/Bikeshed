@@ -1,7 +1,7 @@
 #ifndef __HASH_TABLE_H__
 #define __HASH_TABLE_H__
 
-#include "headers.h"
+#include "types.h"
 
 #include "linkedlist.h"
 

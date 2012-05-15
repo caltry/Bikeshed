@@ -1,12 +1,14 @@
+#include "defs.h"
+
 #include "kmalloc.h"
-
-#include "../serial.h"
-
-#include "../../ulib/c_io.h"
-#include "../lib/klib.h"
-
 #include "paging.h"
 #include "physical.h"
+
+#include "serial.h"
+
+#include "c_io.h"
+#include "lib/klib.h"
+
 
 #define serial_string(...) 
 #define serial_printf(...)

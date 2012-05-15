@@ -13,7 +13,7 @@
 #ifndef __PCBS_H__
 #define __PCBS_H__
 
-#include "headers.h"
+#include "types.h"
 #include "memory/paging.h"
 
 /*

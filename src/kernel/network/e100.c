@@ -1,7 +1,9 @@
 #include "e100.h"
+#include "defs.h"
 #include "pci/pci.h"
 #include "lib/klib.h"
 #include "serial.h"
+#include "support.h"
 
 /* The PCI configuration space for the e100 series of network controllers
  * looks like the following:

@@ -9,7 +9,7 @@
 #ifndef _BIOS_H
 #define _BIOS_H
 
-#include "headers.h"
+#include "types.h"
 
 /*
 ** General (C and/or assembly) definitions

@@ -13,9 +13,9 @@
 #define	__KERNEL__20113__
 
 #include "klib.h"
-#include "c_io.h"
-#include "defs.h"
-#include "support.h"
+#include "kernel/c_io.h"
+#include "include/defs.h"
+#include "kernel/support.h"
 
 /*
 ** PUBLIC GLOBAL VARIABLES

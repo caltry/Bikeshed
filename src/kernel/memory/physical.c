@@ -1,8 +1,9 @@
 #include "physical.h"
+#include "paging.h"
 #include "serial.h"
 
-#include "../../boot/bootstrap.h"
-#include "../lib/klib.h"
+#include "boot/bootstrap.h"
+#include "lib/klib.h"
 
 #include "c_io.h"
 

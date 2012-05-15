@@ -1,8 +1,11 @@
+#include "defs.h"
 #include "paging.h"
 #include "physical.h"
 #include "serial.h"
 #include "x86arch.h"
 #include "scheduler.h"
+#include "support.h"
+#include "c_io.h"
 
 //#include "../lib/klib.h"
 #include "lib/klib.h"
@@ -127,8 +130,6 @@ void __virt_initialize_paging()
 	__virt_switch_page_directory(__virt_kpage_directory);
 
 	serial_string("4KB page tables enabled\n");
-
-	c_puts("Paging Enabled\n");
 }
 
 void* __virt_get_phys_addr(void *virtual_addr)

@@ -12,7 +12,9 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
+#include "defs.h"
+#include "lib/klib.h"
+#include "serial.h"
 
 #include "queues.h"
 #include "pcbs.h"
@@ -125,6 +127,5 @@ void _pcb_init( void ) {
 
 	// report that we have finished
 
-	c_puts( " pcbs" );
-
+	serial_printf( " pcbs" );
 }

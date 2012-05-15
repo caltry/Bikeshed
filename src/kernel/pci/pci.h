@@ -1,7 +1,7 @@
 #ifndef __PCI_H__
 #define __PCI_H__
 
-#include "headers.h"
+#include "types.h"
 
 #define PCI_CONFIG_SPACE_PORT 0xCF8
 #define PCI_CONFIG_DATA_PORT  0xCFC

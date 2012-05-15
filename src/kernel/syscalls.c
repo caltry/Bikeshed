@@ -12,7 +12,8 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
+#include "defs.h"
+#include "types.h"
 
 #include "pcbs.h"
 #include "scheduler.h"
@@ -21,6 +22,8 @@
 #include "syscalls.h"
 #include "system.h"
 #include "elf/elf.h"
+#include "lib/klib.h"
+#include "c_io.h"
 
 #include "startup.h"
 

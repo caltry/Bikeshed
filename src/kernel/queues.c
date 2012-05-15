@@ -12,11 +12,13 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
+#include "defs.h"
+#include "types.h"
 
 #include "pcbs.h"
 #include "stacks.h"
 #include "semaphores.h"
+#include "c_io.h"
 
 #include "memory/kmalloc.h"
 

@@ -10,6 +10,7 @@
 ** Description:	C implementations of user-level library functions
 */
 
+#include "defs.h"
 #include "ulib.h"
 
 /*
