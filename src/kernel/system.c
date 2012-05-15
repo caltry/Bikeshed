@@ -23,7 +23,6 @@
 #include "scheduler.h"
 #include "semaphores.h"
 
-// TODO XXX ADDED REMOVE
 #include "bootstrap.h"
 #include "memory/physical.h"
 #include "memory/paging.h"
@@ -31,6 +30,8 @@
 #include "network/e1000.h"
 #include "pci/pci.h"
 #include "serial.h"
+#include "fs/ext2/ext2.h"
+#include "vfs_init.h"
 #include "cpp/cppinit.h"
 #include "cpp/cpptest.hpp"
 
@@ -242,16 +243,16 @@ void _init( void ) {
 	__phys_initialize_bitmap();
 	__virt_initialize_paging();
 	__kmem_init_kmalloc();
-
 	// Initialize C++ support, we do this after the memory is intialized so static/global
 	// C++ objects can use the new operator in their constructors
 	__cpp_init();
-	_test_cpp();
 
-	/*__pci_init();
+	__pci_init();
 	__pci_dump_all_devices();
 	__net_init();
-	*/
+
+	// Test the C++ support
+	_test_cpp();
 
 	_q_init();		// must be first
 	_pcb_init();
@@ -261,6 +262,8 @@ void _init( void ) {
 	_sched_init();
 	_sem_init();
 	_clock_init();
+	_init_all_ramdisks();
+	_fs_ext2_init();
 
 	c_puts( "\n" );
 

@@ -1,3 +1,7 @@
+/* The functions in this file are for the most part self-explanatory.
+ *
+ * They are basic helpers to get and set the various paging registers.
+ */
 .global read_cr0
 read_cr0:
 	mov %cr0, %eax

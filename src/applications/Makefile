@@ -1,6 +1,6 @@
 include ../defs.mk
 
-CFLAGS += -I../include -I../ulib/ -I../kernel -I../kernel/video
+CFLAGS += -I../include -I../ulib/ -I../kernel -I.. -I../kernel/video
 
 SRC_FILES = $(DYN_SRC_FILES)
 OBJ_FILES = $(DYN_OBJ_FILES)

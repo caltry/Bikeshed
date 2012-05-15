@@ -26,6 +26,10 @@ Object static_obj(100);
 Object::Object(int i) : _i(i)
 { 
 	serial_printf("Object %d constructing!\n", i);
+	int* ptr = new int;
+	*ptr = i;
+	serial_printf("What is ptr?: %d\n", *ptr);
+	delete ptr;
 }
 
 Object::~Object()
