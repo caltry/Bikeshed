@@ -40,12 +40,6 @@
 #include "cpp/cpptest.hpp"
 #include "elf/elf.h"
 
-// need init() address
-#include "users.h"
-
-// need the exit() prototype
-//#include "ulib.h"
-
 #include "bios.h"
 
 /*
