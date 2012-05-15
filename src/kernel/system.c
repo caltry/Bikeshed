@@ -77,12 +77,12 @@ void _cleanup( Pcb *pcb ) {
 		return;
 	}
 
-	if( pcb->stack != NULL ) {
+	/*if( pcb->stack != NULL ) {
 		status = _stack_dealloc( pcb->stack );
 		if( status != SUCCESS ) {
 			_kpanic( "_cleanup", "stack dealloc status %s\n", status );
 		}
-	}
+	}*/
 
 	pcb->state = FREE;
 	status = _pcb_dealloc( pcb );
@@ -90,6 +90,7 @@ void _cleanup( Pcb *pcb ) {
 		_kpanic( "_cleanup", "pcb dealloc status %s\n", status );
 	}
 
+	__virt_dealloc_page_directory(pcb->page_directory);
 }
 
 
@@ -101,8 +102,8 @@ void _cleanup( Pcb *pcb ) {
 ** returns:
 **	success of the operation
 */
-
-Status _create_process( Pcb *pcb, Uint32 entry ) {
+/*
+Status _create_process_not_used( Pcb *pcb, Uint32 entry ) {
 	Context *context;
 	Stack *stack;
 	Uint32 *ptr;
@@ -130,7 +131,7 @@ Status _create_process( Pcb *pcb, Uint32 entry ) {
 
 	_kmemclr( (void *) stack, sizeof(Stack) );
 
-	/*
+	*
 	** Set up the initial stack contents for a (new) user process.
 	**
 	** We reserve one longword at the bottom of the stack as
@@ -152,7 +153,7 @@ Status _create_process( Pcb *pcb, Uint32 entry ) {
 	** the stack, leaving the "return address" on the stack
 	** as if the main() for the process had been "called" from
 	** the exit() stub.
-	*/
+	*
 
 	// first, compute a pointer to the second-to-last longword
 
@@ -191,6 +192,7 @@ Status _create_process( Pcb *pcb, Uint32 entry ) {
 	return( SUCCESS );
 
 }
+*/
 
 
 /*
@@ -296,10 +298,12 @@ void _init( void ) {
 		_kpanic( "_init", "first pcb alloc failed\n", FAILURE );
 	}
 
+	/*
 	pcb->stack = _stack_alloc();
 	if( pcb->stack == NULL ) {
 		_kpanic( "_init", "first stack alloc failed\n", FAILURE );
 	}
+	*/
 
 	/* HALT here, processes exec is currently broken */
 	while (1) {

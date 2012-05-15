@@ -78,12 +78,11 @@ Queue *_sleeping;
 
 static void _sys_fork( Pcb *pcb ) {
 	Pcb *new;
-	int diff;
 	Uint32 *ptr;
 	Status status;
 
 	// allocate a pcb for the new process
-
+	
 	new = _pcb_alloc();
 	if( new == NULL ) {
 		RET(pcb) = FAILURE;
@@ -94,18 +93,8 @@ static void _sys_fork( Pcb *pcb ) {
 
 	_kmemcpy( (void *)new, (void *)pcb, sizeof(Pcb) );
 
-	// allocate a stack for the new process
-
-	new->stack = _stack_alloc();
-	if( new->stack == NULL ) {
-		RET(pcb) = FAILURE;
-		_cleanup( new );
-		return;
-	}
-
-	// duplicate the parent's stack
-
-	_kmemcpy( (void *)new->stack, (void *)pcb->stack, sizeof(Stack));
+	// Here we need to setup the new processes page directory
+	new->page_directory = __virt_clone_directory(pcb->page_directory);
 
 	// fix the pcb fields that should be unique to this process
 
@@ -113,67 +102,12 @@ static void _sys_fork( Pcb *pcb ) {
 	new->ppid = pcb->pid;
 	new->state = NEW;
 
-	/*
-	** We duplicated the parent's stack contents, which means that
-	** the child's ESP and EBP are still pointing into the parent's
-	** stack.  Fix these, and also fix the child's context pointer.
-        **
-        ** We have to change EBP because that's how the compiled code for
-        ** the user process accesses its local variables.  If we didn't
-        ** change this, as soon as the child was dispatched, it would
-        ** start to stomp on the local variables in the parent's stack.
-	** We also have to fix the EBP chain in the child process.
-        **
-        ** None of this would be an issue if we were doing "real" virtual
-        ** memory, as we would be talking about virtual addresses here rather
-        ** than physical addresses, and all processes would share the same
-        ** virtual address space layout.
-	**
-	** First, determine the distance (in bytes) between the two
-	** stacks.  This is the adjustment value we must add to the
-	** three pointers to correct them.
-	*/
-
-	diff = (void *) new->stack - (void *) pcb->stack;
-
-	// adjust the context pointer, esp, and ebp
-
-	new->context = (Context *) ( (void *) new->context + diff );
-
-	new->context->esp += diff;
-	new->context->ebp += diff;
-
-	/*
-        ** Next, we must fix the EBP chain in the child.  This is necessary
-        ** in the situation where the fork() occurred in a nested function
-	** call sequence; we fixed EBP, but the "saved" EBP in the stack
-	** frame is pointing to the calling function's frame in the parent's
-	** stack, not the child's stack.
-	**
-	** We are guaranteed that the chain of frames ends at the user
-	** process' main routine, because exec() will initialize EBP for
-	** the process to 0, and the entry prologue code in the main
-	** routine will push EBP, ensuring a NULL pointer in the chain.
-        */
-
-	// start at the current frame
-
-	ptr = (Uint32 *) new->context->ebp;
-
-	// follow the chain of frame pointers to its end
-	while( *ptr != 0 ) {
-		// update the back link from this frame to the previous
-		*ptr = (Uint32) ((void *) *ptr + diff );
-		// follow the updated link
-		ptr = (Uint32 *) *ptr;
-	}
-
 	// assign the PID return values for the two processes
 
 	ptr = (Uint32 *) (ARG(pcb)[1]);
 	*ptr = new->pid;
 
-	ptr = (Uint32 *) ( ((void *)(ARG(new)[1])) + diff );
+	ptr = (Uint32 *) ( ((void *)(ARG(new)[1])));
 	*ptr = 0;
 
 	/*
@@ -527,7 +461,7 @@ static void _sys_set_time( Pcb *pcb ) {
 /*
 ** _sys_exec - replace a process with a different program
 **
-** implements:	Status exec(void (*entry)(void));
+** implements:	Status exec(const char* path_to_program);
 **
 ** returns:
 **	failure status of the replacement attempt

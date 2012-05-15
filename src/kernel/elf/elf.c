@@ -62,8 +62,8 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 		return BAD_PARAM;
 	}
 
-	// We need to create the new page directory for this new process
-		
+	// Cleanup the old processes page directory, we're replacing everything
+	__virt_reset_page_directory(pcb->page_directory);
 
 	/* We need to load all of the program sections now */
 	for (Int32 i = 0; i < elf32_hdr->e_phnum; ++i)
@@ -98,32 +98,44 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 		}
 	}
 
-	// Restore the old page directory
-	
-
 	// Setup the PCB information
-	// TODO do we need to do this? or will that be done by fork?
-	//
-	// How it should work at system boot:
-	//
-	// Kernel calls fork() 
-	pcb->stack = 0;// TODO Allocate a stack
-	pcb->page_directory = 0; // TODO assign the new page directory
-	pcb->pid = 0;
-	pcb->ppid = 0; // Assign the ppid
 
-	pcb->context->eip = elf32_hdr->e_entry; // Entry point
+	// Allocate a stack and map some pages for it
+#define NEW_STACK_LOCATION 0x2000000
+#define NEW_STACK_SIZE 0x4000 /* 16 KiB */
+	pcb->stack = (Uint32 *)NEW_STACK_LOCATION;
+	void* stack_start = (void *)pcb->stack;
+	void* stack_end   = (void *)pcb->stack + NEW_STACK_SIZE;
+	for (; stack_start < stack_end; stack_start += PAGE_SIZE)
+	{
+		__virt_map_page(__phys_get_free_4k(), stack_start, PG_READ_WRITE | PG_USER);
+	}
+	_kmemclr((void *)NEW_STACK_LOCATION, NEW_STACK_SIZE);
 
-	pcb->context->cs = GDT_CODE;
-	pcb->context->ss = GDT_STACK;
-	pcb->context->ds = GDT_DATA;
-	pcb->context->es = GDT_DATA;
-	pcb->context->fs = GDT_DATA;
-	pcb->context->gs = GDT_DATA;
+	// TODO - We eventually want to setup a kernel stack so we can have RING 3->RING 0 access
 
-	pcb->context->eflags = DEFAULT_EFLAGS; // We want to come back in RING 3!
+	// Throw exit as the return address as a safe guard
+	Uint32*  ptr = ((Uint32 *)(pcb->stack + 1)) - 2;
+	*ptr = (Uint32) exit;
+
+	// Setup the context
+	Context* context = ((Context *) ptr) - 1;
+	pcb->context = context;
+
+	context->cs = GDT_CODE;
+	context->ss = GDT_STACK;
+	context->ds = GDT_DATA;
+	context->es = GDT_DATA;
+	context->fs = GDT_DATA;
+	context->gs = GDT_DATA;
+
+ 	// Entry point
+	context->eip = elf32_hdr->e_entry;
+
+	// Setup the rest of the PCB
+	pcb->context->eflags = DEFAULT_EFLAGS;
 
 	__kfree(pheaders);
 	__kfree(elf32_hdr);
-	return BAD_PARAM; /* Not implemented yet */
+	return SUCCESS;
 }

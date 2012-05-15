@@ -39,6 +39,11 @@ void _kmemset(void *ptr, unsigned char value, Uint32 num)
 // TODO change this to directly link to the already defined page directory
 page_directory_t *__virt_kpage_directory = 0;//&BootPageDirectory;
 
+static Uint32 KERNEL_PAGE_DIR_INDEX     = 0;
+static Uint32 KERNEL_PAGE_DIR_INDEX_END = 0;
+static Uint32 KERNEL_PAGE_TBL_START = 0;
+static Uint32 KERNEL_PAGE_TBL_END   = 0;
+
 void __virt_initialize_paging()
 {
 	serial_printf("Boot page dir location: %x\n", (ul)&boot_page_directory);
@@ -65,35 +70,35 @@ void __virt_initialize_paging()
 
 	// Map the kernel
 	Uint32 pages = KERNEL_SIZE / PAGE_SIZE;
-	Uint32 page_dir_index = KERNEL_LINK_ADDR / (PAGE_SIZE * 1024);
-	Uint32 page_dir_end_index = (KERNEL_LINK_ADDR + KERNEL_SIZE) / (PAGE_SIZE * 1024);
+	KERNEL_PAGE_DIR_INDEX = KERNEL_LINK_ADDR / (PAGE_SIZE * 1024);
+	KERNEL_PAGE_DIR_INDEX_END = (KERNEL_LINK_ADDR + KERNEL_SIZE) / (PAGE_SIZE * 1024);
 
-	Uint32 page_table_start = (KERNEL_LINK_ADDR >> 12) % PAGE_SIZE;
-	Uint32 page_table_end = ((KERNEL_LINK_ADDR + KERNEL_SIZE) >> 12) % PAGE_SIZE;
+	KERNEL_PAGE_TBL_START = (KERNEL_LINK_ADDR >> 12) % PAGE_SIZE;
+	KERNEL_PAGE_TBL_END = (((KERNEL_LINK_ADDR + KERNEL_SIZE) >> 12) % PAGE_SIZE) + 1;
 
-	serial_printf("Kernel pages: %d\n", (ul)pages);
-	serial_printf("Kernel page_dir_index: %d\n", (ul)page_dir_index);
-	serial_printf("Kernel end: %d\n", (ul)page_dir_end_index);
-	serial_printf("Page table start: %d\n", (ul)page_table_start);
-	serial_printf("Page table end: %d\n", (ul)page_table_end);
+	serial_printf("Kernel pages: %d\n", pages);
+	serial_printf("Kernel page_dir_index: %d\n", KERNEL_PAGE_DIR_INDEX);
+	serial_printf("Kernel end: %d\n", KERNEL_PAGE_DIR_INDEX_END);
+	serial_printf("Page table start: %d\n", KERNEL_PAGE_TBL_START);
+	serial_printf("Page table end: %d\n", KERNEL_PAGE_TBL_END);
 
 	/* We don't want to overwrite our 1MB identity mapping
 	 */
-	i = page_table_start;
+	i = KERNEL_PAGE_TBL_START;
 	address = KERNEL_LOAD_ADDR;
-	if (page_dir_index != 0)
+	if (KERNEL_PAGE_DIR_INDEX != 0)
 	{
 		serial_string("Kernel is not in the lowest 4MB\n");
-		for (; i < page_table_end+1; ++i)
+		for (; i < KERNEL_PAGE_TBL_END; ++i)
 		{
 			kernel_table->pages[i].value = address | 3;
 			address += PAGE_SIZE;
 		}
 
-		__virt_kpage_directory->ptables[page_dir_index] = (Uint32)kernel_table | 3;
+		__virt_kpage_directory->ptables[KERNEL_PAGE_DIR_INDEX] = (Uint32)kernel_table | 3;
 	} else {
 		serial_string("Kernel is in the lowest 4MB\n");
-		for (; i < page_table_end; ++i)
+		for (; i < KERNEL_PAGE_TBL_END-1; ++i)
 		{
 			first_table->pages[i].value = address | 3;
 			address += PAGE_SIZE;
@@ -141,6 +146,30 @@ void* __virt_get_phys_addr(void *virtual_addr)
 	// TODO Here check whether the PT is present
 	
 	return (void *)((pt[page_tbl_index] & ~0xFFF) + ((Uint32)virtual_addr & 0xFFF));
+}
+
+void __virt_reset_page_directory(page_directory_t* page_directory)
+{
+	void* address = (void *)0x100000;
+	for (; address < (void *)KERNEL_LINK_ADDR; address += PAGE_SIZE)
+	{
+		__virt_unmap_page(address);
+	}
+}
+
+void __virt_dealloc_page_directory(page_directory_t* page_directory)
+{
+	// Frees all pages after 1MiB and before the kernel's pages */
+	__virt_reset_page_directory(page_directory);
+
+	void* pd = (void *)0xFFFFF000;
+	__phys_unset_bit(*pd); /* Finally free the block of memory this page directory occupies */
+}
+
+page_directory_t* __virt_clone_directory(page_directory_t* page_directory)
+{
+	// Need to somehow create a new page directory and clone it
+	
 }
 
 void __virt_unmap_page(void *virtual_addr)
