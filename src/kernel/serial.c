@@ -1,10 +1,12 @@
 #include "serial.h"
 #include "startup.h"
+#include "defs.h"
 
 #define SERIAL_PORT_A 0x3F8
 
 void serial_install(void)
 {
+#ifdef QEMU_SERIAL
 	__outb(SERIAL_PORT_A + 1, 0x00);
 	__outb(SERIAL_PORT_A + 3, 0x80);
 	__outb(SERIAL_PORT_A + 0, 0x03);
@@ -12,28 +14,43 @@ void serial_install(void)
 	__outb(SERIAL_PORT_A + 3, 0x03);
 	__outb(SERIAL_PORT_A + 2, 0xC7);
 	__outb(SERIAL_PORT_A + 4, 0x08);
+#endif
+	
 }
 
 int serial_transmit_empty(void)
 {
+#ifdef QEMU_SERIAL
 	return __inb(SERIAL_PORT_A + 5) & 0x20;
+#else
+	return 0;
+#endif
 }
 
 void serial_char(char out)
 {
+#ifdef QEMU_SERIAL
 	while (serial_transmit_empty() == 0);
 	__outb(SERIAL_PORT_A, out);
+#else
+	UNUSED(out);
+#endif
 }
 
 void serial_string(const char *out)
 {
+#ifdef QEMU_SERIAL
 	while (*out != 0)
 	{
 		serial_char(*out);
 		++out;
 	}
+#else
+	UNUSED(out);
+#endif
 }
 
+#ifdef QEMU_SERIAL
 static char* cvtdec0( char *buf, int value ){
 	int	quotient;
 
@@ -147,6 +164,7 @@ static int padstr(char *str, int len, int width, int leftadjust, int padchar){
 	}
 	return x;
 }
+#endif
 
 static void __serial_printf(const char **f);
 
@@ -157,6 +175,7 @@ void serial_printf(const char *fmt, ...)
 
 static void __serial_printf(const char **f)
 {
+#ifdef QEMU_SERIAL
 	const char *fmt = *f;
 	int	 *ap;
 	char buf[ 12 ];
@@ -241,4 +260,7 @@ static void __serial_printf(const char **f)
 			serial_char( ch );
 		}
 	}
+#else
+	UNUSED(f);
+#endif
 }

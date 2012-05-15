@@ -147,19 +147,36 @@ typedef struct PCIConfig
  */
 void __pci_init(void);
 
+/* The following functions read a 32-bit, 16-bit, or 8-bit value (respectively) 
+ * from the PCI configuration space of a device on the specified bus, device, 
+ * function and offset.
+ */
 Uint32 __pci_config_read_long(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset);
 Uint16 __pci_config_read_short(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset);
 Uint8  __pci_config_read_byte(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset);
 
+/* The following functions write a 32-bit, 16-bit, or 8-bit value (respectively)
+ * from the PCI configuration space on the specified PCI bus, device, function, and offset
+ */
 void __pci_config_write_long(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset, Uint32 val);
 void __pci_config_write_short(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset, Uint16 val);
 void __pci_config_write_byte(Uint8 bus, Uint8 device, Uint8 function, Uint8 offset, Uint8 val);
 
+/* Search all the PCI devices found for a specific class or PCI device
+ */
 pci_config_t* __pci_find_by_class(Uint8 base_class, Uint8 sub_class, Uint8 prog_if);
 Uint32 __pci_get_memory_size(pci_config_t* config);
 
+/* Scans all PCI devices on all buses
+ */
 void __pci_scan_devices(void);
+
+/* Dump all of the found devices to the serial output 
+ */
 void __pci_dump_all_devices(void);
+
+/* Dump a specific PCI device to serial output
+ */
 void __pci_dump_device(Uint8 bus, Uint8 slot, Uint8 function);
 
 #endif

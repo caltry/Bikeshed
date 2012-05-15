@@ -19,3 +19,13 @@
  * Hint to the optimizer that we're unlikely to take this branch
  */
 #define unlikely( condition ) __builtin_expect( !!(condition), 0 )
+
+/*
+ * Print an expression out as a string.
+ */
+#define CPP_STRINGIFY( expression ) #expression
+
+/*
+ * Print the result of an expression (if the CPP can evaluate it).
+ */
+#define CPP_STRINGIFY_RESULT( expression ) CPP_STRINGIFY(expression)
