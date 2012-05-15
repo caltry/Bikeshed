@@ -1154,12 +1154,8 @@ void init( void ) {
 		prt_status( "idle: priority change status %s\n", status );
 	}
 
-	write( '.' );
-
 	for(;;) {
-		for( i = 0; i < DELAY_LONG; ++i )
-			continue;
-		write( '.' );
+		asm("hlt");
 	}
 
 	/*
