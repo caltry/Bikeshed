@@ -36,6 +36,9 @@ void _kmemset(void *ptr, unsigned char value, Uint32 num)
 	}
 }
 
+#define ADDR_TO_PD_IDX(x) ((x) >> 22)
+#define ADDR_TO_PT_IDX(x) (((x) >> 12) & 0x03FF) 
+
 // TODO change this to directly link to the already defined page directory
 page_directory_t *__virt_kpage_directory = 0;//&BootPageDirectory;
 
@@ -162,14 +165,90 @@ void __virt_dealloc_page_directory(page_directory_t* page_directory)
 	// Frees all pages after 1MiB and before the kernel's pages */
 	__virt_reset_page_directory(page_directory);
 
-	void* pd = (void *)0xFFFFF000;
-	__phys_unset_bit(*pd); /* Finally free the block of memory this page directory occupies */
+	Uint32* pd = (Uint32 *)0xFFFFF000;
+	__phys_unset_bit((void *)(*pd)); /* Finally free the block of memory this page directory occupies */
 }
 
 page_directory_t* __virt_clone_directory(page_directory_t* page_directory)
 {
 	// Need to somehow create a new page directory and clone it
+	// We need some scratch space while we're copying the currenty directory	
+	Uint32* scratch_pd  = (Uint32 *)(((KERNEL_LINK_ADDR+KERNEL_SIZE) & PAGE_SIZE) + 2*PAGE_SIZE);
+	Uint32* scratch_pt  = (Uint32 *)(((void *)scratch_pd) + PAGE_SIZE);
+	Uint32* scratch_pte = (Uint32 *)(((void *)scratch_pt) + PAGE_SIZE);
+
+	// Allocate the new page directory
+	void* phys_pd_address = __phys_get_free_4k();
+	__virt_map_page(phys_pd_address, scratch_pd, PG_READ_WRITE);
+	_kmemclr(scratch_pd, PAGE_SIZE);
+
+	// Allocate a page table for below 1MiB in case there are addresses being used
+	// from 1MiB-4MiB
+	void* phys_pt_address = __phys_get_free_4k();
+	__virt_map_page(phys_pt_address, scratch_pt, PG_READ_WRITE);
+	_kmemclr(scratch_pt, PAGE_SIZE);
+
+	// Now identity map the first 1MiB of addresses
+	void* address = (void *)0x0;
+	for (Int32 i = 0; i < 256; ++i, address += PAGE_SIZE)
+	{
+		scratch_pt[i] = (Uint32)address | PG_PRESENT | PG_READ_WRITE;
+	}
+
+	scratch_pd[0] = (Uint32)phys_pt_address | PG_PRESENT | PG_READ_WRITE;
+
+	// Now copy the kernel's pages over		
+	// TODO - Go to the page table level and copy only whats needed
+	Uint32* kernel_pd = (Uint32 *)0xFFFFF000;
+	for (Int32 i = KERNEL_PAGE_DIR_INDEX; i < 1024; ++i)
+	{
+		scratch_pd[i] = kernel_pd[i];
+	}
+
+	// Now copy + memcpy the rest of the pages in the middle
+	// We have to find the used addresses		
+	// TODO - handle below 1MiB special case
+	Uint32 cur_address = 0x400000;
+	Uint32 page_dir_idx = ADDR_TO_PD_IDX(cur_address);
 	
+	for (; page_dir_idx < KERNEL_PAGE_DIR_INDEX; ++page_dir_idx)
+	{
+		// Only copy the things we need
+		if (kernel_pd[page_dir_idx] != 0)
+		{
+			// Make a new entry in the new page directory
+			scratch_pd[page_dir_idx] = (Uint32)__phys_get_free_4k() | PG_READ_WRITE | PG_PRESENT;
+			__virt_unmap_page(scratch_pt); // Change the current page table we're looking at
+			__virt_map_page((void *)scratch_pd[page_dir_idx], scratch_pt, PG_READ_WRITE);
+			_kmemclr(scratch_pt, PAGE_SIZE);
+
+			// TODO - What about copying the first few bytes inside of the kernel's PT? Up to KERNEL_PAGE_TBL_START
+
+			// Now we want to loop through this page table
+			Uint32* kernel_pt = ((Uint32 *)0xFFC00000) + (0x400 * page_dir_idx); 
+			for (Uint32 page_tbl_idx = ADDR_TO_PT_IDX(cur_address); page_tbl_idx < 1024; ++page_tbl_idx, cur_address += 4096)
+			{
+				if (kernel_pt[page_tbl_idx] != 0)
+				{
+					scratch_pt[page_tbl_idx] = (Uint32)__phys_get_free_4k() | PG_READ_WRITE | PG_PRESENT;
+					__virt_unmap_page(scratch_pte); // Change the current page table entry we're looking at
+					__virt_map_page((void *)scratch_pt[page_tbl_idx], scratch_pte, PG_READ_WRITE);
+
+					// Copy from the current address into scratch_pte
+					_kmemcpy(scratch_pte, (void *)cur_address, PAGE_SIZE);
+				}
+			}
+		} else {
+			cur_address += PAGE_SIZE * 1024; // Skip to the next 4MiB
+		}
+	}
+
+	// Unmap all the temporary pages, All changes to kernel tables affect all processes
+	__virt_unmap_page(scratch_pd);
+	__virt_unmap_page(scratch_pt);
+	__virt_unmap_page(scratch_pte);
+
+	return phys_pd_address;
 }
 
 void __virt_unmap_page(void *virtual_addr)

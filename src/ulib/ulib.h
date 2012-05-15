@@ -13,8 +13,6 @@
 #ifndef _ULIB_H
 #define _ULIB_H
 
-#include "headers.h"
-
 /*
 ** General (C and/or assembly) definitions
 */
@@ -26,8 +24,7 @@
 */
 
 #include "types.h"
-#include "clock.h"
-#include "pcbs.h"
+#include "kernel/pcbs.h"
 
 // pseudo-function:  sleep for a specified number of seconds
 

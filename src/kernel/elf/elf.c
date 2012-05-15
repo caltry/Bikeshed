@@ -36,6 +36,8 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 		   || elf32_hdr->e_phnum == 0) /* ... */
 		// || elf32_hdr->e_ehsize != sizeof(Elf32_Ehdr)) /* The header size should match our struct */
 	{
+
+		_kpanic("ELF", "Couldn't open file!\n", 0);
 		// Problem opening the file
 		__kfree(elf32_hdr);
 		return BAD_PARAM;
@@ -57,6 +59,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	if (ext2_status != EXT2_READ_SUCCESS
 			|| bytes_read < pheader_tbl_size)
 	{
+		_kpanic("ELF", "error reading file!\n", 0);
 		__kfree(pheaders);
 		__kfree(elf32_hdr);
 		return BAD_PARAM;
@@ -94,6 +97,12 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 			{
 				ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)cur_phdr->p_vaddr, 
 						&bytes_read, cur_phdr->p_offset, cur_phdr->p_filesz);
+
+				if (ext2_status != EXT2_READ_SUCCESS)
+				{
+					// TODO - cleanup if error
+					_kpanic("ELF", "failed to read program section\n", 0);
+				}
 			}
 		}
 	}
@@ -115,13 +124,16 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	// TODO - We eventually want to setup a kernel stack so we can have RING 3->RING 0 access
 
 	// Throw exit as the return address as a safe guard
-	Uint32*  ptr = ((Uint32 *)(pcb->stack + 1)) - 2;
+	Uint32*  ptr = (Uint32 *)(NEW_STACK_LOCATION);//((Uint32 *)(pcb->stack + 1)) - 2;
 	*ptr = (Uint32) exit;
 
 	// Setup the context
 	Context* context = ((Context *) ptr) - 1;
 	pcb->context = context;
+	_kmemclr(context, sizeof(Context));
 
+	context->esp = NEW_STACK_LOCATION;
+	context->ebp = NEW_STACK_LOCATION;
 	context->cs = GDT_CODE;
 	context->ss = GDT_STACK;
 	context->ds = GDT_DATA;

@@ -34,6 +34,7 @@
 #include "vfs_init.h"
 #include "cpp/cppinit.h"
 #include "cpp/cpptest.hpp"
+#include "elf/elf.h"
 
 // need init() address
 #include "users.h"
@@ -318,6 +319,14 @@ void _init( void ) {
 	pcb->pid  = _next_pid++;
 	pcb->ppid = pcb->pid;
 	pcb->priority = PRIO_HIGH;	// init() should finish first
+	pcb->page_directory = __virt_clone_directory(__virt_kpage_directory);
+	pcb->stack = 0;
+
+	Status status;
+	if ((status = _elf_load_from_file(pcb, "/init_process")) != SUCCESS)
+	{
+		_kpanic("_init", "Failed to load init process: %s\n", status);
+	}
 
 	/*
 	** Set up the initial process context.

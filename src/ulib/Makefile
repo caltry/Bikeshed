@@ -1,7 +1,7 @@
 include ../defs.mk
 
-CFLAGS += -I../boot -I../include -I../kernel
-CPPFLAGS += -I../kernel -I../include
+CFLAGS += -I../include -I..
+CPPFLAGS += -I.. -I../include
 
 SRC_FILES = $(DYN_SRC_FILES)
 OBJ_FILES = $(DYN_OBJ_FILES)
