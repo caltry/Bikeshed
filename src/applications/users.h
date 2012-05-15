@@ -74,7 +74,7 @@
 //#define		SPAWN_LOCK_TEST_INIT
 //#define		SPAWN_LOCK_TEST_READ
 //#define		SPAWN_LOCK_TEST_WRITE_READ
-#define		SPAWN_LOCK_TEST_READ_WRITE
+//#define		SPAWN_LOCK_TEST_READ_WRITE
 
 /*
 ** Users W-Z are spawned from other processes; they
