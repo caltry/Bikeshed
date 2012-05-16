@@ -4,7 +4,10 @@
 _start:
 
 /* For now we don't have an argc, or argv */
+pushl $0x0
+pushl $0x0
 call main
+add $8, %esp
 
 /* Kill the process */
 call exit

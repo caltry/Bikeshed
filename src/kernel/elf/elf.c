@@ -87,7 +87,12 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 
 		if (cur_phdr->p_type == PT_LOAD)
 		{
-			serial_printf("\tELF: loading program section: %d\n", i);
+			serial_printf("\tELF: loading program section: %d at %x size: %x\n", i, cur_phdr->p_vaddr, cur_phdr->p_memsz);
+			if (cur_phdr->p_memsz == 0)
+			{
+				serial_printf("\tELF: empty section, skipping\n");
+				continue;
+			}
 			// This is a loadable section
 			//if (cur_phdr->p_align > 1)
 			//	_kpanic("ELF", "ELF loader doesn't support aligned program segments\n", 0);
@@ -103,13 +108,20 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 					flags |= PG_READ_WRITE;	
 				}
 
-				__virt_map_page(__phys_get_free_4k(), start_address, flags);
+				serial_printf("Checking address: %x\n", __virt_get_phys_addr(start_address));
+				if (__virt_get_phys_addr(start_address) == (void *)0xFFFFFFFF)
+				{
+					__virt_map_page(__phys_get_free_4k(), start_address, flags);
+				} else {
+					serial_printf("Address: %x already mapped\n", start_address);
+				}
 			}
 
 			// Lets zero it out, we only need to zero the remaining bytes, p_filesz
 			// may be zero for data sections, in this case the memory should be zeroed
-			_kmemclr((void *)(cur_phdr->p_vaddr + (cur_phdr->p_memsz - cur_phdr->p_filesz)), 
-					cur_phdr->p_memsz - cur_phdr->p_filesz);
+			//_kmemclr((void *)(cur_phdr->p_vaddr + (cur_phdr->p_memsz - cur_phdr->p_filesz)), 
+			//		cur_phdr->p_memsz - cur_phdr->p_filesz);
+			_kmemclr((void *)cur_phdr->p_vaddr, cur_phdr->p_memsz);
 
 			// Now we have to read it in from the file
 			if (cur_phdr->p_filesz > 0)
@@ -124,7 +136,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 				}
 			}
 		} else {
-			serial_printf("\tELF: Non-loadable section: %d\n", i);
+			serial_printf("\tELF: Non-loadable section: %d at %x size: %x type: %d\n", i, cur_phdr->p_vaddr, cur_phdr->p_memsz, cur_phdr->p_type);
 		}
 	}
 
@@ -147,16 +159,17 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	// TODO - We eventually want to setup a kernel stack so we can have RING 3->RING 0 access
 
 	// Throw exit as the return address as a safe guard
-	Uint32*  ptr = (Uint32 *)(NEW_STACK_LOCATION+NEW_STACK_SIZE-0x1000);//((Uint32 *)(pcb->stack + 1)) - 2;
+//	Uint32*  ptr = (Uint32 *)(NEW_STACK_LOCATION+NEW_STACK_SIZE-0x1000);//((Uint32 *)(pcb->stack + 1)) - 2;
 	//*ptr = (Uint32) exit;
 	serial_printf("ELF: setting up context\n");
 	// Setup the context
-	Context* context = ((Context *) ptr) - 1;
+	Context* context = ((Context *)(NEW_STACK_LOCATION+NEW_STACK_SIZE-4)) - 1;
+	serial_printf("Context location: %x\n", context);
 	pcb->context = context;
-	_kmemclr(context, sizeof(Context));
 
-	context->esp = NEW_STACK_LOCATION+STACK_SIZE;//-sizeof(context);
-	context->ebp = NEW_STACK_LOCATION+STACK_SIZE;
+	context->esp = (Uint32)(((Uint32 *)context) - 1);
+	pcb->stack = (Uint32 *)context->esp;
+	context->ebp = 0x2004000-4;//(NEW_STACK_LOCATION+STACK_SIZE);
 	context->cs = GDT_CODE;
 	context->ss = GDT_STACK;
 	context->ds = GDT_DATA;

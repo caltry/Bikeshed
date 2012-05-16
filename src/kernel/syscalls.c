@@ -110,8 +110,11 @@ static void _sys_fork( Pcb *pcb ) {
 	ptr = (Uint32 *) (ARG(pcb)[1]);
 	*ptr = new->pid;
 
+	// TODO - this won't work, because we can't get to the other stack...
+	__virt_switch_page_directory(new->page_directory);
 	ptr = (Uint32 *) ( ((void *)(ARG(new)[1])));
 	*ptr = 0;
+	__virt_switch_page_directory(pcb->page_directory);
 
 	/*
 	** Philosophical issue:  should the child run immediately, or
@@ -129,7 +132,9 @@ static void _sys_fork( Pcb *pcb ) {
 	} else {
 		// indicate success for both processes
 		RET(pcb) = SUCCESS;
+		__virt_switch_page_directory(new->page_directory);
 		RET(new) = SUCCESS;
+		__virt_switch_page_directory(pcb->page_directory);
 	}
 
 }

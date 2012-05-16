@@ -239,30 +239,37 @@ void _init( void ) {
 	c_printf("CFG Memory 1M-16M: %x\n", *((Uint16*)(MMAP_ADDRESS + MMAP_CFG_LO)));
 	c_printf("CFG Memory > 16M 64k blocks: %x\n", *((Uint16*)(MMAP_ADDRESS + MMAP_CFG_HI)));
 	serial_install();
+	c_printf("Starting physical\n");
 	__phys_initialize_bitmap();
+	c_printf("Starting virtual\n");
 	__virt_initialize_paging();
+	c_printf("Starting kmalloc\n");
 	__kmem_init_kmalloc();
+	_sio_init();
 	// Initialize C++ support, we do this after the memory is intialized so static/global
 	// C++ objects can use the new operator in their constructors
+	c_printf("Starting cpp\n");
 	__cpp_init();
 
+	c_printf("Starting pci\n");
 	__pci_init();
 	__pci_dump_all_devices();
-	__net_init();
+//	__net_init();
 
 	// Test the C++ support
 	_test_cpp();
 
+	c_printf("Starting rest\n");
 	_q_init();		// must be first
 	_pcb_init();
 	_stack_init();
-	_sio_init();
 	_syscall_init();
 	_sched_init();
 	_sem_init();
 	_clock_init();
 	_init_all_ramdisks();
 	_fs_ext2_init();
+	c_printf("Done initializing rest\n");
 
 	c_puts( "\n" );
 
@@ -307,6 +314,7 @@ void _init( void ) {
 	/*
 	** Next, set up various PCB fields
 	*/
+	c_printf("Setting up PCB\n");
 
 	pcb->pid  = _next_pid++;
 	pcb->ppid = pcb->pid;

@@ -2,36 +2,6 @@
 */
 
 typedef unsigned short uint16_t;
-/*
-
-void put_string(int x, int y, const char* c)
-{
-	while (*c != 0)
-	{
-		put_char(x, y, *c);
-
-		++x;
-		if (x > 80)
-		{
-			x = 0;
-			y++;
-		}
-
-		if (y > 20)
-		{
-			y = 0;
-		}
-
-		++c;
-	}
-}
-
-void place_msg()
-{
-
-	*((uint16_t *) 0xB8000) = 0x7020;	
-}
-*/
 
 #define VIDEO_BASE_ADDR 0xB8000
 #define	SCREEN_MIN_X	0
@@ -48,22 +18,98 @@ void put_char(int x, int y, char c)
 	*addr = (0x70 << 8) | c;
 }
 
+void put_string(int x, int y, const char* message)
+{
+	while (*message != 0)
+	{
+		put_char(x, y, *message);
+
+		++x; if (x > 80) { x = 0; ++y; if (y == 25) { y = 0; } }
+
+		++message;
+	}
+}
+
+//extern void set_time(unsigned int time);
+extern unsigned int fork(unsigned int* pid);
 int main()
 {
-	//place_msg();
-//	*((uint16_t *) 0xB8000) = 0x7020;	
-	put_char(0, 0, 'W');
-	put_char(1, 0, 'e');
-	put_char(2, 0, 'l');
-//	put_char(3, 0, 'c');
-/*	put_char(4, 0, 'o');
-	put_char(5, 0, 'm');
-	put_char(6, 0, 'e');
-	
+	put_string(0, 0, "Loaded an ELF and running C code!");
+	put_string(0, 1, "Program");
+
+	/*
+	unsigned int pid = -1;
+	if (fork(&pid) == 0)
+	{
+		if (pid == 0)
+		{
+			// Child
+			put_string(10, 0, "CHILD!");
+		} else {
+			// Parent
+			put_string(20, 0, "PARENT!");
+		}
+	}
+	*/
+
+
 //	*((uint16_t *) 0xB8002) = 0x7020;	
 //	*/
 
+	int posx = 0;
+	int posy = 0;
+	char c = 'A';
+	int state = 0;
+	
+#define RIGHT 0
+#define DOWN 1
+#define LEFT 2
+#define UP 3
 	while (1) {
+		put_char(posx, posy, c);
+	//	uint16_t* addr = VIDEO_ADDR(posx, posy);
+	//	*addr = (0x70 << 8) | c;
+		switch (state)
+		{
+			case RIGHT:
+				posx++;
+				if (posx >= SCREEN_X_SIZE)
+				{
+					posx = SCREEN_X_SIZE-1;
+					state = DOWN;
+				}
+				break;
+			case DOWN:
+				posy++;
+				if (posy >= SCREEN_Y_SIZE)
+				{
+					posy = SCREEN_Y_SIZE-1;
+					state = LEFT;
+				}
+				break;
+			case LEFT:
+				posx--;
+				if (posx < 0)
+				{
+					posx = 0;
+					state = UP;
+				}
+				break;
+			case UP:
+				posy--;
+				if (posy < 0)
+				{
+					posy = 0;
+					state = RIGHT;
+					++c;
+					if (c > 'Z')
+					{
+						c = 'A';
+					}
+				}
+				break;
+		}
+		
 		asm volatile("hlt"); // Do nothing...
 	}
 

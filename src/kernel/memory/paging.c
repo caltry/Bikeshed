@@ -140,13 +140,17 @@ void* __virt_get_phys_addr(void *virtual_addr)
 	Uint32 *pd = (Uint32 *)0xFFFFF000;
 
 	// TODO Check whether or not the page directory is present
-	if ((pd[page_dir_index] & PG_PRESENT) > 0)
+	if (pd[page_dir_index] == 0)
 	{
 		return (void *)0xFFFFFFFF;
 	}
 	
 
 	Uint32 *pt = ((Uint32*)0xFFC00000) + (0x400 * page_dir_index);
+	if (pt[page_tbl_index] == 0)
+	{
+		return (void *)0xFFFFFFFF;
+	}
 	// TODO Here check whether the PT is present
 	
 	return (void *)((pt[page_tbl_index] & ~0xFFF) + ((Uint32)virtual_addr & 0xFFF));
@@ -364,16 +368,14 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
 		serial_printf("Virt: %x\n", (Uint32)virtual_addr);
 		serial_printf("Dir Index: %d\n", page_dir_index);
 		serial_printf("Tbl Index: %d\n", page_tbl_index);
-		/*serial_printf("Value: %x\n", pt[page_tbl_index-1]);
-		serial_printf("Value: %x\n", pt[page_tbl_index-2]);
-		serial_printf("Value: %x\n", pt[page_tbl_index]);
-		serial_printf("Value: %x\n", pt[page_tbl_index+1]);
-		serial_printf("Value: %x\n", pt[page_tbl_index+2]);
-		*/
+
 		for (int i = 0; i < 1024; ++i)
 		{
 			serial_printf("i: %d - Value: %x\n", i, pt[i]);
 		}
+
+		c_printf("Phys: %x - Virt: %x\n", physical_addr, virtual_addr);
+		c_printf("Dir IDX: %d - Tbl IDX: %d\n", page_dir_index, page_tbl_index);
 		_kpanic("Paging", "A page has already been mapped here!\n", 0);
 	}
 	

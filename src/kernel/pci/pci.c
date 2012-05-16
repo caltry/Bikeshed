@@ -296,7 +296,7 @@ Uint32 __pci_get_memory_size(pci_config_t* config)
 					/* We need to mark these addresses as used, and identity map them! */
 					void* start_addr = (void *)(orig & 0xFFFFF000);
 					// Skip addresses that are 0x0 or below 1MiB which is already identity mapped
-					if (start_addr != (void *)0x0 && start_addr > (void *)0x100000)
+				/*	if (start_addr != (void *)0x0 && start_addr > (void *)0x100000)
 					{
 						void* end_addr = start_addr + size;
 						for (; start_addr < end_addr; start_addr += PAGE_SIZE)
@@ -304,7 +304,7 @@ Uint32 __pci_get_memory_size(pci_config_t* config)
 							__phys_set_bit(start_addr);
 							__virt_map_page(start_addr, start_addr, PG_READ_WRITE);
 						}
-					}
+					}*/
 				}
 
 			}
