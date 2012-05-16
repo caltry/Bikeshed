@@ -430,6 +430,9 @@ load_loop:
 	call switch_to_protected_mode
 	.code32
 
+	/* Make sure interrupts aren't on when we start the kernel */
+	cli 
+
 	/* No more modules to load, lets jump to the kernel! */
 	movl kernel_location+BOOT_ADDRESS, %eax
 	push %eax

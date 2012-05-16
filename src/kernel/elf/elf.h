@@ -378,6 +378,10 @@ typedef struct {
 } Elf32_Phdr;
 /****/
 
+/* ELF program headers flags */
+#define PF_WRITE 0x2
+/****/
+
 /* ELF program types */
 #define PT_NULL 0 /* Array element is unused */
 #define PT_LOAD 1 /* Specifies a loadable segment. described by p_filesz and p_memsz. The bytes

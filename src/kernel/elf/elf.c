@@ -97,7 +97,13 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 			void* end_address   = (void *)(start_address + cur_phdr->p_memsz);
 			for (; start_address < end_address; start_address += PAGE_SIZE)
 			{
-				__virt_map_page(__phys_get_free_4k(), start_address, PG_READ_WRITE | PG_USER);
+				Uint32 flags = PG_USER;
+				if ((cur_phdr->p_flags & PF_WRITE) > 0)
+				{
+					flags |= PG_READ_WRITE;	
+				}
+
+				__virt_map_page(__phys_get_free_4k(), start_address, flags);
 			}
 
 			// Lets zero it out, we only need to zero the remaining bytes, p_filesz
@@ -131,6 +137,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	pcb->stack = (Uint32 *)NEW_STACK_LOCATION;
 	void* stack_start = (void *)pcb->stack;
 	void* stack_end   = (void *)pcb->stack + NEW_STACK_SIZE;
+	pcb->stack += STACK_SIZE;
 	for (; stack_start < stack_end; stack_start += PAGE_SIZE)
 	{
 		__virt_map_page(__phys_get_free_4k(), stack_start, PG_READ_WRITE | PG_USER);
@@ -140,7 +147,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	// TODO - We eventually want to setup a kernel stack so we can have RING 3->RING 0 access
 
 	// Throw exit as the return address as a safe guard
-	Uint32*  ptr = (Uint32 *)(NEW_STACK_LOCATION+NEW_STACK_SIZE);//((Uint32 *)(pcb->stack + 1)) - 2;
+	Uint32*  ptr = (Uint32 *)(NEW_STACK_LOCATION+NEW_STACK_SIZE-0x1000);//((Uint32 *)(pcb->stack + 1)) - 2;
 	//*ptr = (Uint32) exit;
 	serial_printf("ELF: setting up context\n");
 	// Setup the context
@@ -148,7 +155,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	pcb->context = context;
 	_kmemclr(context, sizeof(Context));
 
-	context->esp = NEW_STACK_LOCATION+STACK_SIZE-sizeof(context);
+	context->esp = NEW_STACK_LOCATION+STACK_SIZE;//-sizeof(context);
 	context->ebp = NEW_STACK_LOCATION+STACK_SIZE;
 	context->cs = GDT_CODE;
 	context->ss = GDT_STACK;
