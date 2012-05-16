@@ -159,6 +159,24 @@ void __virt_reset_page_directory(page_directory_t* page_directory)
 	{
 		__virt_unmap_page(address);
 	}
+
+	// Dump the new address mapping
+	Uint32* pd = (Uint32 *)0xFFFFF000;
+	for (int i = 0; i < 1024; ++i)
+	{
+		serial_printf("\tIndex: %d - Value: %x\n", i, pd[i]);
+		if (pd[i] != 0)
+		{
+			Uint32* pt = ((Uint32 *)0xFFC00000) + (0x400 * i); 
+			for (int j = 0; j < 1024; ++j)
+			{
+				if (pt[j] != 0)
+				{
+					serial_printf("\t\tIndex: %d - Value: %x\n", j, pt[j]);
+				}
+			}
+		}
+	}
 }
 
 void __virt_dealloc_page_directory(page_directory_t* page_directory)
@@ -172,9 +190,10 @@ void __virt_dealloc_page_directory(page_directory_t* page_directory)
 
 page_directory_t* __virt_clone_directory(page_directory_t* page_directory)
 {
+	serial_printf("Cloning directory\n");
 	// Need to somehow create a new page directory and clone it
 	// We need some scratch space while we're copying the currenty directory	
-	Uint32* scratch_pd  = (Uint32 *)(((KERNEL_LINK_ADDR+KERNEL_SIZE) & PAGE_SIZE) + 2*PAGE_SIZE);
+	Uint32* scratch_pd  = (Uint32 *)(((KERNEL_LINK_ADDR+KERNEL_SIZE) & 0xFFFFF000) + 2*PAGE_SIZE);
 	Uint32* scratch_pt  = (Uint32 *)(((void *)scratch_pd) + PAGE_SIZE);
 	Uint32* scratch_pte = (Uint32 *)(((void *)scratch_pt) + PAGE_SIZE);
 
@@ -183,11 +202,15 @@ page_directory_t* __virt_clone_directory(page_directory_t* page_directory)
 	__virt_map_page(phys_pd_address, scratch_pd, PG_READ_WRITE);
 	_kmemclr(scratch_pd, PAGE_SIZE);
 
+	serial_printf("Assigned scratch_pd\n");
+
 	// Allocate a page table for below 1MiB in case there are addresses being used
 	// from 1MiB-4MiB
 	void* phys_pt_address = __phys_get_free_4k();
 	__virt_map_page(phys_pt_address, scratch_pt, PG_READ_WRITE);
 	_kmemclr(scratch_pt, PAGE_SIZE);
+
+	serial_printf("Assigned scratch_pt\n");
 
 	// Now identity map the first 1MiB of addresses
 	void* address = (void *)0x0;
@@ -198,6 +221,8 @@ page_directory_t* __virt_clone_directory(page_directory_t* page_directory)
 
 	scratch_pd[0] = (Uint32)phys_pt_address | PG_PRESENT | PG_READ_WRITE;
 
+	serial_printf("Identity mapped the first 1MiB\n");
+
 	// Now copy the kernel's pages over		
 	// TODO - Go to the page table level and copy only whats needed
 	Uint32* kernel_pd = (Uint32 *)0xFFFFF000;
@@ -205,6 +230,8 @@ page_directory_t* __virt_clone_directory(page_directory_t* page_directory)
 	{
 		scratch_pd[i] = kernel_pd[i];
 	}
+
+	serial_printf("Identity mapped the kernel\n");
 
 	// Now copy + memcpy the rest of the pages in the middle
 	// We have to find the used addresses		
@@ -345,8 +372,7 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
 		*/
 		for (int i = 0; i < 1024; ++i)
 		{
-			serial_printf("i: %d - ", i);
-			serial_printf("Value: %x\n", pt[i]);
+			serial_printf("i: %d - Value: %x\n", i, pt[i]);
 		}
 		_kpanic("Paging", "A page has already been mapped here!\n", 0);
 	}
@@ -388,7 +414,7 @@ void _isr_page_fault(int vector, int code)
 	serial_string("\n");
 	serial_printf("OFFENDING ADDRESS: %x\n", _current->context->eip);
 	unsigned int cr2 = read_cr2();
-	serial_printf("Address: %X\n", cr2);
+	serial_printf("Address: %x\n", cr2);
 	serial_printf("Page Directory Entry: %d\n", (cr2 >> 22));
 	serial_printf("Page Table Entry:     %d\n", (cr2 >> 12) & 0x3FF);
 	c_printf("Address: 0x%x\n", cr2);

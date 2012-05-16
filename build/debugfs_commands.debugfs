@@ -3,4 +3,5 @@ write test.txt test.txt
 lcd etc
 mkdir etc
 cd etc
+write initproc initproc
 write motd motd

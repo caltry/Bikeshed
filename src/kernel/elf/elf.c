@@ -9,11 +9,11 @@
 #include "boot/bootstrap.h"
 #include "syscalls.h"
 #include "pcbs.h"
-
-extern void exit(void);
+#include "serial.h"
 
 Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 {
+	serial_printf("Elf: attempting to open: %s\n", file_name);
 	if (pcb == NULL || file_name == NULL) 
 	{
 		return BAD_PARAM;
@@ -31,12 +31,21 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 		   || elf32_hdr->e_magic != ELF_MAGIC_NUM /* Need the magic number! */
 		   || elf32_hdr->e_type != ET_EXEC /* Don't support relocatable or dynamic files yet */
 		   || elf32_hdr->e_machine != EM_386 /* Make sure it's for our architecture */
-		   || elf32_hdr->e_entry != 0x0 /* Need an entry point */
+		   || elf32_hdr->e_entry == 0x0 /* Need an entry point */
 		   || elf32_hdr->e_version != EV_CURRENT /* We don't support extensions right now */
 		   || elf32_hdr->e_phoff == 0 /* If there are no program headers, what do we load? */
 		   || elf32_hdr->e_phnum == 0) /* ... */
 		// || elf32_hdr->e_ehsize != sizeof(Elf32_Ehdr)) /* The header size should match our struct */
 	{
+		if (ext2_status != EXT2_READ_SUCCESS) { serial_printf("RETURN VALUE: %x\n", ext2_status); _kpanic("ELF", "Failed to open file successfully\n", 0); }
+		if (bytes_read < sizeof(Elf32_Ehdr)) _kpanic("ELF", "Read too small of a file!\n", 0);
+		if (elf32_hdr->e_magic != ELF_MAGIC_NUM) _kpanic("ELF", "Bad magic number!\n", 0);
+		if (elf32_hdr->e_type != ET_EXEC) _kpanic("ELF", "Not an executable ELF!\n", 0);
+		if (elf32_hdr->e_machine != EM_386) _kpanic("ELF", "Not a i386 ELF!\n", 0);
+		if (elf32_hdr->e_entry == 0x0) _kpanic("ELF", "Bad entry point!\n", 0);
+		if (elf32_hdr->e_version != EV_CURRENT) _kpanic("ELF", "Don't support non-current versions!\n", 0);
+		if (elf32_hdr->e_phoff == 0) _kpanic("ELF", "No program headers found!\n", 0);
+		if (elf32_hdr->e_phnum == 0) _kpanic("ELF", "Zero program headers!\n", 0);
 
 		_kpanic("ELF", "Couldn't open file!\n", 0);
 		// Problem opening the file
@@ -66,9 +75,11 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 		return BAD_PARAM;
 	}
 
+	serial_printf("ELF: resetting page directory\n");
 	// Cleanup the old processes page directory, we're replacing everything
-	__virt_reset_page_directory(pcb->page_directory);
+	//__virt_reset_page_directory(pcb->page_directory);
 
+	serial_printf("ELF: About to read the program sections\n");
 	/* We need to load all of the program sections now */
 	for (Int32 i = 0; i < elf32_hdr->e_phnum; ++i)
 	{
@@ -76,9 +87,10 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 
 		if (cur_phdr->p_type == PT_LOAD)
 		{
+			serial_printf("\tELF: loading program section: %d\n", i);
 			// This is a loadable section
-			if (cur_phdr->p_align > 1)
-				_kpanic("ELF", "ELF loader doesn't support aligned program segments\n", 0);
+			//if (cur_phdr->p_align > 1)
+			//	_kpanic("ELF", "ELF loader doesn't support aligned program segments\n", 0);
 
 			// Map these pages into memory!
 			void* start_address = (void *)cur_phdr->p_vaddr;
@@ -105,6 +117,8 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 					_kpanic("ELF", "failed to read program section\n", 0);
 				}
 			}
+		} else {
+			serial_printf("\tELF: Non-loadable section: %d\n", i);
 		}
 	}
 
@@ -113,6 +127,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	// Allocate a stack and map some pages for it
 #define NEW_STACK_LOCATION 0x2000000
 #define NEW_STACK_SIZE 0x4000 /* 16 KiB */
+	serial_printf("ELF: Allocating stack\n");
 	pcb->stack = (Uint32 *)NEW_STACK_LOCATION;
 	void* stack_start = (void *)pcb->stack;
 	void* stack_end   = (void *)pcb->stack + NEW_STACK_SIZE;
@@ -125,16 +140,16 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	// TODO - We eventually want to setup a kernel stack so we can have RING 3->RING 0 access
 
 	// Throw exit as the return address as a safe guard
-	Uint32*  ptr = (Uint32 *)(NEW_STACK_LOCATION);//((Uint32 *)(pcb->stack + 1)) - 2;
-	*ptr = (Uint32) exit;
-
+	Uint32*  ptr = (Uint32 *)(NEW_STACK_LOCATION+NEW_STACK_SIZE);//((Uint32 *)(pcb->stack + 1)) - 2;
+	//*ptr = (Uint32) exit;
+	serial_printf("ELF: setting up context\n");
 	// Setup the context
 	Context* context = ((Context *) ptr) - 1;
 	pcb->context = context;
 	_kmemclr(context, sizeof(Context));
 
-	context->esp = NEW_STACK_LOCATION;
-	context->ebp = NEW_STACK_LOCATION;
+	context->esp = NEW_STACK_LOCATION+STACK_SIZE-sizeof(context);
+	context->ebp = NEW_STACK_LOCATION+STACK_SIZE;
 	context->cs = GDT_CODE;
 	context->ss = GDT_STACK;
 	context->ds = GDT_DATA;
@@ -142,12 +157,14 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	context->fs = GDT_DATA;
 	context->gs = GDT_DATA;
 
+	serial_printf("ELF: setting entry point: %x\n", elf32_hdr->e_entry);
  	// Entry point
 	context->eip = elf32_hdr->e_entry;
 
 	// Setup the rest of the PCB
 	pcb->context->eflags = DEFAULT_EFLAGS;
 
+	serial_printf("ELF: about to return\n");
 	__kfree(pheaders);
 	__kfree(elf32_hdr);
 	return SUCCESS;

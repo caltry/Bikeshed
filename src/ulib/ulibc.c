@@ -13,6 +13,9 @@
 #include "defs.h"
 #include "ulib.h"
 
+#define c_printf(...)
+#define prt_status(...)
+
 /*
 ** PRIVATE DEFINITIONS
 */
@@ -61,6 +64,7 @@ const char *ustatus_strings[] = {
 ** the desired status value should be printed
 */
 
+/*
 void prt_status( char *msg, Status stat ) {
 
 	if( msg == NULL ) {
@@ -74,6 +78,7 @@ void prt_status( char *msg, Status stat ) {
 	}
 
 }
+*/
 
 /*
 ** spawnp - create a new process running a different program

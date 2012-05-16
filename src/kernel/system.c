@@ -304,12 +304,6 @@ void _init( void ) {
 	}
 	*/
 
-	/* HALT here, processes exec is currently broken */
-	while (1) {
-		asm volatile("cli");
-		asm volatile("hlt");
-	}
-
 	/*
 	** Next, set up various PCB fields
 	*/
@@ -317,11 +311,11 @@ void _init( void ) {
 	pcb->pid  = _next_pid++;
 	pcb->ppid = pcb->pid;
 	pcb->priority = PRIO_HIGH;	// init() should finish first
-	pcb->page_directory = __virt_clone_directory(__virt_kpage_directory);
+	pcb->page_directory = __virt_kpage_directory;//__virt_clone_directory(__virt_kpage_directory);
 	pcb->stack = 0;
 
 	Status status;
-	if ((status = _elf_load_from_file(pcb, "/init_process")) != SUCCESS)
+	if ((status = _elf_load_from_file(pcb, "/etc/initproc")) != SUCCESS)
 	{
 		_kpanic("_init", "Failed to load init process: %s\n", status);
 	}

@@ -2,10 +2,53 @@
 */
 
 typedef unsigned short uint16_t;
+/*
+
+void put_string(int x, int y, const char* c)
+{
+	while (*c != 0)
+	{
+		put_char(x, y, *c);
+
+		++x;
+		if (x > 80)
+		{
+			x = 0;
+			y++;
+		}
+
+		if (y > 20)
+		{
+			y = 0;
+		}
+
+		++c;
+	}
+}
+
+void place_msg()
+{
+
+	*((uint16_t *) 0xB8000) = 0x7020;	
+}
+*/
+
+#define VIDEO 0xB8000
+void put_char(int x, int y, char c)
+{
+	*((uint16_t *)(VIDEO + y*80 + x)) = (0x70 << 8) | c;
+}
 
 int main()
 {
-	*((uint16_t *) 0xB8000) = 0x7020;	
+	//place_msg();
+//	*((uint16_t *) 0xB8000) = 0x7020;	
+	put_char(0, 0, 'W');
+//	put_char(3, 0, 'c');
+//	put_char(4, 0, 'o');
+//	put_char(5, 0, 'm');
+//	put_char(6, 0, 'e');
+//	*((uint16_t *) 0xB8002) = 0x7020;	
 
 	while (1) {
 		asm volatile("hlt"); // Do nothing...
