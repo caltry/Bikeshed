@@ -28,7 +28,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	// Need to copy the file_name into kernel land...because we're killing userland!
 	const char* temp = file_name;
 	file_name = (const char *)__kmalloc(strlen(temp) + 1);
-	_kmemcpy(file_name, temp, strlen(temp)+1); // Copy the null terminator as well
+	_kmemcpy((void *)file_name, (void *)temp, strlen(temp)+1); // Copy the null terminator as well
 
 	serial_printf("Elf: attempting to open: %s\n", file_name);
 	if (pcb == NULL || file_name == NULL) 
@@ -95,6 +95,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	serial_printf("ELF: resetting page directory\n");
 	// Cleanup the old processes page directory, we're replacing everything
 	__virt_reset_page_directory(pcb->page_directory);
+	__virt_switch_page_directory(pcb->page_directory);
 
 	serial_printf("ELF: About to read the program sections\n");
 	/* We need to load all of the program sections now */
@@ -212,6 +213,6 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	serial_printf("ELF: about to return\n");
 	__kfree(pheaders);
 	__kfree(elf32_hdr);
-	__kfree(file_name);
+	__kfree((void *)file_name);
 	return SUCCESS;
 }
