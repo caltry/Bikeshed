@@ -69,6 +69,10 @@ SYSCALL(sem_destroy)
 SYSCALL(sem_post)
 SYSCALL(sem_wait)
 SYSCALL(sem_try_wait)
+SYSCALL(lock_init)
+SYSCALL(lock_destroy)
+SYSCALL(lock_lock)
+SYSCALL(lock_unlock)
 
 // This is a bogus system call; it's here so that we can test
 // our handling of out-of-range syscall codes in the syscall ISR.

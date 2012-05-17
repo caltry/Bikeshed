@@ -14,7 +14,7 @@
 #include "semaphores.h"
 #include "scheduler.h"
 #include "queues.h"
-#include "klibc.c"
+#include "klib.h"
 
 
 //#define TRACE_SEMAPHORES

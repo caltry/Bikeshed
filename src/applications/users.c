@@ -5,7 +5,7 @@
 **
 ** Author:	4003-506 class of 20133
 **
-** Contributor:
+** Contributor: Chris Hossenlopp <crh5026@rit.edu>
 **
 ** Description:	User routines.
 */
@@ -66,7 +66,8 @@ void user_s( void ); void user_t( void ); void user_u( void );
 void user_v( void ); void user_w( void ); void user_x( void );
 void user_y( void ); void user_z( void ); void user_sem_test( void );
 void user_sem_test_read( void ); void user_sem_test_destroy( void );
-void user_sem_test_try_wait( void );
+void user_sem_test_try_wait( void ); void user_lock_test_init( void );
+void user_lock_test_read( void ); void user_lock_test_write( void );
 
 /*
 ** Users A, B, and C are identical, except for the character they
@@ -934,6 +935,221 @@ void user_sem_test_try_wait( void ) {
 	}
 }
 
+
+
+void user_lock_test_init( void ) {
+	c_puts("User lock_test_init started\n");
+	Status status;
+	Lock lock;
+
+	// get the lock
+	status = lock_init(&lock);
+	if ( status == SUCCESS ) {
+		c_printf("User lock_test_init lock created with key %d\n", lock);
+	} else {
+		prt_status( "User lock_test_init lock_init status %s\n", status );
+		exit();
+	}
+	exit();
+}
+
+void user_lock_test_read( void ) {
+	c_puts("User lock_test_read started\n");
+	Lock lock;
+	Status status;
+	
+
+	// get the lock
+	status = lock_init(&lock);
+	if ( status == SUCCESS ) {
+		c_printf("User lock_test_read lock created with key %d\n", lock);
+	} else {
+		prt_status( "User lock_test_read lock_init status %s\n", status );
+		exit();
+	}
+
+	status = lock_lock( lock, LOCK_READ );
+	if ( status == SUCCESS ) {
+		prt_status( "User lock_test_read lock_lock status %s\n", status );
+	} else {
+		prt_status( "User lock_test_read lock_lock status FAILED(%s)\n", status );
+		exit();
+	}
+
+	c_puts("User lock_test_read is doing some critical reading.\n");
+
+	status = lock_unlock( lock, LOCK_READ );
+	if ( status == SUCCESS ) {
+		prt_status( "User lock_test_read lock_unlock status %s\n", status );
+	} else {
+		prt_status( "User lock_test_read lock_unlock status FAILED(%s)\n", status );
+		exit();
+	}
+
+	exit();
+}
+
+void user_lock_test_write_read( void ) {
+	Status status;
+	Pid pid;
+	Lock lock;
+	
+	c_puts("User lock_test_write_read started\n");
+
+	// get the lock
+	status = lock_init(&lock);
+	if ( status == SUCCESS ) {
+		c_printf("User lock_test_write_read lock created with key %d\n", lock);
+	} else {
+		prt_status( "User lock_test_write_read lock_init status %s\n", status );
+		exit();
+	}
+
+	// lock for writing
+	status = lock_lock( lock, LOCK_WRITE );
+	if ( status == SUCCESS ) {
+		prt_status( "User lock_test_write_read lock_lock status %s\n", status );
+	} else {
+		prt_status( "User lock_test_write_read lock_lock status FAILED(%s)\n", status );
+		exit();
+	}
+
+	c_printf( "User lock_test_write_read(PreFrk) has lock with id %d\n", lock);
+	// fork
+	status = fork( &pid );
+	if ( status == SUCCESS) {
+		if ( pid > 0) {
+			c_printf( "User lock_test_write_read(Parent) has lock with id %d\n", lock);
+			// in parent 
+			sleep( 2 );
+
+			status = lock_unlock( lock, LOCK_WRITE );
+			if ( status == SUCCESS ) {
+				prt_status( "User lock_test_write_read(Parent) lock_unlock status %s\n", status );
+			} else {
+				prt_status( "User lock_test_write_read(Parent) lock_unlock status FAILED(%s)\n", status );
+				exit();
+			}
+
+		} else {
+			c_printf( "User lock_test_write_read(Child ) has lock with id %d\n", lock);
+			// in child
+			status = lock_lock( lock, LOCK_READ );
+			if ( status == SUCCESS ) {
+				prt_status( "User lock_test_write_read(Child) lock_lock status %s\n", status );
+			} else {
+				prt_status( "User lock_test_write_read(Child) lock_lock status FAILED(%s)\n", status );
+				exit();
+			}
+
+			c_puts( "User lock_test_write_read(Child) doing critical reading\n" );
+
+			status = lock_unlock( lock, LOCK_READ );
+			if ( status == SUCCESS ) {
+				prt_status( "User lock_test_write_read(Child) lock_unlock status %s\n", status );
+			} else {
+				prt_status( "User lock_test_write_read(Child) lock_unlock status FAILED(%s)\n", status );
+				exit();
+			}
+
+		}
+	} else {
+		prt_status( "User lock_test_write_read fork status FAILED(%s)\n", status );
+	}
+
+	exit();
+}
+
+
+void user_lock_test_read_write( void ) {
+	Status status;
+	Pid pid;
+	Lock lock;
+	
+	c_puts("User lock_test_read_write started\n");
+
+	// get the lock
+	status = lock_init(&lock);
+	if ( status == SUCCESS ) {
+		c_printf("User lock_test_read_write lock created with key %d\n", lock);
+	} else {
+		prt_status( "User lock_test_read_write lock_init status %s\n", status );
+		exit();
+	}
+
+	// lock for reading
+	status = lock_lock( lock, LOCK_READ );
+	if ( status == SUCCESS ) {
+		prt_status( "User lock_test_read_write lock_lock(LOCK_READ) status %s\n", status );
+	} else {
+		prt_status( "User lock_test_read_write lock_lock(LOCK_READ) status FAILED(%s)\n", status );
+		exit();
+	}
+
+	c_printf( "User lock_test_read_write(PreFrk) has lock with id %d\n", lock);
+	// fork
+	status = fork( &pid );
+	if ( status == SUCCESS) {
+		if ( pid > 0) {
+			c_printf( "User lock_test_read_write(Parent) has lock with id %d\n", lock);
+			// in parent 
+			c_puts( "User lock_test_read_write(Parent) is doing critial reading\n");
+			sleep( 2 );
+
+			status = lock_unlock( lock, LOCK_READ );
+			if ( status == SUCCESS ) {
+				prt_status( "User lock_test_read_write(Parent) lock_unlock(LOCK_READ) status %s\n", status );
+			} else {
+				prt_status( "User lock_test_read_write(Parent) lock_unlock(LOCK_READ) status FAILED(%s)\n", status );
+				exit();
+			}
+
+			status = lock_lock( lock, LOCK_READ );
+			if ( status == SUCCESS ) {
+				prt_status( "User lock_test_read_write(Parent) lock_lock(LOCK_READ) status %s\n", status );
+			} else {
+				prt_status( "User lock_test_read_write(Parent) lock_lock(LOCK_READ) status FAILED(%s)\n", status );
+				exit();
+			}
+
+			status = lock_unlock( lock, LOCK_READ );
+			if ( status == SUCCESS ) {
+				prt_status( "User lock_test_read_write(Parent) lock_unlock(LOCK_READ) status %s\n", status );
+			} else {
+				prt_status( "User lock_test_read_write(Parent) lock_unlock(LOCK_READ) status FAILED(%s)\n", status );
+				exit();
+			}
+
+		} else {
+			c_printf( "User lock_test_read_write(Child ) has lock with id %d\n", lock);
+			// in child
+			status = lock_lock( lock, LOCK_WRITE );
+			if ( status == SUCCESS ) {
+				prt_status( "User lock_test_read_write(Child) lock_lock(LOCK_WRITE) status %s\n", status );
+			} else {
+				prt_status( "User lock_test_read_write(Child) lock_lock(LOCK_WRITE) status FAILED(%s)\n", status );
+				exit();
+			}
+
+			c_puts( "User lock_test_read_write(Child) doing critical writing\n" );
+			sleep(2);
+
+			status = lock_unlock( lock, LOCK_WRITE );
+			if ( status == SUCCESS ) {
+				prt_status( "User lock_test_read_write(Child) lock_unlock(LOCK_WRITE) status %s\n", status );
+			} else {
+				prt_status( "User lock_test_read_write(Child) lock_unlock(LOCK_WRITE) status FAILED(%s)\n", status );
+				exit();
+			}
+
+		}
+	} else {
+		prt_status( "User lock_test_read_write fork status FAILED(%s)\n", status );
+	}
+
+	exit();
+}
+
 /*
 ** SYSTEM PROCESSES
 */
@@ -1131,6 +1347,34 @@ void init( void ) {
 	status = spawn( &pid, user_sem_test_try_wait );
 	if( status != SUCCESS ) {
 		prt_status( "init: can't spawn() user sem_test_try_wait, status %s\n", status );
+	}
+#endif
+
+#ifdef SPAWN_LOCK_TEST_INIT
+	status = spawn( &pid, user_lock_test_init );
+	if( status != SUCCESS ) {
+		prt_status( "init: can't spawn() user lock_test_init, status %s\n", status );
+	}
+#endif
+
+#ifdef SPAWN_LOCK_TEST_READ
+	status = spawn( &pid, user_lock_test_read );
+	if( status != SUCCESS ) {
+		prt_status( "init: can't spawn() user lock_test_read, status %s\n", status );
+	}
+#endif
+
+#ifdef SPAWN_LOCK_TEST_WRITE_READ
+	status = spawn( &pid, user_lock_test_write_read );
+	if( status != SUCCESS ) {
+		prt_status( "init: can't spawn() user user_lock_test_write_read, status %s\n", status );
+	}
+#endif
+
+#ifdef SPAWN_LOCK_TEST_READ_WRITE
+	status = spawn( &pid, user_lock_test_read_write );
+	if( status != SUCCESS ) {
+		prt_status( "init: can't spawn() user user_lock_test_read_write, status %s\n", status );
 	}
 #endif
 
