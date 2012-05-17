@@ -19,7 +19,7 @@ SECTIONS {
 
 	.text virt : AT(phys) {
 		code = .;
-		*(.text)
+		*(.text*)
 		*(.gnu.linkonce.t*)
 		. = ALIGN(4096);
 	}
@@ -34,19 +34,19 @@ SECTIONS {
 		end_dtors = .;
 
 		rodata = .;
-		*(.rodata)
+		*(.rodata*)
 	}
 
 	.data ALIGN(0x1000) : AT(phys + (data - code)) {
 		data = .;
-		*(.data)
+		*(.data*)
 	}
 
 	.bss ALIGN(0x1000) : AT(phys + (bss - code)) {
 		bss = .;
 		__bss_start = .;
 		*(COMMON)
-		*(.bss)
+		*(.bss*)
 		*(.gnu.linkonce.b*)
 
 		_end = .;
