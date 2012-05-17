@@ -32,12 +32,13 @@ void put_string(int x, int y, const char* message)
 
 //extern void set_time(unsigned int time);
 extern unsigned int fork(unsigned int* pid);
+extern unsigned int exec(const char* path);
 int main()
 {
 	put_string(0, 0, "Loaded an ELF and running C code!");
 	put_string(0, 1, "Program");
 
-	/*
+
 	unsigned int pid = -1;
 	if (fork(&pid) == 0)
 	{
@@ -45,31 +46,34 @@ int main()
 		{
 			// Child
 			put_string(10, 0, "CHILD!");
+			exec("/etc/welcome");
+			put_string(40, 0, "Child returned!?");
 		} else {
 			// Parent
 			put_string(20, 0, "PARENT!");
 		}
 	}
-	*/
+	
 
 
 //	*((uint16_t *) 0xB8002) = 0x7020;	
 //	*/
-
+/*
 	int posx = 0;
 	int posy = 0;
 	char c = 'A';
 	int state = 0;
+	*/
 	
 #define RIGHT 0
 #define DOWN 1
 #define LEFT 2
 #define UP 3
 	while (1) {
-		put_char(posx, posy, c);
+//		put_char(posx, posy, c);
 	//	uint16_t* addr = VIDEO_ADDR(posx, posy);
 	//	*addr = (0x70 << 8) | c;
-		switch (state)
+/*		switch (state)
 		{
 			case RIGHT:
 				posx++;
@@ -109,6 +113,7 @@ int main()
 				}
 				break;
 		}
+		*/
 		
 		asm volatile("hlt"); // Do nothing...
 	}

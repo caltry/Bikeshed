@@ -201,6 +201,10 @@ page_directory_t* __virt_clone_directory(page_directory_t* page_directory)
 	Uint32* scratch_pt  = (Uint32 *)(((void *)scratch_pd) + PAGE_SIZE);
 	Uint32* scratch_pte = (Uint32 *)(((void *)scratch_pt) + PAGE_SIZE);
 
+	__virt_clear_page(scratch_pd);
+	__virt_clear_page(scratch_pt);
+	__virt_clear_page(scratch_pte);
+
 	// Allocate the new page directory
 	void* phys_pd_address = __phys_get_free_4k();
 	__virt_map_page(phys_pd_address, scratch_pd, PG_READ_WRITE);
@@ -216,24 +220,72 @@ page_directory_t* __virt_clone_directory(page_directory_t* page_directory)
 
 	serial_printf("Assigned scratch_pt\n");
 
-	// Now identity map the first 1MiB of addresses
-	void* address = (void *)0x0;
-	for (Int32 i = 0; i < 256; ++i, address += PAGE_SIZE)
+	// TODO map below 1MiB copy 1MiB-4MiB - Now identity map the first 1MiB of addresses
+	Uint32* kernel_pd = (Uint32 *)0xFFFFF000;
+	Uint32* kernel_pt = ((Uint32 *)0xFFC00000) + (0x400 * 0); 
+	for (Int32 i = 0; i < 256; ++i)
 	{
-		scratch_pt[i] = (Uint32)address | PG_PRESENT | PG_READ_WRITE;
+		scratch_pt[i] = kernel_pt[i];
 	}
 
-	scratch_pd[0] = (Uint32)phys_pt_address | PG_PRESENT | PG_READ_WRITE;
+	// Now we need to physically copy any pages that are from 1MiB to 4MiB
+	void* address = (void *)0x100000;
+	for (Int32 i = 256; i < 1024; ++i, address += PAGE_SIZE)
+	{
+		if (kernel_pt[i] != 0)
+		{
+			// Need to copy
+			__virt_clear_page(scratch_pte);
+			void* phys_address = __phys_get_free_4k();
+			__virt_map_page(phys_address, scratch_pte, PG_READ_WRITE);
+			scratch_pt[i] = (Uint32)phys_address | (kernel_pt[i] & 0x1FF); // Copy the kernels flags as well
+
+			_kmemcpy(scratch_pte, address, PAGE_SIZE);
+		}
+	}
+
+	scratch_pd[0] = (Uint32)phys_pt_address | (kernel_pd[0] & 0x1FF); // Copy the kernel flags as well
 
 	serial_printf("Identity mapped the first 1MiB\n");
 
 	// Now copy the kernel's pages over		
-	// TODO - Go to the page table level and copy only whats needed
-	Uint32* kernel_pd = (Uint32 *)0xFFFFF000;
-	for (Int32 i = KERNEL_PAGE_DIR_INDEX; i < 1024; ++i)
+	for (Int32 i = KERNEL_PAGE_DIR_INDEX+1; i < 1024; ++i)
 	{
 		scratch_pd[i] = kernel_pd[i];
 	}
+
+	serial_printf("Mapped all after the kernels page\n");
+
+	// Copy only what's needed!
+	// We need to physically copy the first few pages
+	address = (void *)(KERNEL_PAGE_DIR_INDEX * 4 * 1024 * 1024);
+	phys_pt_address = __phys_get_free_4k();
+	__virt_clear_page(scratch_pt);
+	__virt_map_page(phys_pt_address, scratch_pt, PG_READ_WRITE);
+	kernel_pt = ((Uint32 *)0xFFC00000) + (0x400 * KERNEL_PAGE_DIR_INDEX); 
+	for (Uint32 i = 0; i < KERNEL_PAGE_TBL_START; ++i, address += PAGE_SIZE)
+	{
+		if (kernel_pt[i] != 0)
+		{
+			serial_printf("Attempting to map address: %x, index: %d\n", address, i);
+			__virt_clear_page(scratch_pte);
+			void* phys_address = __phys_get_free_4k();
+			__virt_map_page(phys_address, scratch_pte, PG_READ_WRITE);
+			scratch_pt[i] = (Uint32)phys_address | (kernel_pt[i] & 0x1FF); // Copy the kernel flags as well
+
+			_kmemcpy(scratch_pte, address, PAGE_SIZE);
+		}
+	}
+
+	serial_printf("Mapped start of kernels page\n");
+
+	// We can just steal the address of the remaining table entries as it's kernel area now
+	for (Int32 i = KERNEL_PAGE_TBL_START; i < 1024; ++i)
+	{
+		scratch_pt[i] = kernel_pt[i];
+	}
+
+	scratch_pd[KERNEL_PAGE_DIR_INDEX] = (Uint32)phys_pt_address | (kernel_pd[KERNEL_PAGE_DIR_INDEX] & 0x1FF); // Copy the kernel flags as well
 
 	serial_printf("Identity mapped the kernel\n");
 
@@ -248,22 +300,23 @@ page_directory_t* __virt_clone_directory(page_directory_t* page_directory)
 		// Only copy the things we need
 		if (kernel_pd[page_dir_idx] != 0)
 		{
+			serial_printf("About to copy: %x - page_dir_idx: %d\n", cur_address, page_dir_idx);
 			// Make a new entry in the new page directory
-			scratch_pd[page_dir_idx] = (Uint32)__phys_get_free_4k() | PG_READ_WRITE | PG_PRESENT;
-			__virt_unmap_page(scratch_pt); // Change the current page table we're looking at
+			scratch_pd[page_dir_idx] = (Uint32)__phys_get_free_4k() | (kernel_pd[page_dir_idx] & 0x1FF);
+			__virt_clear_page(scratch_pt); // Change the current page table we're looking at
 			__virt_map_page((void *)scratch_pd[page_dir_idx], scratch_pt, PG_READ_WRITE);
 			_kmemclr(scratch_pt, PAGE_SIZE);
 
 			// TODO - What about copying the first few bytes inside of the kernel's PT? Up to KERNEL_PAGE_TBL_START
 
 			// Now we want to loop through this page table
-			Uint32* kernel_pt = ((Uint32 *)0xFFC00000) + (0x400 * page_dir_idx); 
+			kernel_pt = ((Uint32 *)0xFFC00000) + (0x400 * page_dir_idx); 
 			for (Uint32 page_tbl_idx = ADDR_TO_PT_IDX(cur_address); page_tbl_idx < 1024; ++page_tbl_idx, cur_address += 4096)
 			{
 				if (kernel_pt[page_tbl_idx] != 0)
 				{
-					scratch_pt[page_tbl_idx] = (Uint32)__phys_get_free_4k() | PG_READ_WRITE | PG_PRESENT;
-					__virt_unmap_page(scratch_pte); // Change the current page table entry we're looking at
+					scratch_pt[page_tbl_idx] = (Uint32)__phys_get_free_4k() | (kernel_pt[page_tbl_idx] & 0x1FF);
+					__virt_clear_page(scratch_pte); // Change the current page table entry we're looking at
 					__virt_map_page((void *)scratch_pt[page_tbl_idx], scratch_pte, PG_READ_WRITE);
 
 					// Copy from the current address into scratch_pte
@@ -275,12 +328,33 @@ page_directory_t* __virt_clone_directory(page_directory_t* page_directory)
 		}
 	}
 
+	// lastly set the last entry in the scratch_pd to point to itself
+	scratch_pd[1023] = (Uint32)phys_pd_address | PG_READ_WRITE | PG_PRESENT;
+
+	// TODO - Remove the temporary slots from the scratch_pd as well
+
 	// Unmap all the temporary pages, All changes to kernel tables affect all processes
-	__virt_unmap_page(scratch_pd);
-	__virt_unmap_page(scratch_pt);
-	__virt_unmap_page(scratch_pte);
+	__virt_clear_page(scratch_pd);
+	__virt_clear_page(scratch_pt);
+	__virt_clear_page(scratch_pte);
 
 	return phys_pd_address;
+}
+
+void __virt_clear_page(void *virtual_addr)
+{
+	Uint32 page_dir_index = (Uint32)virtual_addr >> 22;
+	Uint32 page_tbl_index = (Uint32)virtual_addr >> 12 & 0x03FF;
+
+	Uint32 *pd = (Uint32 *)0xFFFFF000;
+	if ((pd[page_dir_index] & PG_PRESENT) == 0)
+	{
+		return;
+	}
+
+	Uint32 *pt = ((Uint32 *)0xFFC00000) + (0x400 * page_dir_index);
+	pt[page_tbl_index] = 0;
+	asm volatile("invlpg %0"::"m" (*(char *)virtual_addr));	
 }
 
 void __virt_unmap_page(void *virtual_addr)
@@ -321,8 +395,9 @@ void __virt_unmap_page(void *virtual_addr)
 
 	if (i == 1024)
 	{
-		pd[page_dir_index] &= ~PG_PRESENT;
+		//pd[page_dir_index] &= ~PG_PRESENT;
 		__phys_unset_bit((void *)pd[page_dir_index]);
+		pd[page_dir_index] = 0;
 	}
 
 	// Now you need to flush the entry in the TBL
@@ -415,6 +490,7 @@ void _isr_page_fault(int vector, int code)
 	serial_string(page_table_errors[code & 0x7]);
 	serial_string("\n");
 	serial_printf("OFFENDING ADDRESS: %x\n", _current->context->eip);
+	serial_printf("Offending process: %d\n", _current->pid);
 	unsigned int cr2 = read_cr2();
 	serial_printf("Address: %x\n", cr2);
 	serial_printf("Page Directory Entry: %d\n", (cr2 >> 22));

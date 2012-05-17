@@ -11,8 +11,25 @@
 #include "pcbs.h"
 #include "serial.h"
 
+static Uint32 strlen(const char* str)
+{
+	Uint32 length = 0;
+	while (*str != 0)
+	{
+		++length;
+		++str;
+	}
+
+	return length;
+}
+
 Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 {
+	// Need to copy the file_name into kernel land...because we're killing userland!
+	const char* temp = file_name;
+	file_name = (const char *)__kmalloc(strlen(temp) + 1);
+	_kmemcpy(file_name, temp, strlen(temp)+1); // Copy the null terminator as well
+
 	serial_printf("Elf: attempting to open: %s\n", file_name);
 	if (pcb == NULL || file_name == NULL) 
 	{
@@ -77,7 +94,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 
 	serial_printf("ELF: resetting page directory\n");
 	// Cleanup the old processes page directory, we're replacing everything
-	//__virt_reset_page_directory(pcb->page_directory);
+	__virt_reset_page_directory(pcb->page_directory);
 
 	serial_printf("ELF: About to read the program sections\n");
 	/* We need to load all of the program sections now */
@@ -109,23 +126,31 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 				}
 
 				serial_printf("Checking address: %x\n", __virt_get_phys_addr(start_address));
+				serial_printf("Start address: %x\n", start_address);
 				if (__virt_get_phys_addr(start_address) == (void *)0xFFFFFFFF)
 				{
+					serial_printf("ELF: Mapping page: %x - flags: %x\n", start_address, flags);
 					__virt_map_page(__phys_get_free_4k(), start_address, flags);
+					serial_printf("ELF: Done mapping page\n");
 				} else {
 					serial_printf("Address: %x already mapped\n", start_address);
 				}
 			}
 
+			serial_printf("ELF: about to memcpy program section: %x of size %d\n", cur_phdr->p_vaddr, cur_phdr->p_memsz);
 			// Lets zero it out, we only need to zero the remaining bytes, p_filesz
 			// may be zero for data sections, in this case the memory should be zeroed
 			//_kmemclr((void *)(cur_phdr->p_vaddr + (cur_phdr->p_memsz - cur_phdr->p_filesz)), 
 			//		cur_phdr->p_memsz - cur_phdr->p_filesz);
 			_kmemclr((void *)cur_phdr->p_vaddr, cur_phdr->p_memsz);
 
+			serial_printf("ELF: done memory copying: %s\n", file_name);
+
 			// Now we have to read it in from the file
 			if (cur_phdr->p_filesz > 0)
 			{
+				serial_printf("ELF: about to read from disk: %s - copy to: %x - size: %d\n",
+						file_name, cur_phdr->p_vaddr, cur_phdr->p_filesz);
 				ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)cur_phdr->p_vaddr, 
 						&bytes_read, cur_phdr->p_offset, cur_phdr->p_filesz);
 
@@ -187,5 +212,6 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	serial_printf("ELF: about to return\n");
 	__kfree(pheaders);
 	__kfree(elf32_hdr);
+	__kfree(file_name);
 	return SUCCESS;
 }

@@ -319,14 +319,19 @@ void _init( void ) {
 	pcb->pid  = _next_pid++;
 	pcb->ppid = pcb->pid;
 	pcb->priority = PRIO_HIGH;	// init() should finish first
-	pcb->page_directory = __virt_kpage_directory;//__virt_clone_directory(__virt_kpage_directory);
+	pcb->page_directory = __virt_clone_directory(__virt_kpage_directory);
+	__virt_switch_page_directory(pcb->page_directory);
 	pcb->stack = 0;
 
 	Status status;
-	if ((status = _elf_load_from_file(pcb, "/etc/initproc")) != SUCCESS)
+	char file_path[] ="/etc/initproc";
+	if ((status = _elf_load_from_file(pcb, &file_path[0])) != SUCCESS)
 	{
 		_kpanic("_init", "Failed to load init process: %s\n", status);
 	}
+
+	//__virt_reset_page_directory(pcb->page_directory);
+	//asm volatile("hlt");
 
 	/*
 	** Set up the initial process context.
