@@ -16,7 +16,6 @@
 #include "scheduler.h"
 
 #include "video.h"
-#include "graphics.h"
 
 #include "gconsole.h"
 
@@ -537,7 +536,7 @@ void gconsole_flush(void) {
 
 
 void gconsole_draw(unsigned int x, unsigned int y) {
-	if (kScreen != NULL) {
+	/*if (kScreen != NULL) {
 		// Draw the window background
 		fill_rect(kScreen, x, y, SCREEN_MAX_X * 12, SCREEN_MAX_Y * 16, 0x3C5D5F);
 		
@@ -554,6 +553,6 @@ void gconsole_draw(unsigned int x, unsigned int y) {
 		//sem_wait(repaint_sem);
 		//dirty = 0;
 		//sem_post(repaint_sem);
-	}
+	}*/
 }
 
