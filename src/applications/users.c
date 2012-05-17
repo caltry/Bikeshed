@@ -14,7 +14,7 @@
 
 #include "users.h"
 
-#include "video.h"
+#include "desktop.h"
 #include "gconsole.h"
 
 /*
@@ -961,7 +961,7 @@ void init( void ) {
 	if( status != SUCCESS ) {
 		prt_status( "init: can't fork() _video_run, status %s\n", status );
 	} else if( pid == 0 ) {
-		status = exec( _video_run );
+		status = exec( _desktop_run );
 		prt_status( "init: can't exec() _video_run, status %s\n", status );
 		exit();
 	}

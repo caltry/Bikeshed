@@ -51,6 +51,7 @@
 void _vesa_load_info(VesaControllerInfo *info) {
 	Registers regs = {di: (Uint16)((Uint32)info), ax: GET_CONTROLLER_INFO};
 	_bios_call(0x10, &regs);
+	info->video_modes = SEGMENTED_TO_LINEAR(info->video_modes);
 
 	/* Make sure the call succeeded */
 	if (regs.ax != 0x4F) {

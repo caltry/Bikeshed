@@ -15,6 +15,8 @@
 ** General C definitions
 */
 
+#define FRAMEBUFFER_ADDRESS			0xb0000000
+
 /*
 ** Types
 */
@@ -22,7 +24,7 @@
 typedef struct screen {
 	Uint16 *frame_buffer;
 	Uint16 *back_buffer;
-	Sem buffer_lock;
+	Sem *buffer_lock;
 
 	Uint16 width;
 	Uint16 height;
@@ -35,7 +37,7 @@ typedef struct screen {
 ** Globals
 */
 
-Screen *kScreen;
+extern Screen *kScreen;
 
 /*
 ** Prototypes

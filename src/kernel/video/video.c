@@ -13,43 +13,13 @@
 #include "ulib.h"
 
 #include "vesa.h"
-#include "graphics.h"
 #include "gconsole.h"
 
 #include "video.h"
 
 
-#define TRACE_VIDEO
-#ifdef TRACE_VIDEO
-#	define TRACE(...) c_printf(__VA_ARGS__)
-#else
-#	define TRACE(...) ;
-#endif
+Screen *kScreen;
 
-
-/*
-** PRIVATE DEFINITIONS
-*/
-
-/*
-** PRIVATE DATA TYPES
-*/
-
-/*
-** PRIVATE GLOBAL VARIABLES
-*/
-
-/*
-** PUBLIC GLOBAL VARIABLES
-*/
-
-/*
-** PRIVATE FUNCTIONS
-*/
-
-/*
-** PUBLIC FUNCTIONS
-*/
 
 Status _video_init(void) {
 	// Load the vesa controller information
@@ -60,6 +30,7 @@ Status _video_init(void) {
 	// Determine the video mode to use
 	Uint16 *modes = (Uint16 *)(info->video_modes);
 	Uint16 mode_num = _vesa_choose_mode(modes, 1024, 768);
+	//Uint16 mode_num = 283;
 
 	VesaModeInfo *mode = (VesaModeInfo *)VESA_MODE_ADDRESS;
 	_vesa_load_mode_info(mode_num, mode);
@@ -75,22 +46,28 @@ Status _video_init(void) {
 	kScreen->size = mode->y_resolution * mode->pitch;
 
 	// Set up the back buffer
-	c_printf("size: %d\n", kScreen->size);
 	kScreen->back_buffer = __kmalloc(kScreen->size);
 	sem_init(kScreen->buffer_lock);
 	sem_post(kScreen->buffer_lock);
 
 	// Make sure pages are identity mapped for the screen
-	for (Uint32 address = 0; address < kScreen->size; address += 2048) {
-		__virt_map_page((void *)(kScreen->frame_buffer + address),
-			(void *)(kScreen->frame_buffer + address), READ_WRITE | PRESENT);
+	for (Uint32 address = 0; address < (kScreen->size + 4096); address += 4096) {
+		//c_printf("mapping: %x to %x\n", (Uint32)((Uint32)(kScreen->frame_buffer) + address),
+		//	(Uint32)((Uint32)FRAMEBUFFER_ADDRESS + address));
+
+		__virt_map_page((void *)(Uint32)((Uint32)(kScreen->frame_buffer) + address),
+			(void *)(Uint32)((Uint32)FRAMEBUFFER_ADDRESS + address), READ_WRITE | PRESENT);
 	}
+	//c_printf("screen size: %d", kScreen->size);
+
+	kScreen->frame_buffer = (Uint16 *)((Uint32)FRAMEBUFFER_ADDRESS);
 
 	// Switch to the mode
 	_vesa_select_mode(mode_num);
 
-	// Create the default screen background
-	clear_screen(kScreen, 0x6B8A8B);
+	// Clear the background
+	_kmemclr(kScreen->frame_buffer, kScreen->size);
+	_kmemclr(kScreen->back_buffer, kScreen->size);
 
 	return SUCCESS;
 }
@@ -106,28 +83,4 @@ Uint16 *_video_aquire_buffer(Screen *screen) {
 
 void _video_release_buffer(Screen *screen) {
 	//sem_post(screen->buffer_lock);
-}
-
-
-void _video_run(void) {
-	/*
-	** Start up the system graphics module
-	*/
-	_video_init();
-	gconsole_flush();
-
-	while( 1 ) {
-		gconsole_draw(16, 16);
-
-		//sem_wait(kScreen->buffer_lock);
-
-		// Copy the back buffer to the screen
-		_kmemcpy((void *)(kScreen->frame_buffer),
-			(void *)(kScreen->back_buffer), kScreen->size);
-
-		//sem_post(kScreen->buffer_lock);
-
-		// Update at about 200 fps
-		msleep(5);
-	}
 }
