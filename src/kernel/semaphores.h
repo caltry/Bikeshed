@@ -48,7 +48,7 @@
 void _sem_init( void );
 
 /*
-** _sem_init()
+** _sem_new()
 **
 ** initialize a semaphore
 */

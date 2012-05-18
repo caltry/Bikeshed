@@ -43,6 +43,10 @@
 #define SYS_sem_post		16
 #define SYS_sem_wait		17
 #define SYS_sem_try_wait	18
+#define SYS_lock_init		19
+#define SYS_lock_destroy	20
+#define SYS_lock_lock		21
+#define SYS_lock_unlock		22
 
 // these are syscalls we elected not to implement
 // #define	SYS_set_pid		?
@@ -51,7 +55,7 @@
 
 // number of "real" system calls
 
-#define	N_SYSCALLS	19
+#define	N_SYSCALLS	23
 
 // dummy system call code to test the syscall ISR
 

@@ -267,6 +267,7 @@ void _init( void ) {
 	_syscall_init();
 	_sched_init();
 	_sem_init();
+	_lock_init();
 	_clock_init();
 	_init_all_ramdisks();
 	_fs_ext2_init();
