@@ -32,6 +32,22 @@ const char* _kstrrchr( const char *str, char c )
 	return last_location;
 }
 
+int _kstrcmp( const char *s1, const char *s2 )
+{
+	while( *s1 || *s2 )
+	{
+		if( *s1 != *s2 )
+		{
+			return (*s1)-(*s2);
+		}
+		++s1;++s2;
+	}
+
+	// We broke out of the while loop. One or both stings is at '\0'. Take
+	// the difference to see if they're really equal or not.
+	return (*s1)-(*s2);
+}
+
 int _kstrncmp( const char *s1, const char *s2, unsigned int n )
 {
 	for
