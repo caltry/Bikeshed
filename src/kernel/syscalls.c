@@ -97,7 +97,7 @@ static void _sys_fork( Pcb *pcb ) {
 	_kmemcpy( (void *)new, (void *)pcb, sizeof(Pcb) );
 
 	// Here we need to setup the new processes page directory
-	new->page_directory = __virt_clone_directory(pcb->page_directory);
+	new->page_directory = __virt_clone_directory();
 
 	// fix the pcb fields that should be unique to this process
 

@@ -90,7 +90,7 @@ void _cleanup( Pcb *pcb ) {
 		_kpanic( "_cleanup", "pcb dealloc status %s\n", status );
 	}
 
-	__virt_dealloc_page_directory(pcb->page_directory);
+	__virt_dealloc_page_directory();
 }
 
 
@@ -320,11 +320,8 @@ void _init( void ) {
 	pcb->pid  = _next_pid++;
 	pcb->ppid = pcb->pid;
 	pcb->priority = PRIO_HIGH;	// init() should finish first
-	pcb->page_directory = __virt_clone_directory(__virt_kpage_directory);
-	serial_printf("New page directory: %x\n", pcb->page_directory);
+	pcb->page_directory = __virt_clone_directory(); // Clone's the kernels directory
 	__virt_switch_page_directory(pcb->page_directory);
-
-	pcb->stack = 1;
 
 	Status status;
 	char file_path[] = "/etc/initproc";
@@ -332,25 +329,6 @@ void _init( void ) {
 	{
 		_kpanic("_init", "Failed to load init process: %s\n", status);
 	}
-/*
-	page_directory_t* pg = __virt_clone_directory(pcb->page_directory);
-	pcb->page_directory = pg;
-	__virt_switch_page_directory(pg);
-	__virt_reset_page_directory(pg);
-	*/
-/*	__virt_map_page(__phys_get_free_4k(), (void *)0x8048000, PG_READ_WRITE);
-	Uint32* addr = (Uint32 *)0x8048000;
-	*addr = 10;
-
-	asm volatile("hlt");
-	*/
-
-	//_elf_load_from_file(pcb, "/welcome");
-
-	//__virt_reset_page_directory(pg);
-	//asm volatile("hlt");
-
-//	__virt_reset_page_directory(pcb->page_directory);
 
 	/*
 	** Set up the initial process context.

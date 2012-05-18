@@ -77,13 +77,13 @@ void __virt_switch_page_directory(page_directory_t *page_directory);
 void* __virt_get_phys_addr(void *virtual_addr);
 
 /* Clears everything but kernel entries from a page table */
-void __virt_reset_page_directory(page_directory_t* page_directory);
+void __virt_reset_page_directory(void);
 
 /* Removes the entire page table from memory */
-void __virt_dealloc_page_directory(page_directory_t* page_directory);
+void __virt_dealloc_page_directory(void);
 
 /* Clones a page directory, it copies all pages and data */
-page_directory_t* __virt_clone_directory(page_directory_t* page_directory);
+page_directory_t* __virt_clone_directory(void);
 
 // Taken from OS Dev wiki
 void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags);

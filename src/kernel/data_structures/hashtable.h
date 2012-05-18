@@ -15,9 +15,9 @@ typedef struct HashTable
 	linked_list_t* table;
 } hash_table_t;
 
-typedef Int32 (*hash_func)(const void* key);
-typedef Int32 (*match_func)(const void* key1, const void* key2);
-typedef Int32 (*destroy_func)(void* data);
+//typedef Int32 (*hash_func)(const void* key);
+//typedef Int32 (*match_func)(const void* key1, const void* key2);
+//typedef Int32 (*destroy_func)(void* data);
 
 // TODO this data structure isn't fully implemented yet!
 

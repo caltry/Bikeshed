@@ -105,8 +105,8 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 
 	serial_printf("ELF: resetting page directory\n");
 	// Cleanup the old processes page directory, we're replacing everything
-	__virt_switch_page_directory(pcb->page_directory);
-	__virt_reset_page_directory(pcb->page_directory);
+	//__virt_switch_page_directory(pcb->page_directory);
+	__virt_reset_page_directory();
 
 	serial_printf("ELF: About to read the program sections\n");
 	/* We need to load all of the program sections now */
@@ -217,7 +217,6 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	pcb->context = context;
 
 	context->esp = (Uint32)(((Uint32 *)context) - 1);
-	pcb->stack = (Uint32 *)context->esp;
 	context->ebp = 0x2004000-4;//(NEW_STACK_LOCATION+STACK_SIZE);
 	context->cs = GDT_CODE;
 	context->ss = GDT_STACK;

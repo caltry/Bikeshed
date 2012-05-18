@@ -46,8 +46,16 @@ int main()
 		{
 			// Child
 			put_string(10, 0, "CHILD!");
-			exec("/welcome");
-			put_string(40, 0, "Child returned!?");
+			if (fork(&pid) == 0)
+			{
+				if (pid == 0)
+				{
+					exec("/welcome");
+					put_string(40, 0, "Child returned!?");
+				} else {
+					put_string(60, 0, "Fork 2!");
+				}
+			}
 		} else {
 			// Parent
 			put_string(20, 0, "PARENT!");

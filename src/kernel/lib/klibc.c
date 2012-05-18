@@ -119,6 +119,17 @@ void _kpanic( const char *mod, const char *msg, Status code ) {
 
 }
 
+void _kmemset(void *ptr, Uint8 value, Uint32 num)
+{
+	unsigned char *p = (unsigned char *)ptr;
+	while (num > 0)
+	{
+		*p = value;
+		++p;
+		--num;
+	}
+}
+
 Uint32 _krand()
 {
 	static Uint32 m_z = 0x12345678; /* Initial seed for m_z */

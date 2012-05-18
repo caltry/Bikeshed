@@ -115,7 +115,6 @@ typedef struct context {
 typedef struct pcb {
 	// four-byte fields
 	Context		*context;	// process context
-	Uint32 		*stack;		// this process' stack
 	Time		wakeup;		// wakeup time for sleeping process
 //	Uint32 		stack_size;
 	union PageDirectory *page_directory; // Page directory for current process
