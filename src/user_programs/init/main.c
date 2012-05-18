@@ -46,7 +46,7 @@ int main()
 		{
 			// Child
 			put_string(10, 0, "CHILD!");
-			exec("/etc/welcome");
+			exec("/welcome");
 			put_string(40, 0, "Child returned!?");
 		} else {
 			// Parent
@@ -54,7 +54,6 @@ int main()
 		}
 	}
 	
-
 
 //	*((uint16_t *) 0xB8002) = 0x7020;	
 //	*/

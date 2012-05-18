@@ -11,7 +11,7 @@ asm: crt0
 	gcc --std=gnu99 -m32 -Wall -Werror -nostdinc -nostdlib -c init.S
 	gcc -m32 -fno-exceptions -nodefaultlibs -fno-builtin -nostdinc -nostdlib ../crt0.o ../../ulib/ulib*.o init.o -o welcome
 	strip welcome
-	cp welcome ../../../build/ramdisk_staging/etc/.
+	cp welcome ../../../build/ramdisk_staging/.
 
 crt0:
 	gcc -m32 -Wall -Werror -fno-exceptions -nodefaultlibs -nostdinc -nostdlib -c ../crt0.S

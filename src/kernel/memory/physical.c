@@ -139,6 +139,7 @@ Uint32 __phys_check_bit(void* address)
 
 void __phys_unset_bit(void* address)
 {
+	serial_printf("----BITMAP: freeing address: %x\n", address);
 	Uint32 index = ADDR_TO_INDEX(address);
 	if (index >= __phys_bitmap_4k_elements)
 	{

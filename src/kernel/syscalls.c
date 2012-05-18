@@ -489,6 +489,7 @@ static void _sys_exec( Pcb *pcb ) {
 	// "returns" from the syscall
 
 	if( status != SUCCESS ) {
+		_kpanic("Exec", "Failed to exec!", 0);
 		RET(pcb) = status;
 	}
 
