@@ -1,8 +1,8 @@
 lcd ramdisk_staging
 write test.txt test.txt
-write welcome welcome
 lcd etc
 mkdir etc
 cd etc
+write welcome welcome
 write initproc initproc
 write motd motd

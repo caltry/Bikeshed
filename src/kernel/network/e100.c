@@ -120,14 +120,112 @@
  * Dump Wake-up   - Dump area pointer         - 0011
  *                - (16 byte alignment)
  */
-
-static void __isr_nic_card(int vector, int code)
+// Structs for making action commands
+struct Action_Command
 {
-	UNUSED(vector);
-	UNUSED(code);
+	Uint16 reserved : 13;
+	Uint16 ok : 1;
+	Uint16 reserved_0 : 1;
+	Uint16 c : 1;
+	Uint16 cmd : 3;
+	Uint16 reserved_1 : 10;
+	Uint16 i : 1; // request a CX interrupt
+	Uint16 s : 1; // CU becomes suspended if this bit is set
+	Uint16 el : 1; // CU becomes idle if this bit is set
+	Uint32 link_offset;
+	Uint32 optional_address_and_data;
+} __attribute__((packed));
 
-	serial_printf("\t\tNIC interrupt!\n");
-}
+// NOP command format:
+// cmd bits are 000b
+// link_offset -> 32-bit address of the next command block. Added to CU base to obtain the actual base
+// EL - if set to one, indicates that this is the last command block in the list, will generate a CNA interrupt
+// S  - if this is set to one, the CU will suspended after the completion of this Control Block. CNA interrupt
+// I  - Device generates an interrupt after the executino of the Control Block is finished
+
+// Individual address setup:
+// cmd bits are 001b
+// link_offset -> 32-bit address of the next command block
+struct Indv_Address_Cmd
+{
+	struct Action_Command base_command;
+	Uint8 ia_byte1;
+	Uint8 ia_byte2;
+	Uint8 ia_byte3;
+	Uint8 ia_byte4;
+	Uint8 ia_byte5;
+	Uint8 ia_byte6;
+	Uint16 unused;
+} __attribute__((packed));
+
+// Configure command:
+// cmd bits are 010b
+// link_offset -> 
+struct Configure_Cmd
+{
+	struct Action_Command base_command;
+	Uint8 command_bytes[22];
+	Uint16 unused;
+} __attribute__((packed));
+
+// A struct overlay of the CSR register in memory
+struct SCB_status
+{
+	Uint8 reserved_0 : 1;
+	Uint8 reserved_1 : 1;
+	Uint8 rus        : 4;
+	Uint8 cus        : 2;
+	// Stat/ACK register
+	// Writing a 1 to the field disables that interrupt
+	Uint8 fcp : 1;
+	Uint8 reserved_2 : 1;
+	Uint8 swi : 1;
+	Uint8 mdi : 1;
+	Uint8 rnr : 1;
+	Uint8 cna : 1;
+	Uint8 fr : 1;
+	Uint8 cx_tno : 1;
+} __attribute__((packed));
+
+struct SCB_command
+{
+	Uint16 ru_command : 3;
+	Uint16 reserved : 1;
+	Uint16 cu_command : 4;
+	Uint16 m : 1; // Disable all interrupts
+	Uint16 si : 1; // Software generated interrupt
+	// Interrupt masks
+	Uint16 fcp_mask : 1;
+	Uint16 er_mask : 1;
+	Uint16 rnr_mask : 1;
+	Uint16 cna_mask : 1;
+	Uint16 fr_mask : 1;
+	Uint16 cx_mask : 1;
+} __attribute((packed));
+
+struct CSR_Register
+{
+	struct SCB_status scb_status;
+	struct SCB_command scb_command;
+	Uint32 scb_general_ptr;	
+	Uint32 port;
+	Uint16 reserved_0;
+	Uint16 eeprom;
+	Uint32 mdi_control_register;
+	Uint32 rx_dma_byte_count;
+	Uint8  reserved_1;
+	Uint16 flow_control_register;
+	Uint8  pmdr;
+	Uint8  general_control;
+	Uint8  general_status;
+	Uint16 reserved_2;
+	Uint32 function_event_register;
+	Uint32 function_event_mask_register;
+	Uint32 function_present_state_register;
+	Uint32 force_event_register;
+} __attribute__((packed));
+
+typedef struct CSR_Register csr_register_t;
 
 #define PCI_NETWORK_CLASS 0x02
 #define PCI_ETHERNET 0x00
@@ -149,9 +247,7 @@ static void __isr_nic_card(int vector, int code)
 #define PORT 0x2 /* Offset of 0x8, but 0x2 with a 32-bit pointer */
 
 static const pci_config_t* pci_e100;
-static Uint8*  base_address_8; 
-static Uint16* base_address_16;
-static Uint32* base_address_32;
+static csr_register_t* csr_register;
 
 /* Interrupt types */
 #define CX_TNO 0x8000 /* Asserted when the CU has finished executing a command */
@@ -182,37 +278,23 @@ static Uint32* base_address_32;
  * takes some time to update the bits after a command has been issued
  */
 
-static inline void
-clear_interrupt(Uint16 flags)
+static void __isr_nic_card(int vector, int code)
 {
-	base_address_16[SCB_STATUS_WORD] = flags;
-}
+	UNUSED(vector);
+	UNUSED(code);
 
-static inline Uint16 
-read_scb_status(void)
-{
-	return base_address_16[SCB_STATUS_WORD];
-}
-
-static inline void 
-write_scb_command(Uint16 value)
-{
-	base_address_16[SCB_COMMAND_WORD] = value;
+	serial_printf("\t\tNIC interrupt!\n");
 }
 
 static void reset_e100(void)
 {
 	// Get the base memory address
-	base_address_8  = (Uint8  *)pci_e100->type_0.bar_address[0];
-	base_address_16 = (Uint16 *)pci_e100->type_0.bar_address[0];
-	base_address_32 = (Uint32 *)pci_e100->type_0.bar_address[0];
+	csr_register = (csr_register_t *)pci_e100->type_0.bar_address[0];
+
+
+	
 
 	// Set the cache line size
-//	base_address_8[CACHE_LINE_SIZE] = 0x10; // 16
-
-
-	
-	
 	__install_isr(pci_e100->type_0.interrupt_pin, __isr_nic_card);		
 }
 

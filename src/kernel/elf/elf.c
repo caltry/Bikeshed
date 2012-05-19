@@ -80,6 +80,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	Uint32 pheader_tbl_size = sizeof(Elf32_Phdr) * elf32_hdr->e_phnum;
 	Elf32_Phdr* pheaders = (Elf32_Phdr *)__kmalloc(pheader_tbl_size);
 
+	serial_printf("ELF: Reading program headers\n");
 	ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)pheaders, 
 			&bytes_read, elf32_hdr->e_phoff, pheader_tbl_size);
 
