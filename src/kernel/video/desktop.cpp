@@ -12,12 +12,14 @@ extern "C" {
 	#include "ulib.h"
 	#include "linkedlist.h"
 	#include "video.h"
+	#include "mouse.h"
 }
 
 #include "window.h"
 #include "painter.h"
 #include "rect.h"
 #include "region.h"
+#include "gconsole.h"
 
 #include "desktop.h"
 
@@ -31,7 +33,12 @@ Desktop::Desktop(Screen *screen)
 
 	sem_init(&list_sem);
 	sem_post(list_sem);
+
+	// Create the graphics painters
 	painter = new Painter(screen, bounds);
+
+	// Draw the background
+	painter->Fill(0x6490a7);
 }
 
 
@@ -54,12 +61,15 @@ void Desktop::Draw(void)
 {
 	sem_wait(list_sem);
 
+	// Draw all of the windows
 	ListElement *cur_node = list_head(window_list);
 	Region *updateRegion = new Region();
 
 	while (cur_node != NULL) {
 		Window *window = (Window *)list_data(cur_node);
 
+		// Only draw a window if it is dirty or a window it
+		//   is overlapping has been repainted
 		if (window->IsDirty() ||
 			updateRegion->Intersects(window->GetBounds()))
 		{
@@ -74,35 +84,51 @@ void Desktop::Draw(void)
 }
 
 
+void Desktop::DrawCursor(Int32 x, Int32 y)
+{
+	painter->DrawCursor(x, y);
+}
+
+
 extern "C" {
 	void _desktop_run(void) {
+
 		/*
 		** Start up the system graphics module
 		*/
 		_video_init();
+		_mouse_init();
 
+		// Create a desktop
 		Desktop desktop(kScreen);
 
-		Window *window = new Window(&desktop, Rect(200, 200, 400, 400), "BIKESHED", 1);
-		Window *window2 = new Window(&desktop, Rect(16, 16, 300, 400), "BIKESHED", 0);
+		// Add the graphical console window
+		gcon_init();
+		_gconsole = new GConsole(&desktop, 16, 16);
+		
+		// Add some initial windows to the desktop
+		Window *window = new Window(&desktop,
+			Rect(200, 200, 400, 400), (char *)"BIKESHED");
+		window->SetFocused(true);
+
 		desktop.AddWindow(window);
-		desktop.AddWindow(window2);
+		desktop.AddWindow(_gconsole);
 
-		while( 1 ) {
-			//gconsole_draw(16, 16);
+		do {
+			// Repaint the desktop
 			desktop.Draw();
-
-			//sem_wait(kScreen->buffer_lock);
 
 			// Copy the back buffer to the screen
 			_kmemcpy((void *)(kScreen->frame_buffer),
 				(void *)(kScreen->back_buffer), kScreen->size);
-			//c_puts("test\n");
 
-			//sem_post(kScreen->buffer_lock);
-
+			// Draw the mouse
+			desktop.DrawCursor(_mouse_x, _mouse_y);
+		
 			// Update at about 200 fps
-			msleep(5);
-		}
+			msleep(10);
+		} while ( 1 );
+
+		c_puts("mouse loaded\n");
 	}
 }

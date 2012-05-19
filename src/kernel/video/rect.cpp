@@ -37,11 +37,11 @@ void Rect::SetPosition(Uint32 x, Uint32 y)
 
 bool Rect::Intersects(const Rect &other) const
 {
-	return (this->x > other.x2)
+	return !((this->x > other.x2)
 		|| (other.x > this->x2)
 		|| (this->y > other.y2)
-		|| (other.y > this->y2);
-}
+		|| (other.y > this->y2));
+	}
 
 
 bool Rect::Contains(Uint32 x, Uint32 y) const

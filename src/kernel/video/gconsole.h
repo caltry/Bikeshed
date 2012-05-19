@@ -48,16 +48,48 @@
 #ifndef _GCONSOLE_H_
 #define _GCONSOLE_H_
 
+
+#ifdef __cplusplus
+
+#include "window.h"
+#include "desktop.h"
+
+
+class ConsoleView : public UIComponent {
+public:
+	ConsoleView(Painter *painter, Rect bounds);
+
+private:
+	void Draw(void);
+};
+
+
+class GConsole : public Window {
+public:
+	GConsole(Desktop *desktop, Uint32 x, Uint32 y);
+	~GConsole(void);
+
+private:
+	ConsoleView *console;
+};
+
+
+extern GConsole *_gconsole;
+
+
+extern "C" {
+#endif
+
+
 /*
 ** Name:	gconsole_init
 **
 ** Description:	Initializes the output routines.
 */
-void gconsole_init( void );
+void gcon_init( void );
 
-void gconsole_draw(unsigned int x, unsigned int y);
+void gcon_flush(void);
 
-void gconsole_flush(void);
 
 /*****************************************************************************
 **
@@ -182,6 +214,11 @@ void gcon_printf_at( unsigned int x, unsigned int y, const char *fmt, ... );
 **		scrolling region.
 */
 void gcon_clearscreen( void );
+
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

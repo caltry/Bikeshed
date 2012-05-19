@@ -31,6 +31,7 @@ public:
 	Rect& GetBounds(void) { return bounds; }
 
 	void Draw(void);
+	void DrawCursor(Int32 x, Int32 y);
 	
 private:
 	Screen *screen;

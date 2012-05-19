@@ -172,3 +172,23 @@ void Painter::DrawBox(Rect& bounds, Uint32 color1, Uint32 color2,
 		scale, scale), color4);
 }
 
+
+void Painter::DrawCursor(Int32 mouse_x, Int32 mouse_y)
+{
+	Uint8 *start = (Uint8 *)(screen->frame_buffer)
+		 + (mouse_y * screen->pitch) + (mouse_x * 3);
+
+	for ( Uint32 y = 0; y < 8; ++y ) {
+		Uint8 *dest = start;
+		for ( Uint32 x = 0; x < 8; ++x ) {
+			dest[0] = ~dest[0];
+			dest[1] = ~dest[1];
+			dest[2] = ~dest[2];
+
+			dest += 3;
+		}
+
+		start = (Uint8 *)((Uint32)start + screen->pitch);
+	}
+}
+

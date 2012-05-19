@@ -13,36 +13,25 @@
 #include "painter.h"
 #include "desktop.h"
 
-class Window {
+class Window : public UIComponent {
 public:
 
-	Window(Desktop *desktop, Rect bounds, char *title, int id);
+	Window(Desktop *desktop, Rect bounds, char *title);
 	~Window(void);
 
 	void Move(Uint32 x, Uint32 y);
 
-	Rect& GetBounds(void) { return bounds; }
-	bool IsDirty(void) { return dirty; }
+	void SetFocused(bool focus) { this->hasFocus = focus; };
 
-	void Repaint(void);
-
-protected:
-	void AddComponent(UIComponent *component);
-
-	void Invalidate(void);
+	char *title;
 
 private:
 
 	void Draw(void);
 
-	Rect bounds;
-	char *title;
-	LinkedList *children;
-	Painter *painter;
-
-	bool dirty;
+	
 	Desktop *desktop;
-	int id;
+	bool hasFocus;
 };
 
 #endif
