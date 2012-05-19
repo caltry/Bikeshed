@@ -512,7 +512,7 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 #endif
 
 			// If this is the file we're looking for, we're done!
-			if( !_kstrncmp( filename, dirent->filename, dirent->name_length ) )
+			if( !_kstrcmp( filename, dirent->filename ) )
 			{
 				return dirent;
 			} else {

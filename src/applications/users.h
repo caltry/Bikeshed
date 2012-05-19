@@ -71,6 +71,11 @@
 //#define SPAWN_SEM_TEST_DESTROY
 //#define SPAWN_SEM_TEST_TRY_WAIT
 
+//#define		SPAWN_LOCK_TEST_INIT
+//#define		SPAWN_LOCK_TEST_READ
+//#define		SPAWN_LOCK_TEST_WRITE_READ
+//#define		SPAWN_LOCK_TEST_READ_WRITE
+
 /*
 ** Users W-Z are spawned from other processes; they
 ** should never be spawned directly.

@@ -39,6 +39,7 @@
 #include "cpp/cppinit.h"
 #include "cpp/cpptest.hpp"
 #include "elf/elf.h"
+#include "locks.h"
 
 #include "bios.h"
 
@@ -77,13 +78,6 @@ void _cleanup( Pcb *pcb ) {
 		return;
 	}
 
-	/*if( pcb->stack != NULL ) {
-		status = _stack_dealloc( pcb->stack );
-		if( status != SUCCESS ) {
-			_kpanic( "_cleanup", "stack dealloc status %s\n", status );
-		}
-	}*/
-
 	pcb->state = FREE;
 	status = _pcb_dealloc( pcb );
 	if( status != SUCCESS ) {
@@ -93,108 +87,6 @@ void _cleanup( Pcb *pcb ) {
 	__virt_dealloc_page_directory();
 }
 
-
-/*
-** _create_process(pcb,entry)
-**
-** initialize a new process' data structures (PCB, stack)
-**
-** returns:
-**	success of the operation
-*/
-/*
-Status _create_process_not_used( Pcb *pcb, Uint32 entry ) {
-	Context *context;
-	Stack *stack;
-	Uint32 *ptr;
-
-	// don't need to do this if called from _sys_exec(), but
-	// we are called from other places, so...
-
-	if( pcb == NULL ) {
-		return( BAD_PARAM );
-	}
-
-	// if the PCB doesn't already have a stack, we
-	// need to allocate one
-
-	stack = pcb->stack;
-	if( stack == NULL ) {
-		stack = _stack_alloc();
-		if( stack == NULL ) {
-			return( ALLOC_FAILED );
-		}
-		pcb->stack = stack;
-	}
-
-	// clear the stack
-
-	_kmemclr( (void *) stack, sizeof(Stack) );
-
-	*
-	** Set up the initial stack contents for a (new) user process.
-	**
-	** We reserve one longword at the bottom of the stack as
-	** scratch space.  Above that, we simulate a call to exit() by
-	** pushing the address of exit() as a "return address".  Finally,
-	** above that we place an context_t area that is initialized with
-	** the standard initial register contents.
-	**
-	** The low end of the stack will contain these values:
-	**
-	**      esp ->  ?       <- context save area
-	**              ...     <- context save area
-	**              ?       <- context save area
-	**              exit    <- return address for main()
-	**              filler  <- last word in stack
-	**
-	** When this process is dispatched, the context restore
-	** code will pop all the saved context information off
-	** the stack, leaving the "return address" on the stack
-	** as if the main() for the process had been "called" from
-	** the exit() stub.
-	*
-
-	// first, compute a pointer to the second-to-last longword
-
-	ptr = ((Uint32 *) (stack + 1)) - 2;
-
-	// assign the "return" address
-
-	*ptr = (Uint32) exit;
-
-	// next, set up the process context
-
-	context = ((Context *) ptr) - 1;
-	pcb->context = context;
-
-	// initialize all the fields that should be non-zero, starting
-	// with the segment registers
-
-	context->cs = GDT_CODE;
-	context->ss = GDT_STACK;
-	context->ds = GDT_DATA;
-	context->es = GDT_DATA;
-	context->fs = GDT_DATA;
-	context->gs = GDT_DATA;
-
-	// EFLAGS must be set up to re-enable IF when we switch
-	// "back" to this context
-
-	context->eflags = DEFAULT_EFLAGS;
-
-	// EIP must contain the entry point of the process; in
-	// essence, we're pretending that this is where we were
-	// executing when the interrupt arrived
-
-	context->eip = entry;
-
-	return( SUCCESS );
-
-}
-*/
-
-
 /*
 ** _init - system initialization routine
 **
@@ -203,8 +95,6 @@ Status _create_process_not_used( Pcb *pcb, Uint32 entry ) {
 */
 
 void _init( void ) {
-	Pcb *pcb;
-	//Status status;
 
 	/*
 	** BOILERPLATE CODE - taken from basic framework
@@ -240,19 +130,14 @@ void _init( void ) {
 	c_printf("CFG Memory 1M-16M: %x\n", *((Uint16*)(MMAP_ADDRESS + MMAP_CFG_LO)));
 	c_printf("CFG Memory > 16M 64k blocks: %x\n", *((Uint16*)(MMAP_ADDRESS + MMAP_CFG_HI)));
 	serial_install();
-	c_printf("Starting physical\n");
 	__phys_initialize_bitmap();
-	c_printf("Starting virtual\n");
 	__virt_initialize_paging();
-	c_printf("Starting kmalloc\n");
 	__kmem_init_kmalloc();
 	_sio_init();
 	// Initialize C++ support, we do this after the memory is intialized so static/global
 	// C++ objects can use the new operator in their constructors
-	c_printf("Starting cpp\n");
 	__cpp_init();
 
-	c_printf("Starting pci\n");
 	__pci_init();
 	__pci_dump_all_devices();
 //	__net_init();
@@ -260,17 +145,16 @@ void _init( void ) {
 	// Test the C++ support
 	_test_cpp();
 
-	c_printf("Starting rest\n");
 	_q_init();		// must be first
 	_pcb_init();
 	_stack_init();
 	_syscall_init();
 	_sched_init();
 	_sem_init();
+	_lock_init();
 	_clock_init();
 	_init_all_ramdisks();
 	_fs_ext2_init();
-	c_printf("Done initializing rest\n");
 
 	c_puts( "\n" );
 
@@ -300,21 +184,15 @@ void _init( void ) {
 	** First, get a PCB and a stack
 	*/
 
-	pcb = _pcb_alloc();
+	Pcb *pcb = _pcb_alloc();
 	if( pcb == NULL  ) {
 		_kpanic( "_init", "first pcb alloc failed\n", FAILURE );
 	}
 
 	/*
-	pcb->stack = _stack_alloc();
-	if( pcb->stack == NULL ) {
-		_kpanic( "_init", "first stack alloc failed\n", FAILURE );
-	}
-	*/
-
-	/*
 	** Next, set up various PCB fields
 	*/
+
 	c_printf("Setting up PCB\n");
 
 	pcb->pid  = _next_pid++;
@@ -323,21 +201,16 @@ void _init( void ) {
 	pcb->page_directory = __virt_clone_directory(); // Clone's the kernels directory
 	__virt_switch_page_directory(pcb->page_directory);
 
+	/*
+	** Set up the initial process context.
+	*/
+
 	Status status;
 	char file_path[] = "/etc/initproc";
 	if ((status = _elf_load_from_file(pcb, &file_path[0])) != SUCCESS)
 	{
 		_kpanic("_init", "Failed to load init process: %s\n", status);
 	}
-
-	/*
-	** Set up the initial process context.
-	*/
-
-	/*status = _create_process( pcb, (Uint32) init );
-	if( status != SUCCESS ) {
-		_kpanic( "_init", "create init process status %s\n", status );
-	}*/
 
 	/*
 	** Make it the first process
