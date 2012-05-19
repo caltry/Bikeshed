@@ -476,6 +476,7 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 			struct ext2_inode *directory_ino,
 			const char *filename )
 {
+	Uint32 filename_len = _kstrlen( filename );
 	Uint32 block_size = get_block_size( context->sb );
 
 	serial_string( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) "\n\r");
@@ -512,7 +513,8 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 #endif
 
 			// If this is the file we're looking for, we're done!
-			if( !_kstrncmp( filename, dirent->filename, dirent->name_length ) )
+			if( filename_len == dirent->name_length &&
+			    !_kstrncmp( filename, dirent->filename, dirent->name_length ) )
 			{
 				return dirent;
 			} else {
