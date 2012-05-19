@@ -23,17 +23,6 @@ static Uint32 strlen(const char* str)
 	return length;
 }
 
-static int strcmp(const char* s1, const char* s2)
-{
-	while (*s1 != 0 && *s2 != 0)
-	{
-		if (*s1 != *s2) return 0;
-		++s1; ++s2;
-	}
-
-	return 1;
-}
-
 Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 {
 	// Need to copy the file_name into kernel land...because we're killing userland!
@@ -105,7 +94,6 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 
 	serial_printf("ELF: resetting page directory\n");
 	// Cleanup the old processes page directory, we're replacing everything
-	//__virt_switch_page_directory(pcb->page_directory);
 	__virt_reset_page_directory();
 
 	serial_printf("ELF: About to read the program sections\n");
@@ -157,9 +145,8 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 			serial_printf("ELF: about to memcpy program section: %x of size %d\n", cur_phdr->p_vaddr, cur_phdr->p_memsz);
 			// Lets zero it out, we only need to zero the remaining bytes, p_filesz
 			// may be zero for data sections, in this case the memory should be zeroed
-			//_kmemclr((void *)(cur_phdr->p_vaddr + (cur_phdr->p_memsz - cur_phdr->p_filesz)), 
-			//		cur_phdr->p_memsz - cur_phdr->p_filesz);
-			_kmemclr((void *)cur_phdr->p_vaddr, cur_phdr->p_memsz);
+			_kmemclr((void *)(cur_phdr->p_vaddr + (cur_phdr->p_memsz - cur_phdr->p_filesz)), 
+					cur_phdr->p_memsz - cur_phdr->p_filesz);
 
 			serial_printf("ELF: done memory copying: %s\n", file_name);
 
@@ -180,44 +167,33 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 		} else {
 			serial_printf("\tELF: Non-loadable section: %d at %x size: %x type: %d\n", i, cur_phdr->p_vaddr, cur_phdr->p_memsz, cur_phdr->p_type);
 		}
-	/*if (strcmp("/welcome", file_name))
-	{
-		serial_printf("File name: %s\n", file_name);
-		serial_printf("Entry: %x\n", elf32_hdr->e_entry);
-		asm volatile("cli");
-		asm volatile("hlt");
-	}
-	*/
-	
 	}
 
 	// Setup the PCB information
 
 	// Allocate a stack and map some pages for it
-#define NEW_STACK_LOCATION 0x2000000
-#define NEW_STACK_SIZE 0x4000 /* 16 KiB */
+#define USER_STACK_LOCATION 0x2000000
+#define USER_STACK_SIZE 0x4000 /* 16 KiB */
 	serial_printf("ELF: Allocating stack\n");
-	void* stack_start = (void *)NEW_STACK_LOCATION;
-	void* stack_end   = (void *)(NEW_STACK_LOCATION + NEW_STACK_SIZE);
+	void* stack_start = (void *)USER_STACK_LOCATION;
+	void* stack_end   = (void *)(USER_STACK_LOCATION + USER_STACK_SIZE);
 	for (; stack_start < stack_end; stack_start += PAGE_SIZE)
 	{
 		__virt_map_page(__phys_get_free_4k(), stack_start, PG_READ_WRITE | PG_USER);
 	}
-	_kmemclr((void *)NEW_STACK_LOCATION, NEW_STACK_SIZE);
+	_kmemclr((void *)USER_STACK_LOCATION, USER_STACK_SIZE);
 
 	// TODO - We eventually want to setup a kernel stack so we can have RING 3->RING 0 access
 
 	// Throw exit as the return address as a safe guard
-//	Uint32*  ptr = (Uint32 *)(NEW_STACK_LOCATION+NEW_STACK_SIZE-0x1000);//((Uint32 *)(pcb->stack + 1)) - 2;
-	//*ptr = (Uint32) exit;
 	serial_printf("ELF: setting up context\n");
 	// Setup the context
-	Context* context = ((Context *)(NEW_STACK_LOCATION+NEW_STACK_SIZE-4)) - 1;
+	Context* context = ((Context *)(USER_STACK_LOCATION+USER_STACK_SIZE-4)) - 1;
 	serial_printf("Context location: %x\n", context);
 	pcb->context = context;
 
 	context->esp = (Uint32)(((Uint32 *)context) - 1);
-	context->ebp = 0x2004000-4;//(NEW_STACK_LOCATION+STACK_SIZE);
+	context->ebp = (USER_STACK_LOCATION+USER_STACK_SIZE)-4;
 	context->cs = GDT_CODE;
 	context->ss = GDT_STACK;
 	context->ds = GDT_DATA;

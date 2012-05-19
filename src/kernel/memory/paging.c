@@ -35,6 +35,15 @@ typedef long unsigned int ul;
 #define PAGE_TBL_FROM_ADDR(x) (((Uint32 *)0xFFC00000) + (0x400 * (((Uint32)(x)) >> 22)))
 #define PAGE_TBL_FROM_INDEX(x) (((Uint32 *)0xFFC00000) + (0x400 * (x)))
 
+/* Similar to unmap page except it DOESN'T free the page from the physical memory
+ * manager.
+ *
+ * This is required when copying pages because if we're trying to create a new page
+ * table we don't want to free it's blocks before it gets used!
+ */
+static void __virt_clear_page(void *virtual_addr);
+
+
 // TODO change this to directly link to the already defined page directory
 page_directory_t *__virt_kpage_directory = 0;//&BootPageDirectory;
 
@@ -161,31 +170,10 @@ void* __virt_get_phys_addr(void *virtual_addr)
 
 void __virt_reset_page_directory()
 {
-	serial_printf("RESET: Start\n");
 	for (void* address = (void *)0x400000; address < (void *)0xC0000000; address += PAGE_SIZE)
 	{
 		__virt_clear_page(address);
 	}
-	serial_printf("RESET: End\n");
-
-	// Dump the new address mapping
-/*	Uint32* pd = (Uint32 *)PAGE_DIR_ADDR;
-	for (int i = 0; i < 1024; ++i)
-	{
-		serial_printf("\tIndex: %d - Value: %x\n", i, pd[i]);
-		if (pd[i] != 0)
-		{
-			Uint32* pt = ((Uint32 *)0xFFC00000) + (0x400 * i); 
-			for (int j = 0; j < 1024; ++j)
-			{
-				if (pt[j] != 0)
-				{
-					serial_printf("\t\tIndex: %d - Value: %x\n", j, pt[j]);
-				}
-			}
-		}
-	}
-	*/
 }
 
 void __virt_dealloc_page_directory()
@@ -283,7 +271,6 @@ void __virt_clear_page(void *virtual_addr)
 	Uint32 *pd = (Uint32 *)0xFFFFF000;
 	if ((pd[page_dir_index] & PG_PRESENT) == 0)
 	{
-		//serial_printf("---Clear: Page directory entry is not present...skipping\n");
 		return;
 	}
 
@@ -362,7 +349,6 @@ void __virt_unmap_page(void *virtual_addr)
 	// Now you need to flush the entry in the TBL
 	// or you might not notice the change
 	// Is this the virtual address or the physical address?
-	//asm volatile("invlpg %0"::"m" (*(char *)((Uint32)virtual_addr & 0xFFFFF000)));	
 	asm volatile("invlpg %0"::"m" (*(char *)(virtual_addr)));	
 	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pt & 0xFFFFF000)));	
 }
@@ -379,10 +365,6 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
 	serial_printf("Mapping page: %x - to - %x\n", physical_addr, virtual_addr);
 	serial_printf("Page dir idx: %d - Page tbl idx: %d\n", page_dir_index, page_tbl_index);
 
-/*
-	serial_string("Mapping page 1/4\n");
-
-	*/
 	// Here check if the PD entry is present
 	// When it's not present, create a new empty PT and adjust the PDE accordingly
 	//serial_printf("Page dir value: %x\n", pd[page_dir_index]);
@@ -391,13 +373,9 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
 	{
 		serial_string("Page directory entry not present!\n");		
 		pd[page_dir_index] = (Uint32)__phys_get_free_4k() | PG_READ_WRITE | PG_PRESENT;
-	//	serial_printf("Page dir value 2: %x\n", (Uint32)pd[page_dir_index]);
-	//	serial_printf("Page dir addr  3: %x\n", (Uint32)&pd[page_dir_index]);
-		//_kmemset(pt, 0, sizeof(page_table_t));
 		_kmemclr(pt, PAGE_SIZE);
 	}
 	
-	//serial_string("Mapping page 2/4\n");
 	// Here need to check whether the PT entry is present
 	// When it is, then there is already a mapping present, what do you do?
 	if (pt[page_tbl_index] != 0)
@@ -418,12 +396,8 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
 		_kpanic("Paging", "A page has already been mapped here!\n", 0);
 	}
 	
-	//serial_string("Mapping page 3/4\n");
 	pt[page_tbl_index] = ((Uint32)physical_addr) | (flags & 0xFFF) | PG_PRESENT; // Present
 
-	//serial_printf("Mapped\n");
-
-	//serial_string("Mapping page 4/4\n");
 	// Now you need to flush the entry in the TBL
 	// or you might not notice the change
 	// Is this the virtual address or the physical address?
