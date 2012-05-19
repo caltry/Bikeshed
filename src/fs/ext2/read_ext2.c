@@ -621,7 +621,7 @@ ext2_raw_read
 
 	// Set up the directory name, keep the trailing slash, ignore filename.
 	char dirname[path_length+1];
-	_kmemcpy( dirname, path, path_length );
+	_kmemcpy( dirname, path, path_length+1 );
 	serial_printf( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__)
 			", dirname before excluding filename: %s\n\r",
 			dirname );
