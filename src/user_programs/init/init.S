@@ -15,6 +15,7 @@ put_char:
 	popl %eax
 	ret
 
+/* Writes a string to video memory */
 put_string:
 	pushl %eax
 	pushl %ebx
