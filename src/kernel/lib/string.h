@@ -22,6 +22,11 @@ const char* _kstrchr( const char *str, char c );
 const char* _kstrrchr( const char *str, char c);
 
 /*
+ * Compare the two strings lexicographically.
+ */
+int _kstrcmp( const char *s1, const char *s2 );
+
+/*
  * Compare the two strings up, but only compare up to _n_ numbers.
  */
 int _kstrncmp( const char *s1, const char *s2, unsigned int n );
