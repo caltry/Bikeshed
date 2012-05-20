@@ -4,3 +4,12 @@ lcd etc
 mkdir etc
 cd etc
 write motd motd
+lcd ..
+cd ..
+mkdir ext2_tests
+cd ext2_tests
+lcd ext2_tests
+write a a
+write aa aa
+write aaa aaa
+write aaaa aaaa
