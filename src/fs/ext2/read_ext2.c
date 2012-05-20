@@ -193,7 +193,10 @@ void print_superblock_data(struct ext2_superblock *sb)
 void print_directory_entry_data(struct ext2_directory_entry *dirent)
 {
 	serial_string( "Filename: " );
-	serial_string( dirent->filename );
+	for( unsigned int i = 0; i < dirent->name_length; ++i )
+	{
+		serial_char( dirent->filename[i] );
+	}
 	serial_string( NEWLINE );
 	serial_printf( "Inode: %d\n\r", dirent->inode_number );
 	serial_printf( "Entry length: %d\n\r", dirent->entry_length);
@@ -532,7 +535,10 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 #if DEBUG_FILESYSTEM
 			serial_string( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__)
 				" trying file: ");
-			serial_string( dirent->filename );
+			for( unsigned int i = 0; i < dirent->name_length; ++i )
+			{
+				serial_char( dirent->filename[i] );
+			}
 			serial_printf( " <%d>", dirent->inode_number );
 			serial_printf( ", with length: %d  ", dirent->name_length);
 			serial_printf( "strncmp(): %d\n\r", _kstrncmp( filename, dirent->filename, dirent->name_length ));
