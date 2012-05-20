@@ -7,6 +7,7 @@
 #include "ext2.h"
 #include "types.h"
 #include "read_ext2.h"
+#include "ext2_tests.h"
 #include "kernel/serial.h"
 #include "kernel/memory/kmalloc.h"
 #include "kernel/lib/klib.h"
@@ -65,6 +66,25 @@ get_next_dirent( struct ext2_directory_entry *dirent )
 	return ((void*) dirent) + dirent->entry_length;
 }
 
+
+/*
+ * Determine if the size of this dirent is too large. This means that this is
+ * the last file entry in the directory.
+ */
+static inline _Bool
+dirent_is_too_large( struct ext2_directory_entry *dirent )
+{
+	Uint16 expected_size = sizeof( struct ext2_directory_entry )
+	                     + dirent->name_length;
+	// Pad size to 4 byte boundary
+	if( expected_size % 4 )
+	{
+		expected_size += 4 - (expected_size % 4);
+	}
+
+	return expected_size < dirent->entry_length;
+}
+
 struct ext2_inode*
 get_inode( struct ext2_filesystem_context *context, Uint32 inode_number );
 
@@ -110,6 +130,12 @@ void ext2_debug_dump( struct ext2_filesystem_context *context_ptr )
 	serial_string("== get_dir_ents_root ==\n\r");
 	print_dir_ents_root( &context );
 	serial_string("==\n\r");
+
+	serial_string("==Running ext2 tests==\n\r");
+	Uint32 failures = test_all();
+	serial_printf("Ext2 tests completed with: %d failures.\n\r", failures );
+	serial_string("==Ending ext2 tests==\n\r");
+
 	serial_string("== Printing out the message of the day! ==\n\r");
 	char test_buffer[1112];
 	ext2_read_status read_error;
@@ -167,7 +193,10 @@ void print_superblock_data(struct ext2_superblock *sb)
 void print_directory_entry_data(struct ext2_directory_entry *dirent)
 {
 	serial_string( "Filename: " );
-	serial_string( dirent->filename );
+	for( unsigned int i = 0; i < dirent->name_length; ++i )
+	{
+		serial_char( dirent->filename[i] );
+	}
 	serial_string( NEWLINE );
 	serial_printf( "Inode: %d\n\r", dirent->inode_number );
 	serial_printf( "Entry length: %d\n\r", dirent->entry_length);
@@ -506,10 +535,15 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 #if DEBUG_FILESYSTEM
 			serial_string( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__)
 				" trying file: ");
-			serial_string( dirent->filename );
+			for( unsigned int i = 0; i < dirent->name_length; ++i )
+			{
+				serial_char( dirent->filename[i] );
+			}
 			serial_printf( " <%d>", dirent->inode_number );
 			serial_printf( ", with length: %d  ", dirent->name_length);
 			serial_printf( "strncmp(): %d\n\r", _kstrncmp( filename, dirent->filename, dirent->name_length ));
+			serial_printf( "dirent->entry_length: %d", dirent->entry_length );
+			serial_printf( " correct length? %d\n\r", !dirent_is_too_large( dirent ) );
 #endif
 
 			// If this is the file we're looking for, we're done!
@@ -518,6 +552,14 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 			{
 				return dirent;
 			} else {
+				// If this entry is too large, we know we're at
+				// the end of the list of files in the
+				// directory.
+				if( dirent_is_too_large( dirent ) )
+				{
+					return 0;
+				}
+
 				dirent = get_next_dirent( dirent );
 
 				if( dirent > (first_dirent + block_size) )
