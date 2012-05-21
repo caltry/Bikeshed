@@ -23,6 +23,34 @@ static Uint32 strlen(const char* str)
 	return length;
 }
 
+// Returns 0 if successful, returns 1 otherwise
+static Uint32 read_from_fs(const char* file_name, Uint32 offset, Uint32 size, void* buffer)
+{
+	while (size > 0)
+	{
+		Uint32 amt_to_read = 0x300;
+		if (size < amt_to_read)
+		{
+			amt_to_read = size;
+		}
+
+		Uint bytes_read = 0;
+		ext2_read_status ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, buffer,
+				&bytes_read, offset, amt_to_read);
+		
+		if (ext2_status != EXT2_READ_SUCCESS || bytes_read != amt_to_read)
+		{
+			return !EXT2_READ_SUCCESS;
+		}
+	
+		size -= amt_to_read;
+		offset += amt_to_read;
+		buffer += amt_to_read;
+	}
+
+	return EXT2_READ_SUCCESS;
+}
+
 Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 {
 	// Need to copy the file_name into kernel land...because we're killing userland!
@@ -30,7 +58,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	file_name = (const char *)__kmalloc(strlen(temp) + 1);
 	_kmemcpy((void *)file_name, (void *)temp, strlen(temp)+1); // Copy the null terminator as well
 
-	serial_printf("Elf: attempting to open: %s\n", file_name);
+	serial_printf("---Elf: attempting to open: %s\n", file_name);
 	if (pcb == NULL || file_name == NULL) 
 	{
 		return BAD_PARAM;
@@ -38,6 +66,8 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 
 	// Try to open the file
 	Elf32_Ehdr* elf32_hdr = (Elf32_Ehdr *)__kmalloc(sizeof(Elf32_Ehdr));
+
+	serial_printf("ELF header location: %x\n", elf32_hdr);
 
 	Uint bytes_read = 0;
 	ext2_read_status ext2_status =
@@ -79,6 +109,8 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	// We need a new buffer of size of (e_phentsize * e_phnum)
 	Uint32 pheader_tbl_size = sizeof(Elf32_Phdr) * elf32_hdr->e_phnum;
 	Elf32_Phdr* pheaders = (Elf32_Phdr *)__kmalloc(pheader_tbl_size);
+
+	serial_printf("---ELF: program headers location: %x\n", pheaders);
 
 	serial_printf("ELF: Reading program headers\n");
 	ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)pheaders, 
@@ -154,16 +186,29 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 			// Now we have to read it in from the file
 			if (cur_phdr->p_filesz > 0)
 			{
-				serial_printf("ELF: about to read from disk: %s - copy to: %x - size: %d\n",
-						file_name, cur_phdr->p_vaddr, cur_phdr->p_filesz);
-				ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)cur_phdr->p_vaddr, 
+				serial_printf("\tAt offset: %x\n", cur_phdr->p_offset);
+
+				ext2_status = read_from_fs(file_name, cur_phdr->p_offset, cur_phdr->p_filesz, (void *)cur_phdr->p_vaddr);	
+				/*ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)cur_phdr->p_vaddr,
 						&bytes_read, cur_phdr->p_offset, cur_phdr->p_filesz);
+						*/
+				
+				serial_printf("Read: %d - File size: %d\n", bytes_read, cur_phdr->p_filesz);
+
+				/*
+				if (bytes_read != cur_phdr->p_filesz)
+				{
+					_kpanic("ELF", "Failed to read data from the filesystem", 0);
+				}
+				*/
 
 				if (ext2_status != EXT2_READ_SUCCESS)
 				{
 					// TODO - cleanup if error
 					_kpanic("ELF", "failed to read program section\n", 0);
 				}
+
+				//asm volatile("hlt");
 			}
 		} else {
 			serial_printf("\tELF: Non-loadable section: %d at %x size: %x type: %d\n", i, cur_phdr->p_vaddr, cur_phdr->p_memsz, cur_phdr->p_type);
