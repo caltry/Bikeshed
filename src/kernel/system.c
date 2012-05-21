@@ -71,7 +71,6 @@ void _put_char_or_code( int ch ) {
 */
 
 void _cleanup( Pcb *pcb ) {
-	//_kpanic("Cleanup", "Cleanup support is experimental!", 0);
 	Status status;
 
 	if( pcb == NULL ) {

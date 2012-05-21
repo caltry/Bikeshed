@@ -228,13 +228,6 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 		__virt_map_page(__phys_get_free_4k(), stack_start, PG_READ_WRITE | PG_USER);
 	}
 	_kmemclr((void *)USER_STACK_LOCATION, USER_STACK_SIZE);
-/*	static int call = 0;
-	if (call == 1)
-	{
-		asm volatile("hlt");
-	}
-	++call;
-	*/
 
 	// TODO - We eventually want to setup a kernel stack so we can have RING 3->RING 0 access
 

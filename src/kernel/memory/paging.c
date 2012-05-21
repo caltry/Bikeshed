@@ -173,7 +173,6 @@ void __virt_reset_page_directory()
 	for (void* address = (void *)0x400000; address < (void *)0xC0000000; address += PAGE_SIZE)
 	{
 		__virt_unmap_page(address);
-		//__virt_clear_page(address);
 	}
 }
 
