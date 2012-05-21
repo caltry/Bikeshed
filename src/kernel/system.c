@@ -71,7 +71,7 @@ void _put_char_or_code( int ch ) {
 */
 
 void _cleanup( Pcb *pcb ) {
-	_kpanic("Cleanup", "Cleanup support is experimental!", 0);
+	//_kpanic("Cleanup", "Cleanup support is experimental!", 0);
 	Status status;
 
 	if( pcb == NULL ) {
@@ -84,7 +84,18 @@ void _cleanup( Pcb *pcb ) {
 		_kpanic( "_cleanup", "pcb dealloc status %s\n", status );
 	}
 
-	__virt_dealloc_page_directory();
+	if (pcb != _current)
+	{
+		serial_printf("PCB isn't current!\n");
+		__virt_switch_page_directory(pcb->page_directory);
+		__virt_dealloc_page_directory();
+		__virt_switch_page_directory(_current->page_directory);
+	} else {
+		serial_printf("PCB is current!\n");
+		__virt_dealloc_page_directory(); 
+		// Just in case, dispatch() will change it again
+		__virt_switch_page_directory(__virt_kpage_directory);
+	}
 }
 
 /*

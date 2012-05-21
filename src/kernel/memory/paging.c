@@ -172,7 +172,8 @@ void __virt_reset_page_directory()
 {
 	for (void* address = (void *)0x400000; address < (void *)0xC0000000; address += PAGE_SIZE)
 	{
-		__virt_clear_page(address);
+		__virt_unmap_page(address);
+		//__virt_clear_page(address);
 	}
 }
 
@@ -299,7 +300,7 @@ void __virt_clear_page(void *virtual_addr)
 
 void __virt_unmap_page(void *virtual_addr)
 {
-	if (virtual_addr < (void *)0x100000 || virtual_addr >= (void *)KERNEL_LINK_ADDR)
+	if (virtual_addr < (void *)0x400000 || virtual_addr >= (void *)0xC0000000)
 	{
 		_kpanic("Unmap Page", "Tried to free a reserved address!", 0);
 	}
