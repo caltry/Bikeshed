@@ -1,7 +1,7 @@
 #ifndef __PAGING_H__
 #define __PAGING_H__
 
-#include "headers.h"
+#include "types.h"
 /*
 typedef struct Page
 {
@@ -16,11 +16,11 @@ typedef struct Page
 */
 #define PAGE_SIZE 4096
 
-#define PRESENT 	0x1
-#define READ_WRITE 	0x2
-#define USER 		0x4
-#define WRITE_THRU	0x8
-#define CACHE_DISABLE 0x10
+#define PG_PRESENT 		 0x1
+#define PG_READ_WRITE 	 0x2
+#define PG_USER 		 0x4
+#define PG_WRITE_THRU	 0x8
+#define PG_CACHE_DISABLE 0x10
 
 struct Page;
 typedef struct Page page_t;
@@ -76,6 +76,15 @@ void __virt_switch_page_directory(page_directory_t *page_directory);
 // Taken from OS Dev wiki
 void* __virt_get_phys_addr(void *virtual_addr);
 
+/* Clears everything but kernel entries from a page table */
+void __virt_reset_page_directory(void);
+
+/* Removes the entire page table from memory */
+void __virt_dealloc_page_directory(void);
+
+/* Clones a page directory, it copies all pages and data */
+page_directory_t* __virt_clone_directory(void);
+
 // Taken from OS Dev wiki
 void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags);
 
@@ -89,6 +98,14 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags);
  * Only 4KiB aligned virtual addresses will have any effect.
  */
 void __virt_unmap_page(void *virtual_addr);
+
+/* Similar to unmap page except it DOESN'T free the page from the physical memory
+ * manager.
+ *
+ * This is required when copying pages because if we're trying to create a new page
+ * table we don't want to free it's blocks before it gets used!
+ */
+void __virt_clear_page(void *virtual_addr);
 
 /* Used to handle page faults. Currently it displays what the
  * faulting address was and what the error bits were and then

@@ -8,6 +8,7 @@
 
 extern "C" {
 	#include "kmalloc.h"
+	#include "defs.h"
 	#include "linkedlist.h"
 }
 
@@ -30,8 +31,6 @@ UIComponent::~UIComponent(void)
 {
 	list_destroy(children);
 	__kfree(children);
-
-	delete painter;
 }
 
 

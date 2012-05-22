@@ -2,4 +2,4 @@
 # and virtual addresses when we go above the 1MiB line.
 RAMDISK_VIRT_LOCATION := 0xE0000000
 RAMDISK_PHYS_LOCATION := 0x400000
-RAMDISK_SIZE_KiB := 120
+RAMDISK_SIZE_KiB := 1200

@@ -8,7 +8,10 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
+#include "types.h"
+#include "c_io.h"
+#include "lib/klib.h"
+#include "memory/paging.h"
 
 #include "bios.h"
 
@@ -47,7 +50,7 @@ void _bios_init(void) {
 	//   where the real mode code is currently located
 	for (Uint32 load_pos = 0; load_pos < length; load_pos += 4096) {
 		__virt_map_page((void *)(REAL_LOAD_ADDRESS + load_pos),
-			(void *)(REAL_LOAD_ADDRESS + load_pos), READ_WRITE | PRESENT);
+			(void *)(REAL_LOAD_ADDRESS + load_pos), PG_READ_WRITE);
 	}
 	
 	// Copy the real mode code
@@ -55,6 +58,6 @@ void _bios_init(void) {
 	
 	// Unmap the source location pages
 	for (Uint32 load_pos = 0; load_pos < length; load_pos += 4096) {
-		__virt_unmap_page((void *)(REAL_LOAD_ADDRESS + load_pos));
+		__virt_clear_page((void *)(REAL_LOAD_ADDRESS + load_pos));
 	}
 }

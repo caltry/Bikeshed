@@ -8,8 +8,9 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
+#include "types.h"
 #include "memory/kmalloc.h"
+#include "lib/klib.h"
 #include "ulib.h"
 
 #include "vesa.h"
@@ -17,9 +18,7 @@
 
 #include "video.h"
 
-
 Screen *kScreen;
-
 
 Status _video_init(void) {
 	// Load the vesa controller information
@@ -46,9 +45,9 @@ Status _video_init(void) {
 	kScreen->size = mode->y_resolution * mode->pitch;
 
 	// Set up the back buffer
-	kScreen->back_buffer = __kmalloc(kScreen->size);
-	sem_init(kScreen->buffer_lock);
-	sem_post(kScreen->buffer_lock);
+	kScreen->back_buffer = __kmalloc(kScreen->size + 4096);
+//	sem_init(kScreen->buffer_lock);
+//	sem_post(kScreen->buffer_lock);
 
 	// Make sure pages are identity mapped for the screen
 	for (Uint32 address = 0; address < (kScreen->size + 4096); address += 4096) {
@@ -56,22 +55,24 @@ Status _video_init(void) {
 		//	(Uint32)((Uint32)FRAMEBUFFER_ADDRESS + address));
 
 		__virt_map_page((void *)(Uint32)((Uint32)(kScreen->frame_buffer) + address),
-			(void *)(Uint32)((Uint32)FRAMEBUFFER_ADDRESS + address), READ_WRITE | PRESENT);
+			(void *)(Uint32)((Uint32)FRAMEBUFFER_ADDRESS + address), PG_READ_WRITE);
 	}
 	//c_printf("screen size: %d", kScreen->size);
 
 	kScreen->frame_buffer = (Uint16 *)((Uint32)FRAMEBUFFER_ADDRESS);
+	_kmemset(kScreen->frame_buffer, 0xff, kScreen->size);
 
 	// Switch to the mode
 	_vesa_select_mode(mode_num);
 
 	// Clear the background
-	_kmemclr(kScreen->frame_buffer, kScreen->size);
-	_kmemclr(kScreen->back_buffer, kScreen->size);
+	_kmemset(kScreen->frame_buffer, 0x0A, kScreen->size);
+	_kmemset(kScreen->back_buffer, 0x0A, kScreen->size);
+	//_kmemclr(kScreen->frame_buffer, kScreen->size);
+	//_kmemclr(kScreen->back_buffer, kScreen->size);
 
 	return SUCCESS;
 }
-
 
 Uint16 *_video_aquire_buffer(Screen *screen) {
 	//TODO: use read/write locks so multiple drawing
@@ -79,7 +80,6 @@ Uint16 *_video_aquire_buffer(Screen *screen) {
 	//sem_wait(screen->buffer_lock);
 	return screen->back_buffer;
 }
-
 
 void _video_release_buffer(Screen *screen) {
 	//sem_post(screen->buffer_lock);

@@ -10,11 +10,11 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
 #include "locks.h"
 #include "scheduler.h"
 #include "queues.h"
 #include "klib.h"
+#include "c_io.h"
 #include "memory/kmalloc.h"
 
 #define TRACE_LOCKS

@@ -75,6 +75,15 @@ void _kmemclr( void *buffer, Uint32 length );
 void _kmemcpy( void *destination, const void *source, Uint32 length );
 
 /*
+** _kmemset - set a block of memory to a specific value
+**
+** usage: _kmemset(block, value, size)
+**
+*/
+
+void _kmemset(void *ptr, Uint8 value, Uint32 num);
+
+/*
 ** _kpanic - kernel-level panic routine
 **
 ** usage:  _kpanic( mod, msg, code )

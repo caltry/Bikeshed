@@ -9,13 +9,13 @@
 #ifndef _VIDEO_H
 #define _VIDEO_H
 
-#include "headers.h"
+#include "types.h"
 
 /*
 ** General C definitions
 */
 
-#define FRAMEBUFFER_ADDRESS			0xb0000000
+#define FRAMEBUFFER_ADDRESS			0xc2000000
 
 /*
 ** Types

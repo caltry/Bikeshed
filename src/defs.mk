@@ -27,11 +27,11 @@ CPP = cpp
 CPPFLAGS = $(USER_OPTIONS) -nostdinc $(INCLUDES)
 
 CC = gcc
-CFLAGS += -std=gnu99 -fno-stack-protector -fno-builtin -Wall -Wextra 
+CFLAGS += -std=gnu99 -Wshadow -fno-stack-protector -fno-builtin -Wall -Wextra 
 CFLAGS += -Wstrict-prototypes -m32 $(CPPFLAGS)
 
 CXX = g++
-CXXFLAGS += -m32 -nostdlib -fno-builtin -nostartfiles -nodefaultlibs -fno-exceptions -fno-rtti -fno-stack-protector -Wall -Wextra
+CXXFLAGS += -m32 -Wshadow -nostdlib -fno-builtin -nostartfiles -nodefaultlibs -fno-exceptions -fno-rtti -fno-stack-protector -Wall -Wextra
 
 AS = as
 ASFLAGS = --32 -n32 

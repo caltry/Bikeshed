@@ -13,8 +13,7 @@
 ** General definitions
 */
 
-#include "headers.h"
-#include "ulib.h"
+#include "types.h"
 
 
 extern Int32 _mouse_x;

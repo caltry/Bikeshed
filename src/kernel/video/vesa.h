@@ -39,7 +39,7 @@
 
 #ifndef __ASM__20113__
 
-#include "headers.h"
+#include "types.h"
 
 /*
 ** Start of C-only definitions

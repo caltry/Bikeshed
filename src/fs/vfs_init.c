@@ -57,12 +57,15 @@ void _init_himem_ramdisk(
 
 	// Mark the physical addresses as occupied
 	// Map the virtual address to the physical addresses
+	Int32 page_num = 1;
 	for( p = physical_address, v = virtual_address;
 		p < physAddressMax && v < virtAddressMax;
 		p += PAGE_SIZE, v += PAGE_SIZE )
 	{
 		__phys_set_bit( p );
 		__virt_map_page( p, v, READ_WRITE );
+		serial_printf("Mapping page: %d - phys: %x - virt: %x\n", page_num, p, v);
+		++page_num;
 	}
 }
 

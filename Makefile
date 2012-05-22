@@ -62,7 +62,7 @@ walter:
 
 mit: 
 	CFLAGS=-DQEMU_SERIAL $(MAKE) usb.image
-	~/qemu/bin/qemu -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er
+	~/qemu/bin/qemu -m 1024 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er
 #
 # Special rule for creating the modification and offset programs
 #

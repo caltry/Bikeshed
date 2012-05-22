@@ -7,6 +7,7 @@
 #include "ext2.h"
 #include "types.h"
 #include "read_ext2.h"
+#include "ext2_tests.h"
 #include "kernel/serial.h"
 #include "kernel/memory/kmalloc.h"
 #include "kernel/lib/klib.h"
@@ -23,7 +24,15 @@
 #error "RAMDISK_PHYS_LOCATION not set!"
 #endif
 
-#define DEBUG_FILESYSTEM true
+// Should we print a deluge of debugging information?
+#ifndef DEBUG_FILESYSTEM
+#define DEBUG_FILESYSTEM false
+#endif
+
+// Should we run a bunch of tests on the filesystem?
+#ifndef EXT2_RUN_TESTS
+#define EXT2_RUN_TESTS false
+#endif
 
 static const char *NEWLINE = "\n\r";
 
@@ -64,6 +73,35 @@ get_next_dirent( struct ext2_directory_entry *dirent )
 {
 	return ((void*) dirent) + dirent->entry_length;
 }
+
+
+/*
+ * Determine if the size of this dirent is too large. This means that this is
+ * the last file entry in the directory.
+ */
+static inline _Bool
+dirent_is_too_large( struct ext2_directory_entry *dirent )
+{
+	Uint16 expected_size = sizeof( struct ext2_directory_entry )
+	                     + dirent->name_length;
+	// Pad size to 4 byte boundary
+	if( expected_size % 4 )
+	{
+		expected_size += 4 - (expected_size % 4);
+	}
+
+	return expected_size < dirent->entry_length;
+}
+
+/*
+ * Give the number of data blocks that a single indirect block can point to.
+ */
+static inline Uint32
+indirect_data_block_size( struct ext2_filesystem_context *context )
+{
+	return get_block_size( context->sb ) / sizeof(Uint32);
+}
+
 
 struct ext2_inode*
 get_inode( struct ext2_filesystem_context *context, Uint32 inode_number );
@@ -110,6 +148,14 @@ void ext2_debug_dump( struct ext2_filesystem_context *context_ptr )
 	serial_string("== get_dir_ents_root ==\n\r");
 	print_dir_ents_root( &context );
 	serial_string("==\n\r");
+
+#if EXT2_RUN_TESTS
+	serial_string("==Running ext2 tests==\n\r");
+	Uint32 failures = test_all();
+	serial_printf("Ext2 tests completed with: %d failures.\n\r", failures );
+	serial_string("==Ending ext2 tests==\n\r");
+#endif
+
 	serial_string("== Printing out the message of the day! ==\n\r");
 	char test_buffer[1112];
 	ext2_read_status read_error;
@@ -167,7 +213,10 @@ void print_superblock_data(struct ext2_superblock *sb)
 void print_directory_entry_data(struct ext2_directory_entry *dirent)
 {
 	serial_string( "Filename: " );
-	serial_string( dirent->filename );
+	for( unsigned int i = 0; i < dirent->name_length; ++i )
+	{
+		serial_char( dirent->filename[i] );
+	}
 	serial_string( NEWLINE );
 	serial_printf( "Inode: %d\n\r", dirent->inode_number );
 	serial_printf( "Entry length: %d\n\r", dirent->entry_length);
@@ -406,7 +455,13 @@ ext2_read_file_by_inode
 {
 	Uint32 inode_num = file->inode_number;
 	struct ext2_inode *fp = get_inode( context, inode_num );
+
+	// Address space of a direct block
 	Uint32 block_size = get_block_size( context->sb );
+	// Address space of indirect blockss
+	Uint32 indirect_block_size = block_size * block_size / sizeof(Uint32);
+	Uint32 dub_indirect_block_size = indirect_block_size * indirect_block_size / sizeof(Uint32);
+	Uint32 trip_indirect_block_size = dub_indirect_block_size * dub_indirect_block_size / sizeof(Uint32);
 
 	// Avoid reading off of the end of a file.
 	if( fp->size < (nbytes+start) )
@@ -423,27 +478,83 @@ ext2_read_file_by_inode
 	serial_printf( "going to read %d bytes\n\r", nbytes );
 
 	// The number of blocks that we need to skip before reading
+	// Logical inode block
 	Uint32 first_inode_block = start / block_size;
+	PRINT_VARIABLE( start );
+	PRINT_VARIABLE( first_inode_block );
+
+	// Literal inode block indexes
+	Uint32 trip_indirect_inode_block_idx = 1;
+	Uint32 dub_indirect_inode_block_idx = 1;
+	Uint32 indirect_inode_block_idx;
+
+	// FIXME, a bit of a hack to get indirect blocks working
+	Uint32 direct_inode_block_idx;
+	if( first_inode_block >= EXT2_INODE_INDIRECT_BLOCK_IDX )
+	{
+		direct_inode_block_idx = EXT2_INODE_INDIRECT_BLOCK_IDX;
+		indirect_inode_block_idx = first_inode_block - EXT2_INODE_INDIRECT_BLOCK_IDX;
+	} else {
+		direct_inode_block_idx = first_inode_block;
+		indirect_inode_block_idx = 0;
+	}
 
 	// The number of bytes into the first block that we need to skip
 	Uint32 block_offset = start % block_size;
 
 	for
-	(Uint32 inode_block_idx = first_inode_block;
+	(Uint32 inode_block_idx = direct_inode_block_idx;
 	inode_block_idx < EXT2_INODE_TOTAL_BLOCKS;
 	inode_block_idx++)
 	{
-		// TODO: Support indirect, dub. indirect, trip. indirect blocks
-		if( inode_block_idx >= EXT2_INODE_DIRECT_BLOCKS )
-		{
-			_kpanic( "ext2", "No support for indirect blocks",
-				FEATURE_UNIMPLEMENTED );
-		}
-
 		Uint32 block_number = fp->blocks[inode_block_idx];
+		PRINT_VARIABLE( block_number );
+		Uint32 direct_inode_block_idx = first_inode_block % EXT2_INODE_TOTAL_BLOCKS;
 		const char *data = (const char*)
 			(block_offset + ((void*)
 			block_number_to_address( context, block_number )));
+
+		// Pointer to an indirect block data area (can't be declared
+		// inside of the `switch' statement.
+		const void *indirect_block;
+
+
+#if DEBUG_FILESYSTEM
+		PRINT_VARIABLE( block_offset );
+		serial_printf("inode_block_idx: %d\n\r", inode_block_idx );
+		PRINT_VARIABLE( indirect_inode_block_idx );
+		PRINT_VARIABLE( dub_indirect_inode_block_idx );
+		PRINT_VARIABLE( trip_indirect_inode_block_idx );
+#endif
+
+		// TODO: Support indirect, dub. indirect, trip. indirect blocks
+		switch( inode_block_idx )
+		{
+		case EXT2_INODE_TRIP_INDIRECT_BLOCK_IDX:
+		case EXT2_INODE_DUB_INDIRECT_BLOCK_IDX:
+			_kpanic( "ext2", __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) " No support for double or tripple indirect blocks",
+				FEATURE_UNIMPLEMENTED );
+		case EXT2_INODE_INDIRECT_BLOCK_IDX:
+
+			// Dont' factor in the block offset when getting the
+			// indirect data block.
+			indirect_block = (const void*)
+				(block_number_to_address( context, block_number ));
+
+			// Don't let the inode block index advance unless
+			// we've used all of the blocks in the indirect data
+			// block.
+			if( indirect_inode_block_idx < indirect_data_block_size(context) )
+			{
+				--inode_block_idx;
+			}
+
+			data = (const void*)
+			 block_number_to_address( context, ((Uint32*) indirect_block)[indirect_inode_block_idx] );
+			data += block_offset;
+			serial_printf("data: %x\n\r", data );
+			++indirect_inode_block_idx;
+		}
 
 		/* Keep printing out entries until we've reached the end. */
 		if( remaining_bytes < block_size )
@@ -455,18 +566,18 @@ ext2_read_file_by_inode
 			break;
 		} else {
 			serial_string(__FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) "\n\r");
-			char local_block_buffer[block_size+1-block_offset];
-			_kmemcpy( local_block_buffer, data, block_size-block_offset );
-			buffer += block_size;
+			_kmemcpy( buffer, data, block_size-block_offset );
+			buffer += (block_size-block_offset);
 
 			// There's more to read
-			remaining_bytes -= block_size;
-			continue;
+			remaining_bytes -= (block_size-block_offset);
 		}
 
 		// Reset the block offset -- we only use it once!
 		block_offset = 0;
 	}
+
+	serial_printf( "actually read: %d bytes\n\r", nbytes-remaining_bytes );
 
 	return nbytes-remaining_bytes;
 }
@@ -476,6 +587,7 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 			struct ext2_inode *directory_ino,
 			const char *filename )
 {
+	Uint32 filename_len = _kstrlen( filename );
 	Uint32 block_size = get_block_size( context->sb );
 
 	serial_string( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) "\n\r");
@@ -505,17 +617,31 @@ get_file_from_dir_inode( struct ext2_filesystem_context *context,
 #if DEBUG_FILESYSTEM
 			serial_string( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__)
 				" trying file: ");
-			serial_string( dirent->filename );
+			for( unsigned int i = 0; i < dirent->name_length; ++i )
+			{
+				serial_char( dirent->filename[i] );
+			}
 			serial_printf( " <%d>", dirent->inode_number );
 			serial_printf( ", with length: %d  ", dirent->name_length);
 			serial_printf( "strncmp(): %d\n\r", _kstrncmp( filename, dirent->filename, dirent->name_length ));
+			serial_printf( "dirent->entry_length: %d", dirent->entry_length );
+			serial_printf( " correct length? %d\n\r", !dirent_is_too_large( dirent ) );
 #endif
 
 			// If this is the file we're looking for, we're done!
-			if( !_kstrcmp( filename, dirent->filename ) )
+			if( filename_len == dirent->name_length &&
+			    !_kstrncmp( filename, dirent->filename, dirent->name_length ) )
 			{
 				return dirent;
 			} else {
+				// If this entry is too large, we know we're at
+				// the end of the list of files in the
+				// directory.
+				if( dirent_is_too_large( dirent ) )
+				{
+					return 0;
+				}
+
 				dirent = get_next_dirent( dirent );
 
 				if( dirent > (first_dirent + block_size) )
@@ -619,7 +745,14 @@ ext2_raw_read
 
 	// Set up the directory name, keep the trailing slash, ignore filename.
 	char dirname[path_length+1];
-	_kmemcpy( dirname, path, path_length );
+	_kmemcpy( dirname, path, path_length+1 );
+	serial_printf( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__)
+			", dirname before excluding filename: %s\n\r",
+			dirname );
+	((char *)_kstrrchr( dirname, DIRECTORY_SEPARATOR ))[1] = '\0';
+	serial_printf( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__)
+			", dirname after excluding filename: %s\n\r",
+			dirname );
 	((char *)_kstrrchr( dirname, DIRECTORY_SEPARATOR ))[1] = '\0';
 
 	struct ext2_directory_entry* file =

@@ -13,7 +13,7 @@
 #ifndef _CLOCK_H
 #define _CLOCK_H
 
-#include "headers.h"
+#include "types.h"
 
 /*
 ** General (C and/or assembly) definitions

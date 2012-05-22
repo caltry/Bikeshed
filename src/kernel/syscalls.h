@@ -13,7 +13,7 @@
 #ifndef _SYSCALLS_H
 #define _SYSCALLS_H
 
-#include "headers.h"
+#include "types.h"
 #include "queues.h"
 
 #include <x86arch.h>

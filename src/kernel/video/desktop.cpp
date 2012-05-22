@@ -7,12 +7,14 @@
 */
 
 extern "C" {
+	#include "defs.h"
 	#include "kmalloc.h"
 	#include "klib.h"
 	#include "ulib.h"
 	#include "linkedlist.h"
 	#include "video.h"
 	#include "mouse.h"
+	#include "semaphores.h"
 }
 
 #include "window.h"
@@ -25,16 +27,22 @@ extern "C" {
 
 #include "desktop.h"
 
-
-Desktop::Desktop(Screen *screen)
-	: screen(screen)
-	, bounds(Rect(0, 0, screen->width, screen->height))
+static
+void delete_window(void* data)
 {
-	window_list = (LinkedList *)__kmalloc(sizeof(window_list));
-	list_init(window_list, __kfree);
+	Window* window = (Window *)data;
+	delete window;
+}
 
-	sem_init(&list_sem);
-	sem_post(list_sem);
+Desktop::Desktop(Screen *_screen)
+	: screen(_screen)
+	, bounds(Rect(0, 0, _screen->width, _screen->height))
+{
+	window_list = (linked_list_t *)__kmalloc(sizeof(linked_list_t));
+	list_init(window_list, delete_window);
+
+	//sem_init(&list_sem);
+	//sem_post(list_sem);
 
 	// Create the graphics painters
 	if (screen->bpp == 24) {
@@ -52,20 +60,20 @@ Desktop::~Desktop(void)
 {
 	list_destroy(window_list);
 	__kfree(window_list);
+	delete painter;
 }
 
 
 void Desktop::AddWindow(Window *window)
 {
-	sem_wait(list_sem);
+//	sem_wait(list_sem);
 	list_insert_next(window_list, NULL, (void *)window);
-	sem_post(list_sem);
+//	sem_post(list_sem);
 }
-
 
 void Desktop::Draw(void)
 {
-	sem_wait(list_sem);
+//	sem_wait(list_sem);
 
 	// Draw all of the windows
 	ListElement *cur_node = list_head(window_list);
@@ -86,9 +94,10 @@ void Desktop::Draw(void)
 		cur_node = list_next(cur_node);
 	}
 
-	sem_post(list_sem);
-}
+	delete updateRegion;
 
+//	sem_post(list_sem);
+}
 
 void Desktop::DrawCursor(Int32 x, Int32 y)
 {
@@ -98,6 +107,7 @@ void Desktop::DrawCursor(Int32 x, Int32 y)
 
 extern "C" {
 	void _desktop_run(void) {
+		asm volatile("cli");
 
 		/*
 		** Start up the system graphics module
@@ -122,6 +132,7 @@ extern "C" {
 
 		do {
 			// Repaint the desktop
+			asm volatile("cli");
 			desktop.Draw();
 
 			// Copy the back buffer to the screen
@@ -132,6 +143,7 @@ extern "C" {
 			desktop.DrawCursor(_mouse_x, _mouse_y);
 		
 			// Update at about 200 fps
+			asm volatile("sti");
 			msleep(10);
 		} while ( 1 );
 	}

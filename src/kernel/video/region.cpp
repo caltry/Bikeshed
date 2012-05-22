@@ -7,6 +7,7 @@
 */
 
 extern "C" {
+	#include "defs.h"
 	#include "kmalloc.h"
 }
 
@@ -25,6 +26,7 @@ Region::Region(void)
 Region::~Region(void)
 {
 	list_destroy(rect_list);
+	__kfree(rect_list);
 }
 
 

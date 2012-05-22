@@ -10,7 +10,11 @@
 ** Description:	C implementations of user-level library functions
 */
 
-#include "headers.h"
+#include "defs.h"
+#include "ulib.h"
+
+#define c_printf(...)
+#define prt_status(...)
 
 /*
 ** PRIVATE DEFINITIONS
@@ -60,6 +64,7 @@ const char *ustatus_strings[] = {
 ** the desired status value should be printed
 */
 
+/*
 void prt_status( char *msg, Status stat ) {
 
 	if( msg == NULL ) {
@@ -73,18 +78,19 @@ void prt_status( char *msg, Status stat ) {
 	}
 
 }
+*/
 
 /*
 ** spawnp - create a new process running a different program
 **		at a specific priority
 **
-** usage:  status = spawnp( &pid, prio, entry );
+** usage:  status = spawnp( &pid, prio, "/path/to/program" );
 **
 ** returns the PID of the child via the 'pid' parameter on
 ** success, and the status of the creation attempt
 */
 
-Status spawnp( Pid *pid, Prio prio, void (*entry)(void) ) {
+Status spawnp( Pid *pid, Prio prio, const char* program_path ) {
 	Pid new;
 	Status status, status2;
 
@@ -114,7 +120,7 @@ Status spawnp( Pid *pid, Prio prio, void (*entry)(void) ) {
 			}
 			exit();
 		}
-		status = exec( entry );
+		status = exec( program_path );
 		// if we got here, the exec() failed
 		status2 = get_pid( &new );
 		if( status2 == SUCCESS ) {
@@ -137,16 +143,16 @@ Status spawnp( Pid *pid, Prio prio, void (*entry)(void) ) {
 ** spawn - create a new process running a different program
 **		at standard priority
 **
-** usage:  status = spawn( &pid, entry );
+** usage:  status = spawn( &pid, "/path/to/program" );
 **
 ** returns the PID of the child via the 'pid' parameter on
 ** success, and the status of the creation attempt
 */
 
-Status spawn( Pid *pid, void (*entry)(void) ) {
+Status spawn( Pid *pid, const char* program_path ) {
 
 	// take the easy way out
 
-	return( spawnp(pid,PRIO_STD,entry) );
+	return( spawnp(pid,PRIO_STD,program_path) );
 
 }

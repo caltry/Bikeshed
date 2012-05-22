@@ -39,7 +39,7 @@ private:
 	Rect bounds;
 	Painter *painter;
 
-	LinkedList *window_list;
+	linked_list_t *window_list;
 
 	Sem list_sem;
 };

@@ -1,10 +1,10 @@
 include ../defs.mk
 
-CFLAGS += -I../include -I../ulib -I../kernel -I../kernel/lib -I../kernel/video -I../boot
+CFLAGS += -I../include -I../kernel -I../kernel/lib -I../kernel/video -I../boot
 CFLAGS += -I../serial -I../applications -I../kernel/bios -I.. -I../fs
 CPPFLAGS += -I../boot -I../kernel/video
 
-CXXFLAGS += -I../include -I../ulib -I../kernel -I../kernel/lib -I../boot
+CXXFLAGS += -I../include -I../kernel -I../kernel/lib -I../boot
 CXXFLAGS += -I../serial -I../applications -I ../kernel/bios
 
 SRC_FILES = $(DYN_SRC_FILES)

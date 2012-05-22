@@ -10,7 +10,7 @@
 #define _RECT_H
 
 extern "C" {
-	#include "headers.h"
+	#include "types.h"
 }
 
 class Rect {

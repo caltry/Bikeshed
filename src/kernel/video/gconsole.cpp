@@ -18,6 +18,7 @@
 extern "C" {
 #endif
 
+#include "defs.h"
 #include "semaphores.h"
 #include "scheduler.h"
 

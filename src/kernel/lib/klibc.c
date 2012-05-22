@@ -13,9 +13,10 @@
 #define	__KERNEL__20113__
 
 #include "klib.h"
-#include "c_io.h"
-#include "defs.h"
-#include "support.h"
+#include "kernel/c_io.h"
+#include "include/defs.h"
+#include "kernel/support.h"
+#include "serial.h"
 
 /*
 ** PUBLIC GLOBAL VARIABLES
@@ -101,13 +102,18 @@ void _kmemcpy( void *destination, const void *source, Uint32 length ) {
 void _kpanic( const char *mod, const char *msg, Status code ) {
 
 	c_puts( "\n\n***** KERNEL PANIC *****\n\n" );
+	serial_printf( "\n\n***** KERNEL PANIC *****\n\n" );
 	c_printf( "Module: %s\n", mod );
+	serial_printf( "Module: %s\n", mod );
 	if( msg != NULL ) {
 		c_printf( msg, _kstatus(code) );
+		serial_printf(msg, _kstatus(code));
 		c_putchar( '\n' );
+		serial_char('\n');
 	}
 	if( code >= STATUS_SENTINEL ) {
 		c_printf( "*** bad code %d\n", code );
+		serial_printf( "*** bad code %d\n", code );
 	}
 
 	//
@@ -117,6 +123,17 @@ void _kpanic( const char *mod, const char *msg, Status code ) {
 
 	__panic( "KERNEL PANIC" );
 
+}
+
+void _kmemset(void *ptr, Uint8 value, Uint32 num)
+{
+	unsigned char *p = (unsigned char *)ptr;
+	while (num > 0)
+	{
+		*p = value;
+		++p;
+		--num;
+	}
 }
 
 Uint32 _krand()

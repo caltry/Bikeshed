@@ -26,9 +26,7 @@ public:
 	char *title;
 
 private:
-
 	void Draw(void);
-
 	
 	Desktop *desktop;
 	bool hasFocus;

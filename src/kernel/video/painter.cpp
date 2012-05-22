@@ -15,9 +15,9 @@ extern "C" {
 #include "painter.h"
 
 
-Painter::Painter(Screen *screen, Rect bounds)
-	: screen(screen)
-	, bounds(bounds)
+Painter::Painter(Screen *_screen, Rect _bounds)
+	: screen(_screen)
+	, bounds(_bounds)
 {
 }
 

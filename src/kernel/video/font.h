@@ -10,7 +10,7 @@
 #define _FONT_H
 
 
-#include "headers.h"
+#include "types.h"
 
 
 extern Uint8 font_data[];

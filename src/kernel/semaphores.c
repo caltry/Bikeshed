@@ -10,11 +10,12 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
+#include "defs.h"
+#include "c_io.h"
 #include "semaphores.h"
 #include "scheduler.h"
 #include "queues.h"
-#include "klib.h"
+#include "lib/klib.h"
 
 
 //#define TRACE_SEMAPHORES
