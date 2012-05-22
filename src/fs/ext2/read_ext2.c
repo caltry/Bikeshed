@@ -24,7 +24,15 @@
 #error "RAMDISK_PHYS_LOCATION not set!"
 #endif
 
-#define DEBUG_FILESYSTEM true
+// Should we print a deluge of debugging information?
+#ifndef DEBUG_FILESYSTEM
+#define DEBUG_FILESYSTEM false
+#endif
+
+// Should we run a bunch of tests on the filesystem?
+#ifndef EXT2_RUN_TESTS
+#define EXT2_RUN_TESTS false
+#endif
 
 static const char *NEWLINE = "\n\r";
 
@@ -85,6 +93,16 @@ dirent_is_too_large( struct ext2_directory_entry *dirent )
 	return expected_size < dirent->entry_length;
 }
 
+/*
+ * Give the number of data blocks that a single indirect block can point to.
+ */
+static inline Uint32
+indirect_data_block_size( struct ext2_filesystem_context *context )
+{
+	return get_block_size( context->sb ) / sizeof(Uint32);
+}
+
+
 struct ext2_inode*
 get_inode( struct ext2_filesystem_context *context, Uint32 inode_number );
 
@@ -131,10 +149,12 @@ void ext2_debug_dump( struct ext2_filesystem_context *context_ptr )
 	print_dir_ents_root( &context );
 	serial_string("==\n\r");
 
+#if EXT2_RUN_TESTS
 	serial_string("==Running ext2 tests==\n\r");
 	Uint32 failures = test_all();
 	serial_printf("Ext2 tests completed with: %d failures.\n\r", failures );
 	serial_string("==Ending ext2 tests==\n\r");
+#endif
 
 	serial_string("== Printing out the message of the day! ==\n\r");
 	char test_buffer[1112];
@@ -435,7 +455,13 @@ ext2_read_file_by_inode
 {
 	Uint32 inode_num = file->inode_number;
 	struct ext2_inode *fp = get_inode( context, inode_num );
+
+	// Address space of a direct block
 	Uint32 block_size = get_block_size( context->sb );
+	// Address space of indirect blockss
+	Uint32 indirect_block_size = block_size * block_size / sizeof(Uint32);
+	Uint32 dub_indirect_block_size = indirect_block_size * indirect_block_size / sizeof(Uint32);
+	Uint32 trip_indirect_block_size = dub_indirect_block_size * dub_indirect_block_size / sizeof(Uint32);
 
 	// Avoid reading off of the end of a file.
 	if( fp->size < (nbytes+start) )
@@ -452,27 +478,83 @@ ext2_read_file_by_inode
 	serial_printf( "going to read %d bytes\n\r", nbytes );
 
 	// The number of blocks that we need to skip before reading
+	// Logical inode block
 	Uint32 first_inode_block = start / block_size;
+	PRINT_VARIABLE( start );
+	PRINT_VARIABLE( first_inode_block );
+
+	// Literal inode block indexes
+	Uint32 trip_indirect_inode_block_idx = 1;
+	Uint32 dub_indirect_inode_block_idx = 1;
+	Uint32 indirect_inode_block_idx;
+
+	// FIXME, a bit of a hack to get indirect blocks working
+	Uint32 direct_inode_block_idx;
+	if( first_inode_block >= EXT2_INODE_INDIRECT_BLOCK_IDX )
+	{
+		direct_inode_block_idx = EXT2_INODE_INDIRECT_BLOCK_IDX;
+		indirect_inode_block_idx = first_inode_block - EXT2_INODE_INDIRECT_BLOCK_IDX;
+	} else {
+		direct_inode_block_idx = first_inode_block;
+		indirect_inode_block_idx = 0;
+	}
 
 	// The number of bytes into the first block that we need to skip
 	Uint32 block_offset = start % block_size;
 
 	for
-	(Uint32 inode_block_idx = first_inode_block;
+	(Uint32 inode_block_idx = direct_inode_block_idx;
 	inode_block_idx < EXT2_INODE_TOTAL_BLOCKS;
 	inode_block_idx++)
 	{
-		// TODO: Support indirect, dub. indirect, trip. indirect blocks
-		if( inode_block_idx >= EXT2_INODE_DIRECT_BLOCKS )
-		{
-			_kpanic( "ext2", "No support for indirect blocks",
-				FEATURE_UNIMPLEMENTED );
-		}
-
 		Uint32 block_number = fp->blocks[inode_block_idx];
+		PRINT_VARIABLE( block_number );
+		Uint32 direct_inode_block_idx = first_inode_block % EXT2_INODE_TOTAL_BLOCKS;
 		const char *data = (const char*)
 			(block_offset + ((void*)
 			block_number_to_address( context, block_number )));
+
+		// Pointer to an indirect block data area (can't be declared
+		// inside of the `switch' statement.
+		const void *indirect_block;
+
+
+#if DEBUG_FILESYSTEM
+		PRINT_VARIABLE( block_offset );
+		serial_printf("inode_block_idx: %d\n\r", inode_block_idx );
+		PRINT_VARIABLE( indirect_inode_block_idx );
+		PRINT_VARIABLE( dub_indirect_inode_block_idx );
+		PRINT_VARIABLE( trip_indirect_inode_block_idx );
+#endif
+
+		// TODO: Support indirect, dub. indirect, trip. indirect blocks
+		switch( inode_block_idx )
+		{
+		case EXT2_INODE_TRIP_INDIRECT_BLOCK_IDX:
+		case EXT2_INODE_DUB_INDIRECT_BLOCK_IDX:
+			_kpanic( "ext2", __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) " No support for double or tripple indirect blocks",
+				FEATURE_UNIMPLEMENTED );
+		case EXT2_INODE_INDIRECT_BLOCK_IDX:
+
+			// Dont' factor in the block offset when getting the
+			// indirect data block.
+			indirect_block = (const void*)
+				(block_number_to_address( context, block_number ));
+
+			// Don't let the inode block index advance unless
+			// we've used all of the blocks in the indirect data
+			// block.
+			if( indirect_inode_block_idx < indirect_data_block_size(context) )
+			{
+				--inode_block_idx;
+			}
+
+			data = (const void*)
+			 block_number_to_address( context, ((Uint32*) indirect_block)[indirect_inode_block_idx] );
+			data += block_offset;
+			serial_printf("data: %x\n\r", data );
+			++indirect_inode_block_idx;
+		}
 
 		/* Keep printing out entries until we've reached the end. */
 		if( remaining_bytes < block_size )
@@ -484,18 +566,18 @@ ext2_read_file_by_inode
 			break;
 		} else {
 			serial_string(__FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) "\n\r");
-			char local_block_buffer[block_size+1-block_offset];
-			_kmemcpy( local_block_buffer, data, block_size-block_offset );
-			buffer += block_size;
+			_kmemcpy( buffer, data, block_size-block_offset );
+			buffer += (block_size-block_offset);
 
 			// There's more to read
-			remaining_bytes -= block_size;
-			continue;
+			remaining_bytes -= (block_size-block_offset);
 		}
 
 		// Reset the block offset -- we only use it once!
 		block_offset = 0;
 	}
+
+	serial_printf( "actually read: %d bytes\n\r", nbytes-remaining_bytes );
 
 	return nbytes-remaining_bytes;
 }
