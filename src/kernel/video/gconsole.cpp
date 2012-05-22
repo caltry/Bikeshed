@@ -12,12 +12,20 @@
 **
 */
 
+#include "gconsole.h"
+
+#ifdef _cplusplus
+extern "C" {
+#endif
+
+#include "defs.h"
 #include "semaphores.h"
 #include "scheduler.h"
 
-#include "video.h"
-
-#include "gconsole.h"
+/*
+** The global GConsole window object
+*/
+GConsole *_gconsole;
 
 /*
 ** Video parameters, and state variables
@@ -30,16 +38,13 @@
 #define	SCREEN_MAX_X	SCREEN_X_SIZE
 #define	SCREEN_MAX_Y	SCREEN_Y_SIZE
 
+char screen[SCREEN_X_SIZE * SCREEN_Y_SIZE];
+
 unsigned int	scroll_min_x, scroll_min_y;
 unsigned int	scroll_max_x, scroll_max_y;
 unsigned int	cursor_x, cursor_y;
 unsigned int	min_x, min_y;
 unsigned int	max_x, max_y;
-
-int 			dirty;
-Sem				repaint_sem;
-
-char screen[SCREEN_X_SIZE * SCREEN_Y_SIZE];
 
 #define	SCREEN_ADDR(x,y)	( screen + x + ( y * SCREEN_X_SIZE ) )
 
@@ -140,7 +145,7 @@ static void __gcon_putchar( char c ) {
 
 void gcon_putchar( char c ) {
 	__gcon_putchar(c);
-	gconsole_flush();
+	gcon_flush();
 }
 
 void gcon_putchar_at( unsigned int x, unsigned int y, char c ){
@@ -170,7 +175,7 @@ void gcon_putchar_at( unsigned int x, unsigned int y, char c ){
 		__gcon_putchar_at( x, y, c );
 	}
 
-	gconsole_flush();
+	gcon_flush();
 }
 
 static void __gcon_puts( char *str ){
@@ -183,7 +188,7 @@ static void __gcon_puts( char *str ){
 
 void gcon_puts( char *str ){
 	__gcon_puts(str);
-	gconsole_flush();
+	gcon_flush();
 }
 
 /*
@@ -200,7 +205,7 @@ static void __gcon_puts_at( unsigned int x, unsigned int y, char *str ){
 
 void gcon_puts_at( unsigned int x, unsigned int y, char *str ){
 	__gcon_puts_at(x, y, str);
-	gconsole_flush();
+	gcon_flush();
 }
 
 void gcon_clearscroll( void ){
@@ -216,7 +221,7 @@ void gcon_clearscroll( void ){
 		}
 	}
 
-	gconsole_flush();
+	gcon_flush();
 }
 
 void gcon_clearscreen( void ){
@@ -228,7 +233,7 @@ void gcon_clearscreen( void ){
 		nchars -= 1;
 	}
 
-	gconsole_flush();
+	gcon_flush();
 }
 
 
@@ -266,7 +271,7 @@ void gcon_scroll( unsigned int lines ){
 		}
 	}
 
-	gconsole_flush();
+	gcon_flush();
 }
 
 static char * cvtdec0( char *buf, int value ){
@@ -488,18 +493,18 @@ static void __gcon_do_printf( int x, int y, const char **f ){
 
 void gcon_printf_at( unsigned int x, unsigned int y, const char *fmt, ... ){
 	__gcon_do_printf( x, y, &fmt );
-	gconsole_flush();
+	gcon_flush();
 }
 
 void gcon_printf( const char *fmt, ... ){
 	__gcon_do_printf( -1, -1, &fmt );
-	gconsole_flush();
+	gcon_flush();
 }
 
 /*
 ** Initialization routines
 */
-void gconsole_init( void ){
+void gcon_init( void ){
 	/*
 	** Screen dimensions
 	*/
@@ -521,38 +526,54 @@ void gconsole_init( void ){
 	*/
 	cursor_y = min_y;
 	cursor_x = min_x;
-
-	dirty = 0;
-	//sem_init(&repaint_sem);
-	//sem_post(repaint_sem);
 }
 
 
-void gconsole_flush(void) {
-	//sem_wait(repaint_sem);
-	//dirty = 1;
-	//sem_post(repaint_sem);
+void gcon_flush(void) {
+	if (_gconsole != NULL)
+		_gconsole->Invalidate();
 }
 
 
-void gconsole_draw(unsigned int x, unsigned int y) {
-	/*if (kScreen != NULL) {
-		// Draw the window background
-		fill_rect(kScreen, x, y, SCREEN_MAX_X * 12, SCREEN_MAX_Y * 16, 0x3C5D5F);
-		
-		char *start = screen;
-		char *end = screen + SCREEN_MAX_X;
 
-		while( end != (screen + (SCREEN_MAX_X * SCREEN_MAX_Y))) {
-			draw_chars(kScreen, start, end, x, y, 2, 0xD3D9C3);
-			start += SCREEN_MAX_X;
-			end += SCREEN_MAX_X;
-			y += 16;
-		}
-
-		//sem_wait(repaint_sem);
-		//dirty = 0;
-		//sem_post(repaint_sem);
-	}*/
+ConsoleView::ConsoleView(Painter *painter, Rect bounds)
+	: UIComponent(painter, bounds)
+{
 }
 
+
+void ConsoleView::Draw(void)
+{
+	// Draw the console output
+	char *start = screen;
+	char *end = screen + SCREEN_MAX_X;
+	int y = bounds.y + 36;
+
+	while( end != (screen + (SCREEN_MAX_X * SCREEN_MAX_Y))) {
+		painter->DrawString(start, end, bounds.x + 12, y, 2, 0xD3D9C3);
+		start += SCREEN_MAX_X;
+		end += SCREEN_MAX_X;
+		y += 16;
+	}
+}
+
+
+
+GConsole::GConsole(Desktop *desktop, Uint32 x, Uint32 y)
+	: Window(desktop, Rect(x, y, SCREEN_MAX_X * 12 + 24,
+		SCREEN_MAX_Y * 22 + 24), (char *)"CONSOLE")
+	, console(new ConsoleView(painter, bounds))
+{
+	AddComponent(console);
+}
+
+
+GConsole::~GConsole(void)
+{
+	delete console;
+}
+
+
+#ifdef _cplusplus
+}
+#endif

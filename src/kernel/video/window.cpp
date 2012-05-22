@@ -3,7 +3,7 @@
 **
 ** Author:	Sean Congden
 **
-** Description:	A basic rectangle
+** Description:	An application window that can be drawn on screen
 */
 
 extern "C" {
@@ -19,30 +19,22 @@ extern "C" {
 
 #include "window.h"
 
-Window::Window(Desktop *_desktop, Rect _bounds, char *_title, int _id)
-	: bounds(_bounds)
-	, dirty(true)
-	, desktop(_desktop)
-	, id(_id)
+
+Window::Window(Desktop *desktop, Rect bounds, char *title)
+	: UIComponent(desktop->GetPainter(), bounds)
+	, desktop(desktop)
+	, hasFocus(false)
 {
 	// Probably a good idea to save a copy, in case the string was
 	// created in a temporary location, ran into this problem with
 	// the ELF loader
-	title = (char *)__kmalloc(_kstrlen(_title)+1);
-	_kmemcpy(title, _title, _kstrlen(_title)+1);
-
-	children = (LinkedList *)__kmalloc(sizeof(LinkedList));
-	list_init(children, __kfree);
-	painter = new Painter(kScreen, bounds);
+	this->title = (char *)__kmalloc(_kstrlen(title) + 1);
+	_kmemcpy(this->title, title, _kstrlen(title) + 1);
 }
 
 
 Window::~Window(void)
 {
-	list_destroy(children);
-	__kfree(children);
-	__kfree(title);
-	delete painter;
 }
 
 
@@ -59,55 +51,14 @@ void Window::Move(Uint32 x, Uint32 y)
 }
 
 
-void Window::AddComponent(UIComponent *component)
-{
-	list_insert_next(children, NULL, component);
-}
-
-
-void Window::Invalidate(void)
-{
-	dirty = true;
-}
-
-
-void Window::Repaint(void)
-{
-	if (!dirty) return;
-	Draw();
-
-	ListElement *cur_node = list_head(children);
-	while (cur_node != NULL) {
-		//((UIComponent *)list_data(cur_node))->Repaint();
-
-		cur_node = cur_node->next;
-	}
-
-	//dirty = false;
-}
-
-
 void Window::Draw(void)
 {
+	Uint32 focusColor = (hasFocus) ? WINDOW_ACTIVE_COLOR
+		 : WINDOW_INACTIVE_COLOR;
+	
 	// Draw the window base
-	Uint32 color = WINDOW_BASE_COLOR_1;
-	if (id != 0) {
-		if (id == 2) {
-			color = WINDOW_TITLE_COLOR_1;	
-			id = 1;
-		} else if (id == 1) {
-			id = 2;
-		}
-
-		painter->DrawBox(bounds, color, WINDOW_BASE_COLOR_2,
-			WINDOW_BASE_COLOR_3, WINDOW_BASE_COLOR_4, 4);
-
-		dirty = true;
-	} else {
-		painter->DrawBox(bounds, WINDOW_TITLE_COLOR_1, WINDOW_TITLE_COLOR_2,
-			WINDOW_TITLE_COLOR_3, WINDOW_TITLE_COLOR_4, 4);
-		dirty = false;
-	}
+	painter->DrawBox(bounds, WINDOW_BASE_COLOR_1, WINDOW_BASE_COLOR_2,
+		WINDOW_BASE_COLOR_3, WINDOW_BASE_COLOR_4, 4);
 
 	// Draw the title bar
 	int ysize = 32;
@@ -115,14 +66,14 @@ void Window::Draw(void)
 	painter->DrawBox(titlebar, WINDOW_TITLE_COLOR_1, WINDOW_TITLE_COLOR_2,
 		WINDOW_TITLE_COLOR_3, WINDOW_TITLE_COLOR_4, 4);
 
+	// Draw the title text
+	painter->DrawString(title, bounds.x + 12, bounds.y + 2, 4, focusColor);
+
 	// Draw the close buttor
-	int close_x = 32;
-	int close_y = 16;
+	int close_x = 16;
+	int close_y = 4;
 	int closeoff = (ysize - close_y) / 2;
 	Rect close = Rect(bounds.x2 - closeoff - close_x, bounds.y + closeoff,
 		close_x, close_y);
-	painter->DrawBox(close, WINDOW_TITLE_COLOR_1, WINDOW_TITLE_COLOR_2,
-		WINDOW_TITLE_COLOR_2, WINDOW_TITLE_COLOR_2, 4);
-	painter->DrawString(title, bounds.x, bounds.y, 2, 0xDEADBEEF);
+	painter->FillRect(close, focusColor);
 }
-

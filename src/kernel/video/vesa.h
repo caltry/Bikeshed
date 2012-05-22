@@ -34,7 +34,7 @@
 #define DIRECT_COLOR				6
 
 
-#define SUPPORTED_DEPTH(x)				(x == 24)
+#define SUPPORTED_DEPTH(x)				((x == 24) || (x == 32))
 
 
 #ifndef __ASM__20113__
