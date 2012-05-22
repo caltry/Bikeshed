@@ -112,7 +112,6 @@ extern "C" {
 			// Update at about 200 fps
 			asm volatile("sti");
 			msleep(5);
-			serial_printf(".");
 		}
 	}
 }

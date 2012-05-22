@@ -148,26 +148,22 @@ void Painter::SetPixel(Uint32 x, Uint32 y, Uint32 color) {
 void Painter::DrawBox(Rect& bounds, Uint32 color1, Uint32 color2,
 	Uint32 color3, Uint32 color4, Uint32 scale)
 {
-	serial_printf("Fill middle\n");
 	// The middle
 	FillRect(Rect(bounds.x + scale, bounds.y + scale,
 		bounds.width - (scale * 2), bounds.height - (scale * 2)), color1);
 
-	serial_printf("Fill bottom + sides\n");
 	// The top and bottom sides
 	FillRect(Rect(bounds.x + scale, bounds.y,
 		bounds.width - (scale * 2), scale), color2);
 	FillRect(Rect(bounds.x + scale, bounds.y2 - scale,
 		bounds.width - (scale * 2), scale), color2);
 
-	serial_printf("Fill left + right\n");
 	// The left and right sides
 	FillRect(Rect(bounds.x, bounds.y + scale, scale,
 		bounds.height - (scale * 2)), color3);
 	FillRect(Rect(bounds.x2 - scale, bounds.y + scale, scale,
 		bounds.height - (scale * 2)), color3);
 
-	serial_printf("Fill corners\n");
 	// The four corners
 	FillRect(Rect(bounds.x, bounds.y, scale, scale), color4);
 	FillRect(Rect(bounds.x2 - scale, bounds.y, scale, scale), color4);
