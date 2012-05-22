@@ -108,6 +108,52 @@ Uint32 test_nonexistant_file_lookup()
 }
 
 /*
+ * Test our indirect block loading support.
+ */
+Uint32 test_indirect_block_reading(void);
+Uint32 test_indirect_block_reading()
+{
+	Uint32 test_failures = 0;
+	static const Uint32 buffer_size = 1026;
+
+	ext2_read_status read_error;
+	Uint bytes_read;
+	char filename[] = "/ext2_tests/indirect_block_file";
+	char buf[buffer_size];
+	Uint lastLoc = 0;
+
+	do{
+		read_error = ext2_raw_read
+			(bikeshed_ramdisk_context,
+			 filename,
+			 buf,
+			 &bytes_read,
+			 lastLoc,
+			 buffer_size-1);
+
+		lastLoc += bytes_read;
+
+		if( read_error )
+		{
+			serial_printf
+				( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) " "
+				 "Unable to read '%s', error #%d\n\r",
+				 filename, read_error );
+			test_failures++;
+			break;
+		}
+		buf[bytes_read] = '\0';
+		serial_string("\n\r");
+		serial_string(buf);
+		serial_string("\n\r");
+		buf[0] = '\0';
+	}
+	while( bytes_read && !read_error );
+
+	return test_failures;
+}
+
+/*
  * Checks to make sure that we properly read a file at an offset. Only tests
  * offsets in the first block of a file.
  *
@@ -211,6 +257,7 @@ Uint32 test_all()
 	Uint32 failed_tests = 0;
 	failed_tests += test_nonexistant_file_lookup();
 	failed_tests += test_file_lookup();
+	failed_tests += test_indirect_block_reading();
 	failed_tests += test_offset_read_small();
 	failed_tests += test_offset_read_big();
 
