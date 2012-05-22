@@ -10,6 +10,7 @@
 #include "boot/bootstrap.h"
 #include "syscalls.h"
 #include "pcbs.h"
+#include "fs/vfs.h"
 #include "serial.h"
 
 Status _elf_load_from_file(Pcb* pcb, const char* file_name)
@@ -31,10 +32,10 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	serial_printf("ELF header location: %x\n", elf32_hdr);
 
 	Uint bytes_read = 0;
-	ext2_read_status ext2_status =
-		ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)elf32_hdr, &bytes_read, 0, sizeof(Elf32_Ehdr));
+	VFSStatus vfs_status =
+		raw_read(file_name, (void *)elf32_hdr, &bytes_read, 0, sizeof(Elf32_Ehdr));
 
-	if (ext2_status != EXT2_READ_SUCCESS /* Couldn't read the file */
+	if (vfs_status != FS_E_OK /* Couldn't read the file */
 		   || bytes_read < sizeof(Elf32_Ehdr) /* Clearly not an ELF file */
 		   || elf32_hdr->e_magic != ELF_MAGIC_NUM /* Need the magic number! */
 		   || elf32_hdr->e_type != ET_EXEC /* Don't support relocatable or dynamic files yet */
@@ -45,7 +46,7 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 		   || elf32_hdr->e_phnum == 0) /* ... */
 		// || elf32_hdr->e_ehsize != sizeof(Elf32_Ehdr)) /* The header size should match our struct */
 	{
-		if (ext2_status != EXT2_READ_SUCCESS) { serial_printf("RETURN VALUE: %x\n", ext2_status); _kpanic("ELF", "Failed to open file successfully\n", 0); }
+		if (vfs_status != FS_E_OK) { serial_printf("RETURN VALUE: %x\n", vfs_status); _kpanic("ELF", "Failed to open file successfully\n", 0); }
 		if (bytes_read < sizeof(Elf32_Ehdr)) _kpanic("ELF", "Read too small of a file!\n", 0);
 		if (elf32_hdr->e_magic != ELF_MAGIC_NUM) _kpanic("ELF", "Bad magic number!\n", 0);
 		if (elf32_hdr->e_type != ET_EXEC) _kpanic("ELF", "Not an executable ELF!\n", 0);
@@ -74,10 +75,10 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	serial_printf("---ELF: program headers location: %x\n", pheaders);
 
 	serial_printf("ELF: Reading program headers\n");
-	ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)pheaders, 
-			&bytes_read, elf32_hdr->e_phoff, pheader_tbl_size);
+	vfs_status = raw_read(file_name, (void *)pheaders, &bytes_read,
+			elf32_hdr->e_phoff, pheader_tbl_size);
 
-	if (ext2_status != EXT2_READ_SUCCESS
+	if (vfs_status != FS_E_OK 
 			|| bytes_read < pheader_tbl_size)
 	{
 		_kpanic("ELF", "error reading file!\n", 0);
@@ -149,21 +150,17 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 			{
 				serial_printf("\tAt offset: %x\n", cur_phdr->p_offset);
 
-//				ext2_status = read_from_fs(file_name, cur_phdr->p_offset, cur_phdr->p_filesz, (void *)cur_phdr->p_vaddr);	
-				ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)cur_phdr->p_vaddr,
+				vfs_status = raw_read(file_name, (void *)cur_phdr->p_vaddr,
 						&bytes_read, cur_phdr->p_offset, cur_phdr->p_filesz);
 						
-				
 				serial_printf("Read: %d - File size: %d\n", bytes_read, cur_phdr->p_filesz);
-
 				
 				if (bytes_read != cur_phdr->p_filesz)
 				{
 					_kpanic("ELF", "Failed to read data from the filesystem", 0);
 				}
-				
 
-				if (ext2_status != EXT2_READ_SUCCESS)
+				if (vfs_status != FS_E_OK)
 				{
 					// TODO - cleanup if error
 					_kpanic("ELF", "failed to read program section\n", 0);
