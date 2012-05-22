@@ -107,11 +107,112 @@ Uint32 test_nonexistant_file_lookup()
 	return test_failures;
 }
 
+/*
+ * Checks to make sure that we properly read a file at an offset. Only tests
+ * offsets in the first block of a file.
+ *
+ * Currently, this is also a manual test, but eventually we want to make this
+ * automated.
+ *
+ * Use a sliding window approach to ensure that what we're getting back is
+ * consistent, so we re-read data often and use _strncmp to make sure that
+ * we've read it correctly.
+ */
+Uint32 test_offset_read_small(void);
+Uint32 test_offset_read_small()
+{
+	Uint32 test_failures = 0;
+	static const Uint32 buffer_size = 9;
+
+	ext2_read_status read_error;
+	Uint bytes_read;
+	char filename[] = "/ext2_tests/indirect_block_file";
+	char buf[buffer_size];
+	Uint lastLoc = 10;
+
+	// TODO: actually do the sliding window thing.
+	read_error = ext2_raw_read
+		(bikeshed_ramdisk_context,
+		filename,
+		 buf,
+		 &bytes_read,
+		 lastLoc,
+		 buffer_size-1);
+
+	if( read_error )
+	{
+		serial_printf
+			( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) " "
+			 "Unable to read '%s', error #%d\n\r",
+			 filename, read_error );
+		test_failures++;
+	}
+	buf[bytes_read] = '\0';
+	serial_string("\n\r");
+	serial_string(buf);
+	serial_string("\n\r");
+	buf[0] = '\0';
+
+	return test_failures;
+}
+
+/*
+ * Checks to make sure that we properly read a file at an offset. Reads over a
+ * block sizes' worth of data.
+ *
+ * Currently you need to manually observe this test to make sure that it's
+ * passing. Eventually, the plan is that the sliding window tests should
+ * automate all of that away.
+ *
+ * Use a sliding window approach to ensure that what we're getting back is
+ * consistent, so we re-read data often and use _strncmp to make sure that
+ * we've read it correctly.
+ */
+Uint32 test_offset_read_big(void);
+Uint32 test_offset_read_big()
+{
+	Uint32 test_failures = 0;
+	static const Uint32 buffer_size = 1111;
+
+	ext2_read_status read_error;
+	Uint bytes_read;
+	char filename[] = "/ext2_tests/indirect_block_file";
+	char buf[buffer_size];
+	Uint lastLoc = 10;
+
+	// TODO: actually do the sliding window thing.
+	read_error = ext2_raw_read
+		(bikeshed_ramdisk_context,
+		filename,
+		 buf,
+		 &bytes_read,
+		 lastLoc,
+		 buffer_size-1);
+
+	if( read_error )
+	{
+		serial_printf
+			( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) " "
+			 "Unable to read '%s', error #%d\n\r",
+			 filename, read_error );
+		test_failures++;
+	}
+	buf[bytes_read] = '\0';
+	serial_string("\n\r");
+	serial_string(buf);
+	serial_string("\n\r");
+	buf[0] = '\0';
+
+	return test_failures;
+}
+
 Uint32 test_all()
 {
 	Uint32 failed_tests = 0;
 	failed_tests += test_nonexistant_file_lookup();
 	failed_tests += test_file_lookup();
+	failed_tests += test_offset_read_small();
+	failed_tests += test_offset_read_big();
 
 	return failed_tests;
 }

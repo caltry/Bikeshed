@@ -13,3 +13,4 @@ write a a
 write aa aa
 write aaa aaa
 write aaaa aaaa
+write indirect_block_file indirect_block_file

@@ -24,7 +24,15 @@
 #error "RAMDISK_PHYS_LOCATION not set!"
 #endif
 
-#define DEBUG_FILESYSTEM true
+// Should we print a deluge of debugging information?
+#ifndef DEBUG_FILESYSTEM
+#define DEBUG_FILESYSTEM false
+#endif
+
+// Should we run a bunch of tests on the filesystem?
+#ifndef EXT2_RUN_TESTS
+#define EXT2_RUN_TESTS false
+#endif
 
 static const char *NEWLINE = "\n\r";
 
@@ -131,10 +139,12 @@ void ext2_debug_dump( struct ext2_filesystem_context *context_ptr )
 	print_dir_ents_root( &context );
 	serial_string("==\n\r");
 
+#if EXT2_RUN_TESTS
 	serial_string("==Running ext2 tests==\n\r");
 	Uint32 failures = test_all();
 	serial_printf("Ext2 tests completed with: %d failures.\n\r", failures );
 	serial_string("==Ending ext2 tests==\n\r");
+#endif
 
 	serial_string("== Printing out the message of the day! ==\n\r");
 	char test_buffer[1112];
@@ -484,18 +494,18 @@ ext2_read_file_by_inode
 			break;
 		} else {
 			serial_string(__FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) "\n\r");
-			char local_block_buffer[block_size+1-block_offset];
-			_kmemcpy( local_block_buffer, data, block_size-block_offset );
-			buffer += block_size;
+			_kmemcpy( buffer, data, block_size-block_offset );
+			buffer += (block_size-block_offset);
 
 			// There's more to read
-			remaining_bytes -= block_size;
-			continue;
+			remaining_bytes -= (block_size-block_offset);
 		}
 
 		// Reset the block offset -- we only use it once!
 		block_offset = 0;
 	}
+
+	serial_printf( "actually read: %d bytes\n\r", nbytes-remaining_bytes );
 
 	return nbytes-remaining_bytes;
 }
