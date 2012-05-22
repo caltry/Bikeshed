@@ -12,34 +12,6 @@
 #include "pcbs.h"
 #include "serial.h"
 
-// Returns 0 if successful, returns 1 otherwise
-static Uint32 read_from_fs(const char* file_name, Uint32 offset, Uint32 size, void* buffer)
-{
-	while (size > 0)
-	{
-		Uint32 amt_to_read = 0x300;
-		if (size < amt_to_read)
-		{
-			amt_to_read = size;
-		}
-
-		Uint bytes_read = 0;
-		ext2_read_status ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, buffer,
-				&bytes_read, offset, amt_to_read);
-		
-		if (ext2_status != EXT2_READ_SUCCESS || bytes_read != amt_to_read)
-		{
-			return !EXT2_READ_SUCCESS;
-		}
-	
-		size -= amt_to_read;
-		offset += amt_to_read;
-		buffer += amt_to_read;
-	}
-
-	return EXT2_READ_SUCCESS;
-}
-
 Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 {
 	// Need to copy the file_name into kernel land...because we're killing userland!
@@ -177,19 +149,19 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 			{
 				serial_printf("\tAt offset: %x\n", cur_phdr->p_offset);
 
-				ext2_status = read_from_fs(file_name, cur_phdr->p_offset, cur_phdr->p_filesz, (void *)cur_phdr->p_vaddr);	
-				/*ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)cur_phdr->p_vaddr,
+//				ext2_status = read_from_fs(file_name, cur_phdr->p_offset, cur_phdr->p_filesz, (void *)cur_phdr->p_vaddr);	
+				ext2_status = ext2_raw_read(bikeshed_ramdisk_context, file_name, (void *)cur_phdr->p_vaddr,
 						&bytes_read, cur_phdr->p_offset, cur_phdr->p_filesz);
-						*/
+						
 				
 				serial_printf("Read: %d - File size: %d\n", bytes_read, cur_phdr->p_filesz);
 
-				/*
+				
 				if (bytes_read != cur_phdr->p_filesz)
 				{
 					_kpanic("ELF", "Failed to read data from the filesystem", 0);
 				}
-				*/
+				
 
 				if (ext2_status != EXT2_READ_SUCCESS)
 				{
