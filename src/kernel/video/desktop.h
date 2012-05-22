@@ -29,6 +29,7 @@ public:
 	void AddWindow(Window *window);
 
 	Rect& GetBounds(void) { return bounds; }
+	Painter *GetPainter(void) { return painter; }
 
 	void Draw(void);
 	void DrawCursor(Int32 x, Int32 y);

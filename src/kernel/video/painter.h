@@ -19,24 +19,29 @@ class Painter {
 public:
 
 	Painter(Screen *screen, Rect bounds);
-	
-	void SetClipping(Rect bounds);
+	virtual ~Painter(void);
 
-	void Fill(Uint32 color);
 
-	virtual void DrawChar(char letter, int x, int y, int scale = 3, Uint32 color = 0x0);
-	void DrawString(char *string, int x, int y, int scale = 3, Uint32 color = 0x0);
-	void DrawString(char *start, char *end, int x, int y, int scale = 3, Uint32 color = 0x0);
+	virtual void DrawChar(char letter, int x, int y, int scale = 3,
+		Uint32 color = 0x0) = 0;
+	virtual void SetPixel(Uint32 x, Uint32 y, Uint32 color) = 0;
+	virtual void FillRect(Rect bounds, Uint32 color) = 0;
+	virtual void Fill(Uint32 color) = 0;
 
-	virtual void SetPixel(Uint32 x, Uint32 y, Uint32 color);
+	virtual void DrawCursor(Int32 x, Int32 y) = 0;
 
-	virtual void FillRect(Rect bounds, Uint32 color);
+
+	void DrawString(char *string, int x, int y, int scale = 3,
+		Uint32 color = 0x0);
+	void DrawString(char *start, char *end, int x, int y, int scale = 3,
+		Uint32 color = 0x0);
 
 	void DrawBox(Rect& bounds, Uint32 color1, Uint32 color2,
 		Uint32 color3, Uint32 color4, Uint32 scale);
-
-	void DrawCursor(Int32 x, Int32 y);
 	
+
+	void SetClipping(Rect bounds);
+
 protected:
 	Screen *screen;
 	Rect bounds;

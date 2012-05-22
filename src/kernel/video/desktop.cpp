@@ -17,6 +17,8 @@ extern "C" {
 
 #include "window.h"
 #include "painter.h"
+#include "painter24.h"
+#include "painter32.h"
 #include "rect.h"
 #include "region.h"
 #include "gconsole.h"
@@ -35,7 +37,11 @@ Desktop::Desktop(Screen *screen)
 	sem_post(list_sem);
 
 	// Create the graphics painters
-	painter = new Painter(screen, bounds);
+	if (screen->bpp == 24) {
+		painter = new Painter24(screen, bounds);
+	} else if (screen->bpp == 32) {
+		painter = new Painter32(screen, bounds);
+	}
 
 	// Draw the background
 	painter->Fill(0x6490a7);
@@ -105,7 +111,7 @@ extern "C" {
 		// Add the graphical console window
 		gcon_init();
 		_gconsole = new GConsole(&desktop, 16, 16);
-		
+
 		// Add some initial windows to the desktop
 		Window *window = new Window(&desktop,
 			Rect(200, 200, 400, 400), (char *)"BIKESHED");
@@ -128,7 +134,5 @@ extern "C" {
 			// Update at about 200 fps
 			msleep(10);
 		} while ( 1 );
-
-		c_puts("mouse loaded\n");
 	}
 }

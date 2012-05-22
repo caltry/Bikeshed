@@ -18,7 +18,7 @@ extern "C" {
 
 
 Window::Window(Desktop *desktop, Rect bounds, char *title)
-	: UIComponent(new Painter(kScreen, bounds), bounds)
+	: UIComponent(desktop->GetPainter(), bounds)
 	, title(title)
 	, desktop(desktop)
 	, hasFocus(false)
