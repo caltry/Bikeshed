@@ -3,7 +3,8 @@
 **
 ** Author:	Sean Congden
 **
-** Description:	Generic video module
+** Description:	A video module for initializing and requesting a
+**   a frame buffer to draw on.
 */
 
 #ifndef _VIDEO_H
@@ -15,12 +16,15 @@
 ** General C definitions
 */
 
+/* The virtual address the screen is mapped to */
 #define FRAMEBUFFER_ADDRESS			0xc2000000
+
 
 /*
 ** Types
 */
 
+/* A video display to draw on */
 typedef struct screen {
 	Uint16 *frame_buffer;
 	Uint16 *back_buffer;
@@ -33,21 +37,48 @@ typedef struct screen {
 	Uint32 size;
 } Screen;
 
+
 /*
 ** Globals
 */
 
+/* The default screen to draw on */
 extern Screen *kScreen;
+
 
 /*
 ** Prototypes
 */
 
+/*
+** _video_init()
+**
+** Iterates through the video modes available and chooses
+** a supported video mode closest to the provided resolution
+**
+** returns:
+**      success of the operation
+*/
 Status _video_init(void);
 
+
+/*
+** _video_aquire_buffer(screen)
+**
+** Aquires access to the frame buffer
+**
+** returns:
+**      a pointer to the frame buffer to draw on
+*/
 Uint16 *_video_aquire_buffer(Screen *screen);
+
+
+/*
+** _video_release_buffer
+**
+** Releases acces to the frame buffer
+*/
 void _video_release_buffer(Screen *screen);
 
-void _video_run(void);
 
 #endif

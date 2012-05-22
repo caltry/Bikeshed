@@ -11,7 +11,6 @@
 #include "types.h"
 #include "lib/klib.h"
 #include "c_io.h"
-
 #include "bios.h"
 
 #include "vesa.h"
@@ -26,24 +25,16 @@
 
 
 /*
-** PRIVATE DEFINITIONS
-*/
-
-/*
-** PRIVATE DATA TYPES
-*/
-
-/*
-** PRIVATE GLOBAL VARIABLES
-*/
-
-/*
-** PUBLIC GLOBAL VARIABLES
-*/
-
-/*
 ** PRIVATE FUNCTIONS
 */
+
+static inline Int32 abs(Int32 value) {
+	if (value < 0)
+		value = -value;
+
+	return value;
+}
+
 
 /*
 ** PUBLIC FUNCTIONS
@@ -61,14 +52,6 @@ void _vesa_load_info(VesaControllerInfo *info) {
 			"Unable to load VESA controller info.  AX = %x",
 			regs.ax);
 	}
-}
-
-
-static Int32 abs(Int32 value) {
-	if (value < 0)
-		value = -value;
-
-	return value;
 }
 
 
@@ -98,10 +81,12 @@ Uint16 _vesa_choose_mode(Uint16 *modes, int width, int height) {
 		// Only consider modes with a width <= to the desired width
 		if (mode->x_resolution > width) continue;
 
+#ifdef TRACE_VESA
 		_vesa_print_mode_info_basic(modes[i], mode);
 
 		if (i % 3 == 0)
 			TRACE("\n");
+#endif
 
 		// Compare this mode to the previous best mode
 		diff = abs((mode->x_resolution * mode->y_resolution)
@@ -114,7 +99,6 @@ Uint16 _vesa_choose_mode(Uint16 *modes, int width, int height) {
 			best_diff = diff;
 		}
 	}
-	TRACE("\n");
 
 	if (best_mode == 0)
 		TRACE("No suitable video mode found.\n");
@@ -150,43 +134,44 @@ void _vesa_select_mode(Uint16 mode) {
 
 
 void _vesa_print_info(VesaControllerInfo *info) {
-	TRACE("VESA Controller Information:\n");
-	TRACE("    Header:  %s\n", &(info->signature));
-	TRACE("    Version: %x\n", info->version);
-	TRACE("    Video Memory: %d 64KB blocks\n", info->total_memory);
+	c_printf("VESA Controller Information:\n");
+	c_printf("    Header:  %s\n", &(info->signature));
+	c_printf("    Version: %x\n", info->version);
+	c_printf("    Video Memory: %d 64KB blocks\n", info->total_memory);
 
-	TRACE("    Modes: ");
+	c_puts("    Modes: ");
 	Uint16* modes = (Uint16*)(info->video_modes);
 	int count = 0;
 	for( int i = 0; modes[i] != 0xFFFF; ++i ) {
 		if (i % 10 == 0) TRACE("\n        ");
-		TRACE("%d, ", modes[i]);
+		c_printf("%d, ", modes[i]);
 
 		count++;
 	}
-	TRACE("\n      %d total modes\n", count);
+	c_printf("\n      %d total modes\n", count);
 }
 
 
 void _vesa_print_mode_info_basic(int mode_num, VesaModeInfo *info) {
-	TRACE("%d: %dx%dx%d  ", mode_num, (Uint32)(info->x_resolution),
+	c_printf("%d: %dx%dx%d  ", mode_num, (Uint32)(info->x_resolution),
 		(Uint32)(info->y_resolution), (Uint32)(info->bits_per_pixel));
 }
 
+
 void _vesa_print_mode_info(int mode_num, VesaModeInfo *mode) {
-	TRACE("Mode Info (%d):\n", mode_num);
-	TRACE("    Attributes: %d\n", (Uint32)(mode->attributes));
-	TRACE("    Windows: %d  and %d\n", (Uint32)(mode->window_a),
+	c_printf("Mode Info (%d):\n", mode_num);
+	c_printf("    Attributes: %d\n", (Uint32)(mode->attributes));
+	c_printf("    Windows: %d  and %d\n", (Uint32)(mode->window_a),
 		(Uint32)(mode->window_b));
-	TRACE("        Granularity: %d   Size: %d   Segments:  %d and %d\n",
+	c_printf("        Granularity: %d   Size: %d   Segments:  %d and %d\n",
 		(Uint32)(mode->window_granularity), (Uint32)(mode->window_size),
 		(Uint32)(mode->window_a_segment), (Uint32)(mode->window_b_segment));
-	TRACE("    Size: %dx%dx%d  Pitch: %d  Planes: %d\n",
+	c_printf("    Size: %dx%dx%d  Pitch: %d  Planes: %d\n",
 		(Uint32)(mode->x_resolution), (Uint32)(mode->y_resolution),
 		(Uint32)(mode->bits_per_pixel), (Uint32)(mode->pitch),
 		(Uint32)(mode->num_planes));
-	TRACE("    X Char size: %d  Y Char size: %d\n", (Uint32)(mode->x_char_size),
-		(Uint32)(mode->y_char_size));
-	TRACE("    Banks: %d  Memory Model: %d\n", (Uint32)(mode->num_planes),
+	c_printf("    X Char size: %d  Y Char size: %d\n",
+		(Uint32)(mode->x_char_size), (Uint32)(mode->y_char_size));
+	c_printf("    Banks: %d  Memory Model: %d\n", (Uint32)(mode->num_planes),
 		(Uint32)(mode->memory_model));
 }

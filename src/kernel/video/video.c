@@ -3,22 +3,21 @@
 **
 ** Author:	Sean Congden
 **
-** Description:	Video / graphics module
+** Description:	A video module for initializing and requesting a
+**   a frame buffer to draw on.
 */
-
-#define	__KERNEL__20113__
 
 #include "types.h"
 #include "memory/kmalloc.h"
 #include "lib/klib.h"
 #include "ulib.h"
-
 #include "vesa.h"
-#include "gconsole.h"
 
 #include "video.h"
 
+
 Screen *kScreen;
+
 
 Status _video_init(void) {
 	// Load the vesa controller information
@@ -29,11 +28,10 @@ Status _video_init(void) {
 	// Determine the video mode to use
 	Uint16 *modes = (Uint16 *)(info->video_modes);
 	Uint16 mode_num = _vesa_choose_mode(modes, 1024, 768);
-	//Uint16 mode_num = 283;
 
+	// Load the chosen video mode
 	VesaModeInfo *mode = (VesaModeInfo *)VESA_MODE_ADDRESS;
 	_vesa_load_mode_info(mode_num, mode);
-	_vesa_print_mode_info(mode_num, mode);
 	
 	// Collect details about the screen
 	kScreen = __kmalloc(sizeof(Screen));
@@ -46,20 +44,14 @@ Status _video_init(void) {
 
 	// Set up the back buffer
 	kScreen->back_buffer = __kmalloc(kScreen->size + 4096);
-//	sem_init(kScreen->buffer_lock);
-//	sem_post(kScreen->buffer_lock);
 
 	// Make sure pages are identity mapped for the screen
-	for (Uint32 address = 0; address < (kScreen->size + 4096); address += 4096) {
-		//c_printf("mapping: %x to %x\n", (Uint32)((Uint32)(kScreen->frame_buffer) + address),
-		//	(Uint32)((Uint32)FRAMEBUFFER_ADDRESS + address));
-
-		__virt_map_page((void *)(Uint32)((Uint32)(kScreen->frame_buffer) + address),
-			(void *)(Uint32)((Uint32)FRAMEBUFFER_ADDRESS + address), PG_READ_WRITE);
+	for (Uint32 addr = 0; addr < (kScreen->size + 4096); addr += 4096) {
+		__virt_map_page((void *)((Uint32)(kScreen->frame_buffer) + addr),
+			(void *)(Uint32)(FRAMEBUFFER_ADDRESS + addr), PG_READ_WRITE);
 	}
-	//c_printf("screen size: %d", kScreen->size);
 
-	kScreen->frame_buffer = (Uint16 *)((Uint32)FRAMEBUFFER_ADDRESS);
+	kScreen->frame_buffer = (Uint16 *)(FRAMEBUFFER_ADDRESS);
 	_kmemset(kScreen->frame_buffer, 0xff, kScreen->size);
 
 	// Switch to the mode
@@ -74,13 +66,15 @@ Status _video_init(void) {
 	return SUCCESS;
 }
 
+
 Uint16 *_video_aquire_buffer(Screen *screen) {
 	//TODO: use read/write locks so multiple drawing
 	//  operations can run at the same time
-	//sem_wait(screen->buffer_lock);
 	return screen->back_buffer;
 }
 
+
 void _video_release_buffer(Screen *screen) {
-	//sem_post(screen->buffer_lock);
+	//TODO: use read/write locks so multiple drawing
+	//  operations can run at the same time
 }
