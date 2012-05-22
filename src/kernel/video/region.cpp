@@ -9,7 +9,6 @@
 extern "C" {
 	#include "defs.h"
 	#include "kmalloc.h"
-	#include "serial.h"
 }
 
 #include "rect.h"
@@ -33,13 +32,9 @@ Region::~Region(void)
 
 void Region::AddRect(Rect& rect)
 {
-	serial_printf("About to add rectangle!\n");
 	Rect *data = new Rect(rect);
-	serial_printf("Done!\n");
 
-	serial_printf("About to insert\n");
 	list_insert_next(rect_list, NULL, (void *)data);
-	serial_printf("Done!\n");
 }
 
 

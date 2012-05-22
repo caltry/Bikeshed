@@ -14,7 +14,6 @@ extern "C" {
 	#include "linkedlist.h"
 	#include "video.h"
 	#include "semaphores.h"
-	#include "serial.h"
 }
 
 #include "window.h"
@@ -67,32 +66,21 @@ void Desktop::Draw(void)
 	Region *updateRegion = new Region();
 
 	while (cur_node != NULL) {
-		serial_printf("Top loop\n");
-		serial_printf("Drawing window.. %x", cur_node);
 		Window *window = (Window *)list_data(cur_node);
 
-		serial_printf("Checking if dirty\n");
 		if (window->IsDirty() ||
 			updateRegion->Intersects(window->GetBounds()))
 		{
-			serial_printf("repainting\n");
 			window->Repaint();
-			serial_printf("adding rect\n");
 			updateRegion->AddRect(window->GetBounds());
-			serial_printf("Done adding rectangle\n");
 		}
 
-		serial_printf("Getting next\n");
 		cur_node = list_next(cur_node);
-		serial_printf("Done getting next\n");
 	}
 
-	serial_printf("Deleting region...\n");
 	delete updateRegion;
 
 //	sem_post(list_sem);
-
-	serial_printf("Done posting\n");
 }
 
 extern "C" {
@@ -103,18 +91,7 @@ extern "C" {
 		*/
 		_video_init();
 
-		const Uint16 * const orig_frame_buffer = kScreen->frame_buffer;
-		const Uint16 * const  orig_back_buffer  = kScreen->back_buffer;
-		const Uint32 size = kScreen->size;
-
 		Desktop desktop(kScreen);
-
-		// Created desktop
-		serial_printf("===================================CREATED DESKTOP=========================================\n");
-
-		serial_printf("Frame buffer location: %x\n", orig_frame_buffer);
-		serial_printf("Back buffer location:  %x\n", orig_back_buffer);
-		serial_printf("Max location: %x\n", (Uint32)orig_back_buffer + kScreen->size);
 
 		Window *window = new Window(&desktop, Rect(200, 200, 400, 400), "BIKESHED", 1);
 		Window *window2 = new Window(&desktop, Rect(16, 16, 300, 400), "BIKESHED", 0);
@@ -125,19 +102,11 @@ extern "C" {
 			asm volatile("cli");
 			//gconsole_draw(16, 16);
 			desktop.Draw();
-
-			if (kScreen->frame_buffer != orig_frame_buffer ||
-					kScreen->back_buffer != orig_back_buffer) {
-				_kpanic("Desktop", "Frambuffer pointers changed!\n", (Status)0);
-			}
 			//sem_wait(kScreen->buffer_lock);
 
-			serial_printf("Swapping buffers\n");
 			// Copy the back buffer to the screen
 			_kmemcpy((void *)(kScreen->frame_buffer),
 				(void *)(kScreen->back_buffer), kScreen->size);
-			//c_puts("test\n");
-			serial_printf("About to sleep\n");
 			//sem_post(kScreen->buffer_lock);
 
 			// Update at about 200 fps

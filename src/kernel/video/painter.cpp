@@ -9,7 +9,6 @@
 extern "C" {
 	#include "video.h"
 	#include "font.h"
-	#include "serial.h"
 }
 
 #include "rect.h"
@@ -63,7 +62,6 @@ void Painter::FillRect(Rect clipped_rect, Uint32 color) {
 	Uint8 g = (Uint8)((color & 0x00ff00) >> 8);
 	Uint8 b = (Uint8)(color & 0x0000ff);
 
-	serial_printf("Filling rectangle\n");
 	for ( Uint32 y = 0; y < clipped_rect.height; ++y ) {
 		Uint8 *dest = start;
 		for ( Uint32 x = 0; x < clipped_rect.width; ++x ) {
@@ -76,8 +74,6 @@ void Painter::FillRect(Rect clipped_rect, Uint32 color) {
 
 		start = (Uint8 *)((Uint32)start + screen->pitch);
 	}
-
-	serial_printf("Done filling\n");
 
 	_video_release_buffer(screen);
 }

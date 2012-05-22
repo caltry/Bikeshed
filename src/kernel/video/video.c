@@ -46,7 +46,6 @@ Status _video_init(void) {
 
 	// Set up the back buffer
 	kScreen->back_buffer = __kmalloc(kScreen->size + 4096);
-	_kmemset(kScreen->back_buffer, 0xff, kScreen->size);
 //	sem_init(kScreen->buffer_lock);
 //	sem_post(kScreen->buffer_lock);
 
@@ -67,8 +66,10 @@ Status _video_init(void) {
 	_vesa_select_mode(mode_num);
 
 	// Clear the background
-//	_kmemclr(kScreen->frame_buffer, kScreen->size);
-//	_kmemclr(kScreen->back_buffer, kScreen->size);
+	_kmemset(kScreen->frame_buffer, 0x0A, kScreen->size);
+	_kmemset(kScreen->back_buffer, 0x0A, kScreen->size);
+	//_kmemclr(kScreen->frame_buffer, kScreen->size);
+	//_kmemclr(kScreen->back_buffer, kScreen->size);
 
 	return SUCCESS;
 }

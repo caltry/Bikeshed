@@ -10,7 +10,6 @@ extern "C" {
 	#include "defs.h"
 	#include "kmalloc.h"
 	#include "linkedlist.h"
-	#include "serial.h"
 }
 
 #include "lookandfeel.h"
@@ -68,10 +67,8 @@ void Window::Invalidate(void)
 void Window::Repaint(void)
 {
 	if (!dirty) return;
-	serial_printf("Window: draw\n");
 	Draw();
 
-	serial_printf("Window: post draw\n");
 	ListElement *cur_node = list_head(children);
 	while (cur_node != NULL) {
 		//((UIComponent *)list_data(cur_node))->Repaint();
@@ -85,7 +82,6 @@ void Window::Repaint(void)
 
 void Window::Draw(void)
 {
-	serial_printf("Window: draw start\n");
 	// Draw the window base
 	Uint32 color = WINDOW_BASE_COLOR_1;
 	if (id != 0) {
@@ -96,13 +92,11 @@ void Window::Draw(void)
 			id = 2;
 		}
 
-		serial_printf("Painter: draw box\n");
 		painter->DrawBox(bounds, color, WINDOW_BASE_COLOR_2,
 			WINDOW_BASE_COLOR_3, WINDOW_BASE_COLOR_4, 4);
 
 		dirty = true;
 	} else {
-		serial_printf("Painter: draw box 2\n");
 		painter->DrawBox(bounds, WINDOW_TITLE_COLOR_1, WINDOW_TITLE_COLOR_2,
 			WINDOW_TITLE_COLOR_3, WINDOW_TITLE_COLOR_4, 4);
 		dirty = false;
@@ -110,7 +104,6 @@ void Window::Draw(void)
 
 	// Draw the title bar
 	int ysize = 32;
-	serial_printf("Painter: draw box 3\n");
 	Rect titlebar = Rect(bounds.x, bounds.y, bounds.width, ysize);
 	painter->DrawBox(titlebar, WINDOW_TITLE_COLOR_1, WINDOW_TITLE_COLOR_2,
 		WINDOW_TITLE_COLOR_3, WINDOW_TITLE_COLOR_4, 4);
@@ -119,12 +112,10 @@ void Window::Draw(void)
 	int close_x = 32;
 	int close_y = 16;
 	int closeoff = (ysize - close_y) / 2;
-	serial_printf("Painter: draw box 4\n");
 	Rect close = Rect(bounds.x2 - closeoff - close_x, bounds.y + closeoff,
 		close_x, close_y);
 	painter->DrawBox(close, WINDOW_TITLE_COLOR_1, WINDOW_TITLE_COLOR_2,
 		WINDOW_TITLE_COLOR_2, WINDOW_TITLE_COLOR_2, 4);
-	serial_printf("Window: draw end\n");
 }
 
 
