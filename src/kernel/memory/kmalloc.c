@@ -192,6 +192,7 @@ void __kfree(void* address)
 	// Do nothing if we've been given a bad value
 	if (address < kernel_heap.start_address || address > kernel_heap.end_address)
 	{
+		serial_printf("==============KMALLOC OUT OF RANGE ADDRESS: %x\n", address);
 		return;
 	}
 
@@ -203,6 +204,11 @@ void __kfree(void* address)
 
 	if (free_node->size > ((Uint32)kernel_heap.end_address - (Uint32)kernel_heap.start_address))
 	{
+		serial_printf("Bad size!\n");
+		serial_printf("Free node size: %d\n", free_node->size);
+		serial_printf("Current: %d\n", _current->pid);
+		serial_printf("Current stack: %d\n", _current->stack);
+		serial_printf("Current esp: %d\n", _current->context->esp);
 		_kpanic("Kmalloc", "Bad size!\n", 0);
 	}
 

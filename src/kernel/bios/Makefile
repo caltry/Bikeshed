@@ -10,7 +10,7 @@ OBJ_FILES = $(DYN_OBJ_FILES)
 
 all: bios.ar realmode.o
 
-bios.ar: realmode.o
+bios.ar: bios.o
 	$(AR) $@ $^
 
 clean:

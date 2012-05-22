@@ -14,6 +14,9 @@
 
 #include "users.h"
 
+#include "desktop.h"
+#include "gconsole.h"
+
 /*
 ** USER PROCESSES
 **
@@ -1169,6 +1172,16 @@ void init( void ) {
 	// we'll start the first three "manually"
 	// by doing fork() and exec() ourselves
 
+	// Create a process to update the video display
+	status = fork( &pid );
+	if( status != SUCCESS ) {
+		prt_status( "init: can't fork() _video_run, status %s\n", status );
+	} else if( pid == 0 ) {
+		status = exec( _desktop_run );
+		prt_status( "init: can't exec() _video_run, status %s\n", status );
+		exit();
+	}
+
 #ifdef SPAWN_A
 	status = fork( &pid );
 	if( status != SUCCESS ) {
@@ -1383,12 +1396,8 @@ void init( void ) {
 		prt_status( "idle: priority change status %s\n", status );
 	}
 
-	write( '.' );
-
 	for(;;) {
-		for( i = 0; i < DELAY_LONG; ++i )
-			continue;
-		write( '.' );
+		asm("hlt");
 	}
 
 	/*

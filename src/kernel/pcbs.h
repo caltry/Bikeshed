@@ -121,6 +121,9 @@ typedef struct pcb {
 	// two-byte fields
 	Pid		pid;		// our process id
 	Pid		ppid;		// who created us
+
+	Stack *stack;
+
 	// one-byte fields
 	State		state;		// current process state
 	Prio		priority;	// current process priority

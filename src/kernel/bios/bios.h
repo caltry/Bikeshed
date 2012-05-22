@@ -20,6 +20,14 @@
 
 #ifndef __ASM__20113__
 
+#define PTR_16(x) ((Uint16)((Uint32)x))
+
+#define LINEAR_ADDRESS(segment, offset) \
+	(((Uint32)(segment) << 4) + (Uint32)(offset))
+#define SEGMENTED_TO_LINEAR(segmented) \
+	LINEAR_ADDRESS((Uint32)(segmented) >> 16, (Uint32)(segmented) & 0xffff)
+
+
 /*
 ** Start of C-only definitions
 */

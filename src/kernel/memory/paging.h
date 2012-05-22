@@ -99,6 +99,14 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags);
  */
 void __virt_unmap_page(void *virtual_addr);
 
+/* Similar to unmap page except it DOESN'T free the page from the physical memory
+ * manager.
+ *
+ * This is required when copying pages because if we're trying to create a new page
+ * table we don't want to free it's blocks before it gets used!
+ */
+void __virt_clear_page(void *virtual_addr);
+
 /* Used to handle page faults. Currently it displays what the
  * faulting address was and what the error bits were and then
  * does a kernel panic.

@@ -26,6 +26,8 @@
 #include "c_io.h"
 #include "lib/klib.h"
 #include "support.h"
+#include "pcbs.h"
+#include "scheduler.h"
 
 #include "bootstrap.h"
 #include "memory/physical.h"
@@ -40,8 +42,12 @@
 #include "cpp/cpptest.hpp"
 #include "elf/elf.h"
 #include "locks.h"
+#include "vm8086/vm8086.h"
 
-#include "bios.h"
+#include "bios/bios.h"
+
+#include "video/video.h"
+#include "video/desktop.h"
 
 /*
 ** PUBLIC FUNCTIONS
@@ -97,6 +103,102 @@ void _cleanup( Pcb *pcb ) {
 	}
 }
 
+void _kill_thread( Pcb* pcb )
+{
+	if ( pcb == NULL ) {
+		return;
+	}
+
+	Status status;	
+	if ( pcb->stack != NULL ) {
+		status = _stack_dealloc( pcb->stack );
+		if ( status != SUCCESS ) {
+			_kpanic( "kill thread", "stack dealloc status %s\n", status );
+		}
+	}
+
+	pcb->state = FREE;
+	status = _pcb_dealloc( pcb );
+	if ( status != SUCCESS ) {
+		_kpanic("_kill_thread", "pcb kill thread status: %s\n", status );
+	}
+
+	_dispatch();
+}
+
+// A hack for now
+Status _create_kernel_thread( const Pcb const* parent, Uint32 entry ) {
+
+	if ( parent == NULL ) {
+		return BAD_PARAM;
+	}
+
+	Pcb *new = _pcb_alloc();
+	if ( new == NULL) {
+		_kpanic("_create_kernel_thread", "Failed to create a new thread\n", 0);
+		return FAILURE;
+	}
+
+	_kmemcpy((void *)new, (void *)parent, sizeof(Pcb));
+
+	new->page_directory = parent->page_directory;
+
+	Stack* stack = new->stack;
+	if ( stack == NULL ) {
+		stack = _stack_alloc();
+		if ( stack == NULL ) {
+			return ( ALLOC_FAILED );
+		}
+		new->stack = stack;
+	}
+
+	new->pid  = _next_pid++;
+	new->ppid = parent->pid;
+	new->state = NEW;
+
+	_kmemclr( (void *)stack, sizeof(Stack));
+
+	Uint32* ptr = ((Uint32 *) (stack + 1)) - 2;
+	*ptr = (Uint32) _kill_thread;	
+
+	Context* context = ((Context *) ptr) - 1;
+	new->context = context;
+
+	// initialize all the fields that should be non-zero, starting
+	// with the segment registers
+
+	context->cs = GDT_CODE;
+	context->ss = GDT_STACK;
+	context->ds = GDT_DATA;
+	context->es = GDT_DATA;
+	context->fs = GDT_DATA;
+	context->gs = GDT_DATA;
+
+	// EFLAGS must be set up to re-enable IF when we switch
+	// "back" to this context
+
+	context->eflags = DEFAULT_EFLAGS;
+	
+	context->esp = (Uint32)(((Uint32 *)context)) - 4;
+	context->ebp = ((Uint32 *)((stack) + 1)) - 2;
+
+	// EIP must contain the entry point of the process; in
+	// essence, we're pretending that this is where we were
+	// executing when the interrupt arrived
+
+	context->eip = entry;
+
+
+	Status status = _sched( new );
+	if ( status != SUCCESS ) {
+		_kill_thread( new );
+		return FAILURE;
+	}
+
+	serial_printf("Scheduled new thread!\n");
+	return( SUCCESS );
+}
+
 /*
 ** _init - system initialization routine
 **
@@ -143,6 +245,7 @@ void _init( void ) {
 	__phys_initialize_bitmap();
 	__virt_initialize_paging();
 	__kmem_init_kmalloc();
+
 	_sio_init();
 	// Initialize C++ support, we do this after the memory is intialized so static/global
 	// C++ objects can use the new operator in their constructors
@@ -151,6 +254,7 @@ void _init( void ) {
 	__pci_init();
 	__pci_dump_all_devices();
 	__net_init();
+	__vm8086_init();
 
 	// Test the C++ support
 	_test_cpp();
@@ -184,6 +288,12 @@ void _init( void ) {
 	__install_isr( INT_VEC_TIMER, _isr_clock );
 	__install_isr( INT_VEC_SYSCALL, _isr_syscall );
 	__install_isr( INT_VEC_SERIAL_PORT_1, _isr_sio );
+
+	/*
+	** Initialize the bios module
+	*/
+
+	_bios_init();
 
 	/*
 	** Create the initial process
@@ -227,6 +337,11 @@ void _init( void ) {
 	*/
 
 	_current = pcb;
+
+	/*
+	** Start the desktop refreshing thread
+	 */
+	_create_kernel_thread( pcb, (Uint32)_desktop_run );
 
 	/*
 	** Turn on the SIO receiver (the transmitter will be turned

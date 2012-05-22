@@ -18,6 +18,7 @@
 #include "x86arch.h"
 #include "bootstrap.h"
 #include "scheduler.h"
+#include "serial.h"
 
 /*
 ** Global variables and local data types.
@@ -215,6 +216,7 @@ static void init_idt( void ){
 void __panic( char *reason ){
 	asm( "cli" );
 	c_printf( "\nPANIC: %s\nHalting...", reason );
+	serial_printf("\nPANIC: %s\nHalting...", reason);
 	for(;;){
 		;
 	}

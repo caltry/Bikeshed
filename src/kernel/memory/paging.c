@@ -35,14 +35,6 @@ typedef long unsigned int ul;
 #define PAGE_TBL_FROM_ADDR(x) (((Uint32 *)0xFFC00000) + (0x400 * (((Uint32)(x)) >> 22)))
 #define PAGE_TBL_FROM_INDEX(x) (((Uint32 *)0xFFC00000) + (0x400 * (x)))
 
-/* Similar to unmap page except it DOESN'T free the page from the physical memory
- * manager.
- *
- * This is required when copying pages because if we're trying to create a new page
- * table we don't want to free it's blocks before it gets used!
- */
-static void __virt_clear_page(void *virtual_addr);
-
 
 // TODO change this to directly link to the already defined page directory
 page_directory_t *__virt_kpage_directory = 0;//&BootPageDirectory;
@@ -345,6 +337,8 @@ void __virt_unmap_page(void *virtual_addr)
 		__phys_unset_bit((void *)pd[page_dir_index]);
 		pd[page_dir_index] = 0;
 	}
+
+	serial_printf("Unmapped page: %x\n", virtual_addr);
 
 	// Now you need to flush the entry in the TBL
 	// or you might not notice the change
