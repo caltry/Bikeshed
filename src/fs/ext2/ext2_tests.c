@@ -252,6 +252,117 @@ Uint32 test_offset_read_big()
 	return test_failures;
 }
 
+
+/*
+ * Try reading a file located at the root of the filesystem.
+ *
+ * We were having problems earlier where the directory traversal would only
+ * search for files in subdirectories.
+ */
+Uint32 test_read_root_file(void);
+Uint32 test_read_root_file()
+{
+	Uint32 test_failures = 0;
+	static const Uint32 buffer_size = 1111;
+
+	ext2_read_status read_error;
+	Uint bytes_read;
+	char filename[] = "/test.txt";
+	char buf[buffer_size];
+	Uint lastLoc = 0;
+
+	read_error = ext2_raw_read
+		(bikeshed_ramdisk_context,
+		filename,
+		buf,
+		&bytes_read,
+		lastLoc,
+		buffer_size-1);
+
+	if( read_error )
+	{
+		serial_printf
+			( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) " "
+			 "Unable to read '%s', error #%d\n\r",
+			 filename, read_error );
+		test_failures++;
+	}
+	buf[bytes_read] = '\0';
+	serial_string("\n\r");
+	serial_string(buf);
+	serial_string("\n\r");
+	buf[0] = '\0';
+
+	return test_failures;
+}
+
+
+/*
+ * Make sure that we properly indicate when we can't find a file.
+ */
+Uint32 test_read_nonexistant_file(void);
+Uint32 test_read_nonexistant_file()
+{
+	Uint32 test_failures = 0;
+	ext2_read_status read_error;
+
+	static const Uint32 buffer_size = 2;
+	Uint bytes_read;
+	char filename[] = "/a_fake_file";
+	char buf[buffer_size];
+	Uint lastLoc = 0;
+
+	// Try reading a non-existent file in the root directory
+	read_error = ext2_raw_read
+		(bikeshed_ramdisk_context,
+		filename,
+		buf,
+		&bytes_read,
+		lastLoc,
+		buffer_size-1);
+
+	switch( read_error )
+	{
+		case EXT2_READ_FILE_NOT_FOUND:
+			break;
+		default:
+			serial_printf( __FILE__ ":"
+			              CPP_STRINGIFY_RESULT(__LINE__) " "
+				      "Got wrong error message while reading "
+				      "'%s'. Error #%d\n\r",
+				      filename,
+				      read_error );
+			test_failures++;
+	}
+
+	char filename2[] = "/ext2_tests/a_fake_file";
+
+	// Try reading a non-existant file in a subdirectory
+	read_error = ext2_raw_read
+		(bikeshed_ramdisk_context,
+		filename2,
+		buf,
+		&bytes_read,
+		lastLoc,
+		buffer_size-1);
+
+	switch( read_error )
+	{
+		case EXT2_READ_FILE_NOT_FOUND:
+			break;
+		default:
+			serial_printf( __FILE__ ":"
+			              CPP_STRINGIFY_RESULT(__LINE__) " "
+				      "Got wrong error message while reading "
+				      "'%s'. Error #%d\n\r",
+				      filename2,
+				      read_error );
+			test_failures++;
+	}
+
+	return test_failures;
+}
+
 Uint32 test_all()
 {
 	Uint32 failed_tests = 0;
@@ -260,6 +371,8 @@ Uint32 test_all()
 	failed_tests += test_indirect_block_reading();
 	failed_tests += test_offset_read_small();
 	failed_tests += test_offset_read_big();
+	failed_tests += test_read_root_file();
+	failed_tests += test_read_nonexistant_file();
 
 	return failed_tests;
 }

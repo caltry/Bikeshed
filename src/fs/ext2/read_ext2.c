@@ -674,12 +674,6 @@ get_file_from_dir_path( struct ext2_filesystem_context *context,
 	if( dirpath[0] == DIRECTORY_SEPARATOR )
 	{
 		dirpath++;
-
-		// Don't skip the first slash if we really want the root dir!
-		if( !(dirpath[0]) )
-		{
-			dirpath--;
-		}
 	}
 	const char *slash = _kstrchr( dirpath, DIRECTORY_SEPARATOR );
 	Uint dir_name_length = slash - dirpath;
@@ -692,8 +686,13 @@ get_file_from_dir_path( struct ext2_filesystem_context *context,
 	root_inode = get_inode(context, EXT2_INODE_ROOT );
 	struct ext2_inode *current_inode = root_inode;
 
-	struct ext2_directory_entry *current_dirent = 0;
-	do {
+	// Make the current dirent root (/)
+	struct ext2_directory_entry *current_dirent =
+		get_file_from_dir_inode( context, current_inode, "." );
+
+	// While we still have more subdirectories to traverse to
+	while( *dirpath )
+	{
 		_kmemcpy( current_dir_name, dirpath, dir_name_length );
 		current_dir_name[dir_name_length] = '\0';
 		dirpath += dir_name_length+1;
@@ -711,7 +710,7 @@ get_file_from_dir_path( struct ext2_filesystem_context *context,
 		serial_printf( "fetching new dir inode: %d\n\r",
 				 current_dirent->inode_number );
 		current_inode = get_inode(context, current_dirent->inode_number);
-	} while( *dirpath );
+	}
 
 	struct ext2_inode *dirent_inode;
 	dirent_inode = get_inode( context, current_dirent->inode_number );
