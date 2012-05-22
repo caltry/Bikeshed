@@ -10,6 +10,8 @@ extern "C" {
 	#include "defs.h"
 	#include "kmalloc.h"
 	#include "linkedlist.h"
+	#include "lib/string.h"
+	#include "lib/klib.h"
 }
 
 #include "lookandfeel.h"
@@ -17,14 +19,18 @@ extern "C" {
 
 #include "window.h"
 
-
 Window::Window(Desktop *_desktop, Rect _bounds, char *_title, int _id)
 	: bounds(_bounds)
-	, title(_title)
 	, dirty(true)
 	, desktop(_desktop)
 	, id(_id)
 {
+	// Probably a good idea to save a copy, in case the string was
+	// created in a temporary location, ran into this problem with
+	// the ELF loader
+	title = (char *)__kmalloc(_kstrlen(_title)+1);
+	_kmemcpy(title, _title, _kstrlen(_title)+1);
+
 	children = (LinkedList *)__kmalloc(sizeof(LinkedList));
 	list_init(children, __kfree);
 	painter = new Painter(kScreen, bounds);
@@ -35,6 +41,7 @@ Window::~Window(void)
 {
 	list_destroy(children);
 	__kfree(children);
+	__kfree(title);
 	delete painter;
 }
 
@@ -116,9 +123,6 @@ void Window::Draw(void)
 		close_x, close_y);
 	painter->DrawBox(close, WINDOW_TITLE_COLOR_1, WINDOW_TITLE_COLOR_2,
 		WINDOW_TITLE_COLOR_2, WINDOW_TITLE_COLOR_2, 4);
+	painter->DrawString(title, bounds.x, bounds.y, 2, 0xDEADBEEF);
 }
-
-
-
-
 

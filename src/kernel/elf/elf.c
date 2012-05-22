@@ -6,22 +6,11 @@
 #include "memory/physical.h"
 #include "memory/paging.h"
 #include "lib/klib.h"
+#include "lib/string.h"
 #include "boot/bootstrap.h"
 #include "syscalls.h"
 #include "pcbs.h"
 #include "serial.h"
-
-static Uint32 strlen(const char* str)
-{
-	Uint32 length = 0;
-	while (*str != 0)
-	{
-		++length;
-		++str;
-	}
-
-	return length;
-}
 
 // Returns 0 if successful, returns 1 otherwise
 static Uint32 read_from_fs(const char* file_name, Uint32 offset, Uint32 size, void* buffer)
@@ -55,8 +44,8 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 {
 	// Need to copy the file_name into kernel land...because we're killing userland!
 	const char* temp = file_name;
-	file_name = (const char *)__kmalloc(strlen(temp) + 1);
-	_kmemcpy((void *)file_name, (void *)temp, strlen(temp)+1); // Copy the null terminator as well
+	file_name = (const char *)__kmalloc(_kstrlen(temp) + 1);
+	_kmemcpy((void *)file_name, (void *)temp, _kstrlen(temp)+1); // Copy the null terminator as well
 
 	serial_printf("---Elf: attempting to open: %s\n", file_name);
 	if (pcb == NULL || file_name == NULL) 

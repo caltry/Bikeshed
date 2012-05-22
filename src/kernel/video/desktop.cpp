@@ -93,7 +93,7 @@ extern "C" {
 
 		Desktop desktop(kScreen);
 
-		Window *window = new Window(&desktop, Rect(200, 200, 400, 400), "BIKESHED", 1);
+		Window *window = new Window(&desktop, Rect(200, 200, 400, 400), "WINDOW1", 1);
 		Window *window2 = new Window(&desktop, Rect(16, 16, 300, 400), "BIKESHED", 0);
 		desktop.AddWindow(window);
 		desktop.AddWindow(window2);
