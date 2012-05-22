@@ -252,6 +252,50 @@ Uint32 test_offset_read_big()
 	return test_failures;
 }
 
+
+/*
+ * Try reading a file located at the root of the filesystem.
+ *
+ * We were having problems earlier where the directory traversal would only
+ * search for files in subdirectories.
+ */
+Uint32 test_read_root_file(void);
+Uint32 test_read_root_file()
+{
+	Uint32 test_failures = 0;
+	static const Uint32 buffer_size = 1111;
+
+	ext2_read_status read_error;
+	Uint bytes_read;
+	char filename[] = "/test.txt";
+	char buf[buffer_size];
+	Uint lastLoc = 0;
+
+	read_error = ext2_raw_read
+		(bikeshed_ramdisk_context,
+		filename,
+		buf,
+		&bytes_read,
+		lastLoc,
+		buffer_size-1);
+
+	if( read_error )
+	{
+		serial_printf
+			( __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__) " "
+			 "Unable to read '%s', error #%d\n\r",
+			 filename, read_error );
+		test_failures++;
+	}
+	buf[bytes_read] = '\0';
+	serial_string("\n\r");
+	serial_string(buf);
+	serial_string("\n\r");
+	buf[0] = '\0';
+
+	return test_failures;
+}
+
 Uint32 test_all()
 {
 	Uint32 failed_tests = 0;
@@ -260,6 +304,7 @@ Uint32 test_all()
 	failed_tests += test_indirect_block_reading();
 	failed_tests += test_offset_read_small();
 	failed_tests += test_offset_read_big();
+	failed_tests += test_read_root_file();
 
 	return failed_tests;
 }
