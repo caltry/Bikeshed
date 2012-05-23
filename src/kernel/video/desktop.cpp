@@ -15,6 +15,7 @@ extern "C" {
 	#include "video.h"
 	#include "mouse.h"
 	#include "semaphores.h"
+	#include "serial.h"
 }
 
 #include "window.h"
@@ -112,7 +113,9 @@ extern "C" {
 		/*
 		** Start up the system graphics module
 		*/
+		serial_printf("Enabling video...\n");
 		_video_init();
+		serial_printf("Enabling mouse...\n");
 		_mouse_init();
 
 		// Create a desktop
@@ -130,17 +133,20 @@ extern "C" {
 		desktop.AddWindow(window);
 		desktop.AddWindow(_gconsole);
 
+		serial_printf("Entering draw loop...\n");
 		do {
-			// Repaint the desktop
 			asm volatile("cli");
+			// Repaint the desktop
+			serial_printf("Drawing...\n");
 			desktop.Draw();
+
+			serial_printf("Drawing cursor...\n");
+			// Draw the mouse
+			desktop.DrawCursor(_mouse_x, _mouse_y);
 
 			// Copy the back buffer to the screen
 			_kmemcpy((void *)(kScreen->frame_buffer),
 				(void *)(kScreen->back_buffer), kScreen->size);
-
-			// Draw the mouse
-			desktop.DrawCursor(_mouse_x, _mouse_y);
 		
 			// Update at about 200 fps
 			asm volatile("sti");
