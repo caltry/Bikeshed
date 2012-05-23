@@ -6,6 +6,7 @@
 
 #include "cpp_magic.h"
 #include "read_ext2.h"
+#include "write_ext2.h"
 #include "kernel/serial.h"
 #include "ext2_tests.h"
 
@@ -363,6 +364,78 @@ Uint32 test_read_nonexistant_file()
 	return test_failures;
 }
 
+/*
+ * Print out a table version of the block bitmap. You'll have to compare this
+ * table to the output from dumpe2fs.
+ */
+Uint32 test_block_is_occupied()
+{
+	Uint32 test_failures = 0;
+
+	for( int i = 0; i < 200; ++i )
+	{
+		serial_printf("Block %d: %d\t", i, block_is_occupied(bikeshed_ramdisk_context, i));
+		++i;
+		serial_printf("Block %d: %d\t", i, block_is_occupied(bikeshed_ramdisk_context, i));
+		++i;
+		serial_printf("Block %d: %d\n\r", i, block_is_occupied(bikeshed_ramdisk_context, i));
+	}
+
+	return test_failures;
+}
+
+/*
+ * Tests to make sure that we can properly mark blocks in the block bitmap.
+ *
+ * Finds an unmarked block, marks it as occupied and does some basic sanity
+ * checks.
+ */
+Uint32 test_mark_block_occupied()
+{
+	Uint32 test_failures = 0;
+
+	struct ext2_filesystem_context *context = bikeshed_ramdisk_context;
+	Uint32 sb_init_free_blocks =
+		bikeshed_ramdisk_context->sb->free_blocks_count;
+	Uint32 current_free_blocks = 0;
+	
+	for(Uint32 i = 0; i < bikeshed_ramdisk_context->sb->blocks_count; ++i)
+	{
+		if( !block_is_occupied( context, i ) )
+		{
+			if( block_is_occupied( context, i+1 ) )
+			{
+				test_failures++;
+				serial_printf("Unexpected non-free block: %d, "
+				              "It's unlikely that there is a "
+					      "free block here, because it's "
+					      "sourrounded by occuped blocks. "
+					      "\n\r",
+					      i );
+			}
+			serial_printf( "Marking block: %d\n\r", i );
+			mark_block_occupied( context, i );
+			if( !block_is_occupied( context, i ) )
+			{
+				test_failures++;
+				serial_string( "Failed to mark the block "
+				               "as occupied.\n\r" );
+			}
+			current_free_blocks =
+				bikeshed_ramdisk_context->sb->free_blocks_count;
+			if( current_free_blocks != sb_init_free_blocks -1 )
+			{
+				test_failures++;
+				serial_string( "Number of free blocks did not "
+				               "decrease.\n\r" );
+			}
+			break;
+		}
+	}
+
+	return test_failures;
+}
+
 Uint32 test_all()
 {
 	Uint32 failed_tests = 0;
@@ -373,6 +446,8 @@ Uint32 test_all()
 	failed_tests += test_offset_read_big();
 	failed_tests += test_read_root_file();
 	failed_tests += test_read_nonexistant_file();
+	failed_tests += test_block_is_occupied();
+	failed_tests += test_mark_block_occupied();
 
 	return failed_tests;
 }
