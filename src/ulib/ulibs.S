@@ -73,6 +73,10 @@ SYSCALL(lock_init)
 SYSCALL(lock_destroy)
 SYSCALL(lock_lock)
 SYSCALL(lock_unlock)
+SYSCALL(message_send)
+SYSCALL(message_receive)
+SYSCALL(message_try_receive)
+SYSCALL(message_has_message)
 
 // This is a bogus system call; it's here so that we can test
 // our handling of out-of-range syscall codes in the syscall ISR.
