@@ -12,7 +12,10 @@
 struct ext2_filesystem_context;
 
 typedef enum {
-	EXT2_WRITE_SUCCESS = 0
+	EXT2_WRITE_SUCCESS = 0,
+	EXT2_WRITE_FILE_NOT_FOUND = 1,
+	EXT2_WRITE_NO_LEADING_SLASH = 2,
+	EXT2_WRITE_NON_CONTIGUOUS = 3
 } ext2_write_status;
 
 /*

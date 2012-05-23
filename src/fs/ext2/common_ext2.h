@@ -7,6 +7,9 @@
 #ifndef _COMMON_EXT2_H
 #define _COMMON_EXT2_H
 
+#include "types.h"
+#include "cpp_magic.h"
+
 static inline Uint get_block_size( struct ext2_superblock *sb )
 {
 	return 1024 << sb->logarithmic_block_size;
@@ -61,6 +64,27 @@ static inline Uint32
 indirect_data_block_size( struct ext2_filesystem_context *context )
 {
 	return get_block_size( context->sb ) / sizeof(Uint32);
+}
+
+
+/*
+ * Given a logical index to an inode's block table, return a pointer to the
+ * block number stored at that index. The idea here is to encapsulate the
+ * complexity of the indirect blocks.
+ *
+ * Treat this like an &(inode[idx]) operator.
+ */
+static inline Uint32*
+get_inode_block( struct ext2_inode *fp, Uint32 logical_index )
+{
+	if( logical_index >= 12 )
+	{
+		_kpanic( "ext2", __FILE__ ":" CPP_STRINGIFY_RESULT(__LINE__)
+		         " No support for indirect blocks.",
+		         FEATURE_UNIMPLEMENTED );
+	}
+
+	return &(fp->blocks[logical_index]);
 }
 
 #endif //_COMMON_EXT2_H

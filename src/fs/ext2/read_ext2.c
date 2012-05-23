@@ -661,6 +661,40 @@ get_file_from_dir_path( struct ext2_filesystem_context *context,
 	return get_file_from_dir_inode( context, dirent_inode, filename );
 }
 
+Uint32
+get_file_size(struct ext2_filesystem_context *context, const char *path )
+{
+	if( path[0] != DIRECTORY_SEPARATOR )
+	{
+		return EXT2_READ_NO_LEADING_SLASH;
+	}
+
+	// Split up the path into the filename and dirname components
+	Uint path_length = _kstrlen( path );
+	const char *filename = _kstrrchr( path, DIRECTORY_SEPARATOR ) + 1;
+
+	// Set up the directory name, keep the trailing slash, ignore filename.
+	char dirname[path_length+1];
+	_kmemcpy( dirname, path, path_length+1 );
+	((char *)_kstrrchr( dirname, DIRECTORY_SEPARATOR ))[1] = '\0';
+
+	struct ext2_directory_entry* file =
+		get_file_from_dir_path( context, dirname, filename );
+
+	if( file )
+	{
+		struct ext2_inode *fp = get_inode(context, file->inode_number);
+		if( fp )
+		{
+			return fp->size;
+		} else {
+			return 0;
+		}
+	} else {
+		return 0;
+	}
+}
+
 ext2_read_status
 ext2_raw_read
 	(struct ext2_filesystem_context *context,
