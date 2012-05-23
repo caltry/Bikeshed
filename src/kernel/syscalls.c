@@ -18,6 +18,7 @@
 #include "scheduler.h"
 #include "semaphores.h"
 #include "locks.h"
+#include "messages.h"
 #include "sio.h"
 #include "syscalls.h"
 #include "system.h"
@@ -607,18 +608,46 @@ static void _sys_lock_destroy( Pcb *pcb ) {
 }
 
 /*
-** _sys_lock_lock - Locks a lock
+** _sys_lock_lock - Locks a lock.
 */
 static void _sys_lock_lock( Pcb *pcb ) {
 	RET(pcb) = _lock_lock( (Lock) ARG(pcb)[1], (LockMode) ARG(pcb)[2], pcb );
 }
 
 /*
-** _sys_lock_unlock - Unlocks a lock
+** _sys_lock_unlock - Unlocks a lock.
 */
 static void _sys_lock_unlock( Pcb *pcb ) {
 	RET(pcb) = _lock_unlock( (Lock) ARG(pcb)[1], (LockMode) ARG(pcb)[2] );
 }
+/*
+** _sys_message_send - Sends a message to another process.
+*/
+static void _sys_message_send( Pcb *pcb ) {
+	RET(pcb) = _message_send( pcb->pid, ARG(pcb)[1], ARG(pcb)[2], ARG(pcb)[3] );
+}
+
+/*
+** _sys_message_receive - Receives a message blocks until there is one.
+*/
+static void _sys_message_receive( Pcb *pcb ) {
+	RET(pcb) = _message_receive( pcb, pcb->pid, ARG(pcb)[1], ARG(pcb)[2], ARG(pcb)[3] );
+}
+
+/*
+** _sys_message_try_receive - Attempts to receive a message.
+*/
+static void _sys_message_try_receive( Pcb *pcb ) {
+	RET(pcb) = _message_try_receive( pcb->pid, ARG(pcb)[1], ARG(pcb)[2], ARG(pcb)[3] );
+}
+
+/*
+** _sys_message_has_message - Checks if there is a message to receive.
+*/
+static void _sys_message_has_message( Pcb *pcb ) {
+	RET(pcb) = _message_has_message( pcb->pid );
+}
+
 
 
 /*
@@ -676,6 +705,10 @@ void _syscall_init( void ) {
 	_syscall_tbl[ SYS_lock_destroy ]  = _sys_lock_destroy;
 	_syscall_tbl[ SYS_lock_lock ] 	  = _sys_lock_lock;
 	_syscall_tbl[ SYS_lock_unlock ]	  = _sys_lock_unlock;
+	_syscall_tbl[ SYS_message_send ]  = _sys_message_send;
+	_syscall_tbl[ SYS_message_receive ] = _sys_message_receive;
+	_syscall_tbl[ SYS_message_try_receive ] = _sys_message_try_receive;
+	_syscall_tbl[ SYS_message_has_message ] = _sys_message_has_message;
 
 //	these are syscalls we elected not to implement
 //	_syscall_tbl[ SYS_set_pid ]    = _sys_set_pid;
