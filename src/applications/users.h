@@ -76,6 +76,8 @@
 //#define		SPAWN_LOCK_TEST_WRITE_READ
 //#define		SPAWN_LOCK_TEST_READ_WRITE
 
+#define		SPAWN_MESSAGES_TEST
+
 /*
 ** Users W-Z are spawned from other processes; they
 ** should never be spawned directly.

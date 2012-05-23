@@ -1147,6 +1147,41 @@ void user_lock_test_read_write( void ) {
 	exit();
 }
 
+void user_messages_test( void ) {
+	Status status;
+	Pid pid;
+	char *message = "This is the test message.";
+
+	status = fork( &pid );
+	if ( status == SUCCESS ) {
+		if ( pid > 0) { //in parent
+			sleep(2); //sleep for two seconds
+			status = message_send( pid, message, 26 );
+			if ( status == SUCCESS ) {
+				prt_status( "User messages_test(Parent) message_send status %s\n", status);
+			} else {
+				prt_status( "User messages_test(Parent) message_send status FAILED(%s)\n", status);
+				exit();
+			}
+		} else { //in child
+			char *receivedMessage;
+			Uint32 size;
+			Pid fromPid;
+
+			c_puts( "User messages_test(Child) waiting for message\n");
+			status = message_receive( &pid, &receivedMessage, &size );
+			if ( status == SUCCESS ) {
+				c_printf("User messages_test(Child) received from %d of size %d: %s", fromPid, size, receivedMessage);
+			} else {
+				prt_status( "User messages_test(Child) message_receive status FAILED(%s)\n", status);
+				exit();
+			}
+		}
+	} else {
+		prt_status( "User messages_test fork status FAILED(%s)\n", status);
+	}
+}
+
 /*
 ** SYSTEM PROCESSES
 */
@@ -1362,6 +1397,13 @@ void init( void ) {
 	status = spawn( &pid, user_lock_test_read_write );
 	if( status != SUCCESS ) {
 		prt_status( "init: can't spawn() user user_lock_test_read_write, status %s\n", status );
+	}
+#endif
+
+#ifdef SPAWN_MESSAGES_TEST
+	status = spawn( &pid, user_messages_test );
+	if( status != SUCCESS ) {
+		prt_status( "init: can't spawn() user user_messages_test, status %s\n", status );
 	}
 #endif
 
