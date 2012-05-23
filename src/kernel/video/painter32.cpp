@@ -74,10 +74,12 @@ void Painter32::FillRect(Rect clipped_rect, Uint32 color) {
 
 
 void Painter32::DrawChar(char letter, int x, int y, int scale, Uint32 color) {
-	/*Uint8 *dest = (Uint8 *)_video_aquire_buffer(screen) + (y * screen->pitch) + (x * 3);
-
-	// Only uppercase letters for now
+	// Limit the range to printable ascii characters
 	if ((letter < 32) || (letter > 126)) return;
+
+	Uint8 *dest = (Uint8 *)_video_aquire_buffer(screen) +
+		(y * screen->pitch) + (x * 4);
+
 	Uint32 index = (letter - 32) * 7;
 
 	Uint8 r = (Uint8)((color & 0xff0000) >> 16);
@@ -90,19 +92,20 @@ void Painter32::DrawChar(char letter, int x, int y, int scale, Uint32 color) {
 		for (int i = 0; i < scale; ++i) {
 			for (int col = 0; col < 5; ++col) {
 				if ((row_data << col) & 0x10) {
-					dest[0] = dest[3] = dest[6] = b;
-					dest[1] = dest[4] = dest[7] = g;
-					dest[2] = dest[5] = dest[8] = r;
+					dest[0] = dest[4] = dest[8] = b;
+					dest[1] = dest[5] = dest[9] = g;
+					dest[2] = dest[6] = dest[10] = r;
+					dest[3] = dest[7] = dest[11] = 0xff;
 				}
 
-				dest += (scale * 3);
+				dest += (scale * 4);
 			}
 
-			dest = (Uint8 *)((Uint32)dest + screen->pitch - (scale * 3 * 5));
+			dest = (Uint8 *)((Uint32)dest + screen->pitch - (scale * 4 * 5));
 		}
 	}
 
-	_video_release_buffer(screen);*/
+	_video_release_buffer(screen);
 }
 
 

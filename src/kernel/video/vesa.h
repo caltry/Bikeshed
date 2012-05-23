@@ -10,17 +10,29 @@
 #define _VESA_H
 
 /*
-** General (C and/or assembly) definitions
+** General definitions
 */
 
-#define VESA_INFO_ADDRESS	0x00004000
-#define VESA_MODE_ADDRESS	(VESA_INFO_ADDRESS + 512)
+/* Addresses to use when loading in VBE info via BIOS calls */
+#define VESA_INFO_ADDRESS			0x00004000
+#define VESA_MODE_ADDRESS			(VESA_INFO_ADDRESS + 512)
 
+
+/*
+** Start of C-only definitions
+*/
+
+#ifndef __ASM__20113__
+
+#include "types.h"
+
+
+/* VBE function codes */
 #define GET_CONTROLLER_INFO			0x4F00
 #define GET_MODE_INFO				0x4F01
 #define SET_MODE					0x4F02
 
-/* Mode Attributes */
+/* VBE mode attributes we need for a proper graphical display */
 #define MODE_SUPPORTED				1
 #define COLOR_MODE					8
 #define GRAPHICS_MODE				16
@@ -33,20 +45,15 @@
 #define PACKED_PIXELS				4
 #define DIRECT_COLOR				6
 
+/* A list of supported bit depths bikeshed supports */
+#define SUPPORTED_DEPTH(x)			((x == 24) || (x == 32))
 
-#define SUPPORTED_DEPTH(x)				((x == 24) || (x == 32))
-
-
-#ifndef __ASM__20113__
-
-#include "types.h"
 
 /*
-** Start of C-only definitions
+** Types
 */
 
-typedef short VesaFarPtr;
- 
+/* VBE controller information */
 typedef struct vesa_controller_info {
 	Uint32 signature;
 	Int16 version;
@@ -56,6 +63,7 @@ typedef struct vesa_controller_info {
 	Uint16 total_memory;
 } __attribute__((packed)) VesaControllerInfo;
 
+/* VBE info for an individual video mode */
 typedef struct vesa_mode_info {
 	Uint16 attributes;
 	Uint8 window_a;
@@ -96,28 +104,68 @@ typedef struct vesa_mode_info {
 	/* VBE 3.0+ and above... */
 } __attribute__((packed)) VesaModeInfo;
 
-/*
-** Types
-*/
-
-/*
-** Globals
-*/
 
 /*
 ** Prototypes
 */
 
-void _vesa_init(void);
 
+/*
+** _vesa_load_info(info)
+**
+** Loads VBE controller information into the provided struct
+*/
 void _vesa_load_info(VesaControllerInfo *info);
+
+
+/*
+** _vesa_load_mode_info(mode,info)
+**
+** Loads VBE video mode information into the provided struct
+*/
 void _vesa_load_mode_info(Uint16 mode, VesaModeInfo *info);
-Uint16 _vesa_choose_mode(Uint16 *modes, int x, int y);
+
+
+/*
+** _vesa_choose_mode(mode,x,y)
+**
+** Iterates through the video modes available and chooses
+** a supported video mode closest to the provided resolution
+*/
+Uint16 _vesa_choose_mode(Uint16 *mode, int x, int y);
+
+
+/*
+** _vesa_select_mode(mode)
+**
+** Sets the provided video mode as active.
+*/
 void _vesa_select_mode(Uint16 mode);
 
+
+/*
+** _vesa_print_info(info)
+**
+** Prints the provided VBE controller information
+*/
 void _vesa_print_info(VesaControllerInfo *info);
-void _vesa_print_mode_info_basic(int mode_num, VesaModeInfo *info);
+
+
+/*
+** _vesa_load_info(mode_num,info)
+**
+** Prints information about the provided video mode
+*/
 void _vesa_print_mode_info(int mode_num, VesaModeInfo *info);
+
+
+/*
+** _vesa_print_mode_info_basic(info)
+**
+** Prints a summary of the provided video mode
+*/
+void _vesa_print_mode_info_basic(int mode_num, VesaModeInfo *info);
+
 
 #endif
 

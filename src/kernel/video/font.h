@@ -12,7 +12,7 @@
 
 #include "types.h"
 
-
+// The font data
 extern Uint8 font_data[];
 
 #endif
