@@ -253,7 +253,7 @@ void _init( void ) {
 
 	__pci_init();
 	__pci_dump_all_devices();
-	__net_init();
+//	__net_init();
 	__vm8086_init();
 
 	// Test the C++ support

@@ -58,7 +58,7 @@ qemu:
 
 walter:	
 	CFLAGS=-DQEMU_SERIAL $(MAKE) usb.image
-	kvm -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er
+	kvm -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er -vga std
 
 mit: 
 	CFLAGS=-DQEMU_SERIAL $(MAKE) usb.image
