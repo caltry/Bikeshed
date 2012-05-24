@@ -137,10 +137,8 @@ extern "C" {
 		do {
 			asm volatile("cli");
 			// Repaint the desktop
-			serial_printf("Drawing...\n");
 			desktop.Draw();
 
-			serial_printf("Drawing cursor...\n");
 			// Draw the mouse
 			desktop.DrawCursor(_mouse_x, _mouse_y);
 
