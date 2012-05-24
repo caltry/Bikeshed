@@ -1,5 +1,5 @@
 
-USER_PROGRAMS := init/ welcome/ 
+USER_PROGRAMS := init/ welcome/ print_motd/
 
 export INCLUDES = -I. -I$(shell pwd)/../ulib/ -I$(shell pwd)/../include/ -I$(shell pwd)/../
 export CFLAGS = -s --std=gnu99 -m32 -Wall -Werror -fno-builtin -nodefaultlibs -nostdinc -nostdlib -T$(shell pwd)/clinker.ld

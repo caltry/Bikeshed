@@ -598,7 +598,7 @@ static void _sys_message_has_message( Pcb *pcb ) {
 /*
  * Write out to a file
  */
-static void _sys_raw_read( Pcb *pcb )
+static void _sys_fs_read( Pcb *pcb )
 {
 	RET(pcb) = raw_read
 		( (const char*) ARG(pcb)[1],    // path
@@ -668,7 +668,7 @@ void _syscall_init( void ) {
 	_syscall_tbl[ SYS_message_receive ] = _sys_message_receive;
 	_syscall_tbl[ SYS_message_try_receive ] = _sys_message_try_receive;
 	_syscall_tbl[ SYS_message_has_message ] = _sys_message_has_message;
-	_syscall_tbl[ SYS_raw_read ]      = _sys_raw_read;
+	_syscall_tbl[ SYS_fs_read ]      = _sys_fs_read;
 
 //	these are syscalls we elected not to implement
 //	_syscall_tbl[ SYS_set_pid ]    = _sys_set_pid;
