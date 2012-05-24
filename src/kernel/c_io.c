@@ -88,6 +88,8 @@ static unsigned int __c_strlen( char const *str ){
 	return len;
 }
 
+#ifndef VIDEO_ENABLE
+
 static void __c_putchar_at( unsigned int x, unsigned int y, unsigned int c ){
 	/*
 	** If x or y is too big or small, don't do any output.
@@ -508,6 +510,8 @@ void c_printf( const char *fmt, ... ){
 	__c_do_printf( -1, -1, &fmt );
 }
 
+#endif
+
 unsigned char scan_code[ 2 ][ 128 ] = {
 	{
 /* 00-07 */	'\377',	'\033',	'1',	'2',	'3',	'4',	'5',	'6',
@@ -681,6 +685,8 @@ int c_input_queue( void ){
 	return n_chars;
 }
 
+#ifndef VIDEO_ENABLE
+
 /*
 ** Initialization routines
 */
@@ -713,6 +719,8 @@ void c_io_init( void ){
 	*/
 	__install_isr( INT_VEC_KEYBOARD, __c_keyboard_isr );
 }
+
+#endif
 
 #ifdef SA_DEBUG
 int main(){

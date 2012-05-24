@@ -56,6 +56,25 @@
 #ifndef _C_IO_H_
 #define _C_IO_H_
 
+
+
+#ifdef VIDEO_ENABLE
+	#include "video/gconsole.h"
+
+	#define c_io_init			gcon_init
+	#define c_setscroll			gcon_setscroll
+	#define c_moveto			gcon_moveto
+	#define c_putchar			gcon_putchar
+	#define c_puts				gcon_puts
+	#define c_printf			gcon_printf
+	#define c_scroll			gcon_scroll
+	#define c_clearscroll		gcon_clearscroll
+	#define c_putchar_at		gcon_putchar_at
+	#define c_puts_at			gcon_puts_at
+	#define c_printf_at			gcon_printf_at
+	#define c_clearscreen		gcon_clearscreen
+#else
+
 /*
 ** Name:	c_io_init
 **
@@ -63,6 +82,7 @@
 **		standalone loader so you need not call it.
 */
 void c_io_init( void );
+
 
 /*****************************************************************************
 **
@@ -187,6 +207,8 @@ void c_printf_at( unsigned int x, unsigned int y, const char *fmt, ... );
 **		scrolling region.
 */
 void c_clearscreen( void );
+
+#endif
 
 /*****************************************************************************
 **

@@ -76,7 +76,9 @@ Int32 list_remove_next(linked_list_t* list, list_element_t* element, void** data
 
 	if (element == NULL)
 	{
-		*data = list->head->data;
+		if (data != NULL)
+			*data = list->head->data;
+		
 		old_element = list->head;
 		list->head = list->head->next;
 
@@ -90,7 +92,9 @@ Int32 list_remove_next(linked_list_t* list, list_element_t* element, void** data
 			return -1;
 		}
 
-		*data = element->next->data;
+		if (data != NULL)
+			*data = element->next->data;
+		
 		old_element = element->next;
 		element->next = element->next->next;
 

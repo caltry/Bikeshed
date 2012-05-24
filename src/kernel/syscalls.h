@@ -51,6 +51,7 @@
 #define SYS_message_receive 24
 #define SYS_message_try_receive 25
 #define SYS_message_has_message 26
+#define SYS_fs_read		27
 
 // these are syscalls we elected not to implement
 // #define	SYS_set_pid		?
@@ -59,7 +60,7 @@
 
 // number of "real" system calls
 
-#define	N_SYSCALLS	27
+#define	N_SYSCALLS	28
 
 // dummy system call code to test the syscall ISR
 

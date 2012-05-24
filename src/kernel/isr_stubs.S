@@ -178,7 +178,12 @@ __isr_restore:
 	pushl	$fmt
 	pushl	$1
 	pushl	$0
+#ifdef VIDEO_ENABLE
+	call	gcon_printf_at
+#else
 	call	c_printf_at
+#endif
+
 /*
 ** MOD for 20113 SP2
 */

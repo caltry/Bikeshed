@@ -2,18 +2,8 @@
 #define __PAGING_H__
 
 #include "types.h"
-/*
-typedef struct Page
-{
-	Uint32 present 		: 1;
-	Uint32 read_write 	: 1;
-	Uint32 user 		: 1;
-	Uint32 accessed 	: 1;
-	Uint32 dirty 		: 1;
-	Uint32 unused 		: 7;
-	Uint32 frame 		: 20;
-} page_t;
-*/
+
+/* Some basic defines to help out in the code */
 #define PAGE_SIZE 4096
 
 #define PG_PRESENT 		 0x1
@@ -28,6 +18,7 @@ typedef struct Page
 #define PAGE_TBL_FROM_ADDR(x) (((Uint32 *)0xFFC00000) + (0x400 * (((Uint32)(x)) >> 22)))
 #define PAGE_TBL_FROM_INDEX(x) (((Uint32 *)0xFFC00000) + (0x400 * (x)))
 
+/* Forward declarations */
 struct Page;
 typedef struct Page page_t;
 
@@ -64,8 +55,8 @@ extern page_directory_t boot_page_directory;
  *        +---------------+
  *  768   |    R/W S P    | -> [16-K_END] == 0x100000 - KERNEL_SIZE R/W S, [KERNEL_SIZE-1023] == 0
  *        +---------------+
- * 769-   |  Not Mapped   |
- * 1023   |               |
+ * 769-   |  Not Mapped   | -> These regions are mapped by other modules in the kernel like
+ * 1023   |               |    the filesystem or video module
  *        +---------------+
  */
 void __virt_initialize_paging(void);
@@ -79,20 +70,51 @@ void __virt_initialize_paging(void);
  */
 void __virt_switch_page_directory(page_directory_t *page_directory);
 
-// Taken from OS Dev wiki
-void* __virt_get_phys_addr(void *virtual_addr);
+/* Gets the physical address associated with a virtual address. 
+ *
+ * Since the last four megabytes of address space is mapped to the
+ * start of the current page directory, this function doesn't need
+ * to know what the current page directory is.
+ *
+ * Adapted from the OSdev wiki
+ */
+void* __virt_get_phys_addr(void* virtual_addr);
 
-/* Clears everything but kernel entries from a page table */
+/* Clears everything but kernel entries from a page table
+ *
+ * This function internally calls unmap_page which will mark
+ * any of the pages being used by the current page directory,
+ * except for those used by the kernel.
+ */
 void __virt_reset_page_directory(void);
 
-/* Removes the entire page table from memory */
+/* Removes the entire page table from memory 
+ *
+ * It's recommended that dispatch is called after this
+ * function. Mainly used to cleanup processes page directories
+ * when exiting
+ */
 void __virt_dealloc_page_directory(void);
 
-/* Clones a page directory, it copies all pages and data */
+/* Clones a page directory, it copies all pages and data 
+ *
+ * This function performs a dumb copy of another page directory.
+ * It will use the same values for the page_table[0] and those
+ * above page_table[kernel_start]. The pages in the middle are
+ * physically copied to another page and them mapped into the
+ * newly created page table.
+ *
+ * Returns the physical address of the new page table
+ */
 page_directory_t* __virt_clone_directory(void);
 
-// Taken from OS Dev wiki
-void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags);
+/* Maps a physical address to a virtual address. Creates a new
+ * page directory entry if one doesn't exist. You don't need to
+ * pass in PG_PRESENT as it's automatically OR'd into the flags.
+ *
+ * Adapted from the OSdev wiki
+ */
+void __virt_map_page(void* physical_addr, void* virtual_addr, Uint32 flags);
 
 /* Do the reverse of __virt_map_page(). If there is an entry present
  * it will set it to not present and if all the page table entries are
@@ -119,7 +141,10 @@ void __virt_clear_page(void *virtual_addr);
  */
 void _isr_page_fault(int vector, int code);
 
-/* Defined in memory.S */
+/* Defined in memory.S 
+ *
+ * These are simple getters and setters for the registers
+ */
 Uint32 read_cr0(void);
 void write_cr0(Uint32 address);
 

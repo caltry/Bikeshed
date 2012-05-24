@@ -36,7 +36,6 @@ int main()
 	put_string(0, 0, "Loaded an ELF and running C code!");
 	put_string(0, 1, "Program");
 
-	/*
 	Pid pid = -1;
 	if (fork(&pid) == 0)
 	{
@@ -48,7 +47,7 @@ int main()
 			{
 				if (pid == 0)
 				{
-					exec("/etc/welcome");
+					exec("/etc/print_motd");
 					put_string(40, 0, "Child returned!?");
 				} else {
 					put_string(60, 0, "Fork 2!");
@@ -60,9 +59,10 @@ int main()
 			put_string(20, 0, "PARENT!");
 		}
 	}
-	*/
-	Pid pid;
+
+	
 	spawn(&pid, "/etc/msg_test");
+
 	
 
 	set_priority(PRIO_IDLE);

@@ -77,6 +77,7 @@ SYSCALL(message_send)
 SYSCALL(message_receive)
 SYSCALL(message_try_receive)
 SYSCALL(message_has_message)
+SYSCALL(fs_read)
 
 // This is a bogus system call; it's here so that we can test
 // our handling of out-of-range syscall codes in the syscall ISR.

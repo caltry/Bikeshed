@@ -23,6 +23,7 @@
 #include "sio.h"
 #include "syscalls.h"
 #include "system.h"
+#include "fs/vfs.h"
 #include "elf/elf.h"
 #include "lib/klib.h"
 #include "c_io.h"
@@ -230,7 +231,7 @@ static void _sys_write( Pcb *pcb ) {
 	// the low-level device access fromm the higher-level
 	// syscall implementation
 
-	_sio_writec( ch );
+	c_putchar( ch );
 
 	RET(pcb) = SUCCESS;
 
@@ -594,6 +595,19 @@ static void _sys_message_has_message( Pcb *pcb ) {
 }
 
 
+/*
+ * Write out to a file
+ */
+static void _sys_fs_read( Pcb *pcb )
+{
+	RET(pcb) = raw_read
+		( (const char*) ARG(pcb)[1],    // path
+		(void*) ARG(pcb)[2],            // buf
+		(Uint32*) ARG(pcb)[3],          // bytes_read
+		(Uint32) ARG(pcb)[4],           // offset (a.k.a. start)
+		(Uint32) ARG(pcb)[5]);          // nbytes
+}
+
 
 /*
 ** PUBLIC FUNCTIONS
@@ -654,6 +668,7 @@ void _syscall_init( void ) {
 	_syscall_tbl[ SYS_message_receive ] = _sys_message_receive;
 	_syscall_tbl[ SYS_message_try_receive ] = _sys_message_try_receive;
 	_syscall_tbl[ SYS_message_has_message ] = _sys_message_has_message;
+	_syscall_tbl[ SYS_fs_read ]      = _sys_fs_read;
 
 //	these are syscalls we elected not to implement
 //	_syscall_tbl[ SYS_set_pid ]    = _sys_set_pid;
