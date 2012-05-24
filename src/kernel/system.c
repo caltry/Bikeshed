@@ -28,6 +28,7 @@
 #include "support.h"
 #include "pcbs.h"
 #include "scheduler.h"
+#include "messages.h"
 
 #include "bootstrap.h"
 #include "memory/physical.h"
@@ -266,6 +267,7 @@ void _init( void ) {
 	_sched_init();
 	_sem_init();
 	_lock_init();
+	_messages_init();
 	_clock_init();
 	_init_all_ramdisks();
 	_fs_ext2_init();

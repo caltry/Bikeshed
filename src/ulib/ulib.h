@@ -321,6 +321,35 @@ Status lock_lock( Lock lock, LockMode mode );
 */
 Status lock_unlock( Lock lock, LockMode mode );
 
+/*
+** message_send - Sends a message to another process.
+**
+** usage:   status = message_send( pid, (void*) data, size );
+*/
+Status message_send( Pid pid, void *data, Uint32 size );
+
+/*
+** message_receive - Receives a message. Will wait for a message to arrive. 
+**
+** usage:   status = message_receive( &fromPid, &data, &size );
+*/
+Status message_receive( Pid *fromPid, void **data, Uint32 *size );
+
+/*
+** message_try_receive - Receives a message. Returns NOT_FOUND if there is no message waiting.
+**
+** usage:   status = message_()
+*/
+Status message_try_receive( Pid *fromPid, void **data, Uint32 *size );
+
+/*
+** message_has_message - Checks if there is a message waiting for the process. Returns NOT_FOUND 
+**  if there is no message waitng. SUCCESS if there is.
+**
+** usage:   status = message_()
+*/
+Status message_has_message();
+
 #endif
 
 #endif
