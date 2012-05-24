@@ -231,7 +231,7 @@ static void _sys_write( Pcb *pcb ) {
 	// the low-level device access fromm the higher-level
 	// syscall implementation
 
-	_sio_writec( ch );
+	c_putchar( ch );
 
 	RET(pcb) = SUCCESS;
 
