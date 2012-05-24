@@ -57,18 +57,11 @@
 #define _C_IO_H_
 
 
-/*
-** Name:	c_io_init
-**
-** Description:	Initializes the I/O routines.  This is called by the
-**		standalone loader so you need not call it.
-*/
-void c_io_init( void );
-
 
 #ifdef VIDEO_ENABLE
 	#include "video/gconsole.h"
 
+	#define c_io_init			gcon_init
 	#define c_setscroll			gcon_setscroll
 	#define c_moveto			gcon_moveto
 	#define c_putchar			gcon_putchar
@@ -81,6 +74,15 @@ void c_io_init( void );
 	#define c_printf_at			gcon_printf_at
 	#define c_clearscreen		gcon_clearscreen
 #else
+
+/*
+** Name:	c_io_init
+**
+** Description:	Initializes the I/O routines.  This is called by the
+**		standalone loader so you need not call it.
+*/
+void c_io_init( void );
+
 
 /*****************************************************************************
 **

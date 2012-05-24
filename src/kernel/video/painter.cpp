@@ -82,7 +82,7 @@ void Painter::DrawString(char *string, int x, int y, int scale, Uint32 color) {
 void Painter::DrawString(char *start, char *end, int x, int y, int scale, Uint32 color) {
 	if (y + FONT_HEIGHT > bounds.y2) return;
 
-	while ((start != end) && (x < bounds.x2) && (y < bounds.y2)) {
+	while ((start < end) && (x < bounds.x2) && (y < bounds.y2)) {
 		if (((x + FONT_WIDTH * scale) > 0) && ((y + FONT_HEIGHT * scale) > 0))
 			DrawChar(*start, x, y, scale, color);
 		

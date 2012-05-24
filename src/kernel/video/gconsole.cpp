@@ -35,8 +35,8 @@ GConsole *_gconsole;
 
 #define	SCREEN_MIN_X	0
 #define	SCREEN_MIN_Y	0
-#define	SCREEN_MAX_X	SCREEN_X_SIZE
-#define	SCREEN_MAX_Y	SCREEN_Y_SIZE
+#define	SCREEN_MAX_X	( SCREEN_X_SIZE - 1 )
+#define	SCREEN_MAX_Y	( SCREEN_Y_SIZE - 1 )
 
 char screen[SCREEN_X_SIZE * SCREEN_Y_SIZE];
 
@@ -46,7 +46,7 @@ unsigned int	cursor_x, cursor_y;
 unsigned int	min_x, min_y;
 unsigned int	max_x, max_y;
 
-#define	SCREEN_ADDR(x,y)	( screen + x + ( y * SCREEN_X_SIZE ) )
+#define	SCREEN_ADDR(x,y)	( screen + x + ( (y - 1) * SCREEN_X_SIZE ) )
 
 /*
 ** Support routines.
@@ -549,10 +549,10 @@ void ConsoleView::Draw(void)
 	char *end = screen + SCREEN_MAX_X;
 	int y = bounds.y + 36;
 
-	while( end != (screen + (SCREEN_MAX_X * SCREEN_MAX_Y))) {
+	while(end < (screen + (SCREEN_MAX_X * SCREEN_MAX_Y))) {
 		painter->DrawString(start, end, bounds.x + 12, y, 2, 0xD3D9C3);
-		start += SCREEN_MAX_X;
-		end += SCREEN_MAX_X;
+		start = end + 1;
+		end += SCREEN_X_SIZE;
 		y += 16;
 	}
 }
@@ -561,7 +561,7 @@ void ConsoleView::Draw(void)
 
 GConsole::GConsole(Desktop *desktop, Uint32 x, Uint32 y)
 	: Window(desktop, Rect(x, y, SCREEN_MAX_X * 12 + 24,
-		SCREEN_MAX_Y * 22 + 24), (char *)"CONSOLE")
+		SCREEN_MAX_Y * 17), (char *)"CONSOLE")
 	, console(new ConsoleView(painter, bounds))
 {
 	AddComponent(console);

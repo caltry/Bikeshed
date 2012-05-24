@@ -685,6 +685,8 @@ int c_input_queue( void ){
 	return n_chars;
 }
 
+#ifndef VIDEO_ENABLE
+
 /*
 ** Initialization routines
 */
@@ -717,6 +719,8 @@ void c_io_init( void ){
 	*/
 	__install_isr( INT_VEC_KEYBOARD, __c_keyboard_isr );
 }
+
+#endif
 
 #ifdef SA_DEBUG
 int main(){
