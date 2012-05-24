@@ -3,7 +3,7 @@
 **
 ** Author:	Sean Congden
 **
-** Description:	Basic drawing functions
+** Description:	Basic drawing functions for a 32 bits per pixel video mode
 */
 
 extern "C" {

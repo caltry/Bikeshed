@@ -9,9 +9,9 @@
 #ifndef _FONT_H
 #define _FONT_H
 
-
 #include "types.h"
 
+// Font glyph dimmensions
 #define FONT_WIDTH					5
 #define FONT_HEIGHT					7
 
