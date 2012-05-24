@@ -35,6 +35,10 @@
 */
 
 typedef struct {
+	Int32 start_x;
+	Int32 start_y;
+	Int32 x;
+	Int32 y;
 	Int32 delta_x;
 	Int32 delta_y;
 	Uint8 button_states;

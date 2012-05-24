@@ -10,6 +10,7 @@ extern "C" {
 	#include "kmalloc.h"
 	#include "defs.h"
 	#include "linkedlist.h"
+	#include "input/mouse.h"
 }
 
 #include "rect.h"
@@ -65,4 +66,9 @@ void UIComponent::Repaint(void)
 	}
 
 	dirty = false;
+}
+
+
+void UIComponent::HandleMouseEvent(MouseEvent *event)
+{
 }

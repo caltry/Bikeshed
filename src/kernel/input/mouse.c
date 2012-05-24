@@ -126,6 +126,10 @@ void _mouse_isr(int vector, int code)
 
 		// Initialize the event
 		event->button_states = bytes[0] & 0x7;
+		event->start_x = 0;
+		event->start_y = 0;
+		event->x = 0;
+		event->y = 0;
 		event->delta_x = bytes[1];
 		event->delta_y = bytes[2];
 		event->active_button = 0;
@@ -152,7 +156,7 @@ void _mouse_isr(int vector, int code)
 			// If any buttons have changed, determine the type of mouse event 
 			event->type = (bytes[0] & event->active_button)
 				? MOUSE_EVENT_PRESSED : MOUSE_EVENT_CLICKED;
-		} else if (bytes[0]) {
+		} else if (bytes[0] & 0x7) {
 			// If there are no new button changes and a button is pressed
 			//   then the mosue is being dragged
 			event->type = MOUSE_EVENT_DRAGGED;

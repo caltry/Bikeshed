@@ -11,6 +11,7 @@
 
 extern "C" {
 	#include "linkedlist.h"
+	#include "input/mouse.h"
 }
 
 #include "painter.h"
@@ -27,6 +28,14 @@ public:
 
 	Rect& GetBounds(void) { return bounds; }
 	bool IsDirty(void) { return dirty; }
+
+	/*
+	** HandleMouseEvent(event)
+	**
+	** Handles a mouse event generated when the window has
+	** focus at the given x and y coordinates.
+	*/
+	virtual void HandleMouseEvent(MouseEvent *event);
 
 protected:
 

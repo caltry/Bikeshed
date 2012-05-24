@@ -28,6 +28,7 @@ public:
 	~Desktop(void);
 
 	void AddWindow(Window *window);
+	void CloseWindow(Window *window);
 
 	Rect& GetBounds(void) { return bounds; }
 	Painter *GetPainter(void) { return painter; }
@@ -36,6 +37,8 @@ public:
 
 	void Draw(void);
 	void DrawCursor(void);
+
+	void Invalidate(void) { dirty = true; }
 	
 private:
 	Screen *screen;
@@ -43,7 +46,9 @@ private:
 	Painter *painter;
 
 	linked_list_t *window_list;
+	Window *focused_window;
 	Int32 cursor_x, cursor_y;
+	bool dirty;
 
 	Sem list_sem;
 };
