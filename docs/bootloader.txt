@@ -1,0 +1,15 @@
+What's in this file
+===================================
+This file explains the changes that have bee made to the bootloader. It also
+explains how to use the new bootloader to load new sub-modules.
+
+
+What's changed
+===================================
+The bootloader now is able to load data above the 1 MiB real mode limit. This
+is the main change to the bootloader.
+
+
+How this is accomplished
+===================================
+
