@@ -1,7 +1,7 @@
 #ifndef __DMA_H__
 #define __DMA_H__
 
-#include "headers.h"
+#include "types.h"
 
 /* Initialize the DMA memory allocator
  */

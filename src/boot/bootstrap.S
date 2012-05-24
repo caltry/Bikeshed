@@ -28,7 +28,10 @@
 */
 	.code16
 
+#define __ASM__20113__
+
 #include "bootstrap.h"
+#include "vesa.h"
 
 BOOT_SEGMENT	= 0x07C0	/* default BIOS addr to load boot sector */
 BOOT_ADDRESS 	= 0x00007C00
@@ -429,6 +432,9 @@ load_loop:
 	/* The kernel expects to be in protected mode */
 	call switch_to_protected_mode
 	.code32
+
+	/* Make sure interrupts aren't on when we start the kernel */
+	cli 
 
 	/* No more modules to load, lets jump to the kernel! */
 	movl kernel_location+BOOT_ADDRESS, %eax

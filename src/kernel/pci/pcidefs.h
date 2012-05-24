@@ -1,9 +1,9 @@
 #ifndef __PCI_DEFS_H__
 #define __PCI_DEFS_H__
 
-#include "headers.h"
+#include "types.h"
 
-#include "../data_structures/hashtable.h"
+#include "data_structures/hashtable.h"
 
 hash_table_t device_types;
 

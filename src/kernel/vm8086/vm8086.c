@@ -1,7 +1,8 @@
+#include "defs.h"
 #include "vm8086.h"
 #include "serial.h"
 #include "scheduler.h"
-
+#include "support.h"
 
 void __vm8086_init(void)
 {

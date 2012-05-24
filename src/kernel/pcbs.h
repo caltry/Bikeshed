@@ -10,10 +10,10 @@
 ** Description:	PCB module definitions
 */
 
-#ifndef _PCBS_H
-#define _PCBS_H
+#ifndef __PCBS_H__
+#define __PCBS_H__
 
-#include "headers.h"
+#include "types.h"
 #include "memory/paging.h"
 
 /*
@@ -115,12 +115,15 @@ typedef struct context {
 typedef struct pcb {
 	// four-byte fields
 	Context		*context;	// process context
-	Stack		*stack;		// this process' stack
 	Time		wakeup;		// wakeup time for sleeping process
+//	Uint32 		stack_size;
 	union PageDirectory *page_directory; // Page directory for current process
 	// two-byte fields
-	Pid		pid;		// our processid
+	Pid		pid;		// our process id
 	Pid		ppid;		// who created us
+
+	Stack *stack;
+
 	// one-byte fields
 	State		state;		// current process state
 	Prio		priority;	// current process priority

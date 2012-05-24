@@ -13,7 +13,7 @@
 #ifndef _PROCESSES_H
 #define _PROCESSES_H
 
-#include "headers.h"
+#include "types.h"
 
 /*
 ** General (C and/or assembly) definitions

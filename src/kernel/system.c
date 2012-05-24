@@ -12,7 +12,8 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
+#include "defs.h"
+#include "types.h"
 
 #include "system.h"
 #include "clock.h"
@@ -22,28 +23,32 @@
 #include "sio.h"
 #include "scheduler.h"
 #include "semaphores.h"
-#include "locks.h"
+#include "c_io.h"
+#include "lib/klib.h"
+#include "support.h"
+#include "pcbs.h"
+#include "scheduler.h"
 #include "messages.h"
 
 #include "bootstrap.h"
 #include "memory/physical.h"
 #include "memory/paging.h"
 #include "memory/kmalloc.h"
-#include "network/e1000.h"
+#include "network/e100.h"
 #include "pci/pci.h"
 #include "serial.h"
 #include "fs/ext2/ext2.h"
 #include "vfs_init.h"
 #include "cpp/cppinit.h"
 #include "cpp/cpptest.hpp"
+#include "elf/elf.h"
+#include "locks.h"
+#include "vm8086/vm8086.h"
 
-// need init() address
-#include "users.h"
+#include "bios/bios.h"
 
-// need the exit() prototype
-#include "ulib.h"
-
-#include "bios.h"
+#include "video/video.h"
+#include "video/desktop.h"
 
 /*
 ** PUBLIC FUNCTIONS
@@ -79,95 +84,86 @@ void _cleanup( Pcb *pcb ) {
 		return;
 	}
 
-	if( pcb->stack != NULL ) {
-		status = _stack_dealloc( pcb->stack );
-		if( status != SUCCESS ) {
-			_kpanic( "_cleanup", "stack dealloc status %s\n", status );
-		}
-	}
-
 	pcb->state = FREE;
 	status = _pcb_dealloc( pcb );
 	if( status != SUCCESS ) {
 		_kpanic( "_cleanup", "pcb dealloc status %s\n", status );
 	}
 
+	if (pcb != _current)
+	{
+		serial_printf("PCB isn't current!\n");
+		__virt_switch_page_directory(pcb->page_directory);
+		__virt_dealloc_page_directory();
+		__virt_switch_page_directory(_current->page_directory);
+	} else {
+		serial_printf("PCB is current!\n");
+		__virt_dealloc_page_directory(); 
+		// Just in case, dispatch() will change it again
+		__virt_switch_page_directory(__virt_kpage_directory);
+	}
 }
 
-
-/*
-** _create_process(pcb,entry)
-**
-** initialize a new process' data structures (PCB, stack)
-**
-** returns:
-**	success of the operation
-*/
-
-Status _create_process( Pcb *pcb, Uint32 entry ) {
-	Context *context;
-	Stack *stack;
-	Uint32 *ptr;
-
-	// don't need to do this if called from _sys_exec(), but
-	// we are called from other places, so...
-
-	if( pcb == NULL ) {
-		return( BAD_PARAM );
+void _kill_thread( Pcb* pcb )
+{
+	if ( pcb == NULL ) {
+		return;
 	}
 
-	// if the PCB doesn't already have a stack, we
-	// need to allocate one
-
-	stack = pcb->stack;
-	if( stack == NULL ) {
-		stack = _stack_alloc();
-		if( stack == NULL ) {
-			return( ALLOC_FAILED );
+	Status status;	
+	if ( pcb->stack != NULL ) {
+		status = _stack_dealloc( pcb->stack );
+		if ( status != SUCCESS ) {
+			_kpanic( "kill thread", "stack dealloc status %s\n", status );
 		}
-		pcb->stack = stack;
 	}
 
-	// clear the stack
+	pcb->state = FREE;
+	status = _pcb_dealloc( pcb );
+	if ( status != SUCCESS ) {
+		_kpanic("_kill_thread", "pcb kill thread status: %s\n", status );
+	}
 
-	_kmemclr( (void *) stack, sizeof(Stack) );
+	_dispatch();
+}
 
-	/*
-	** Set up the initial stack contents for a (new) user process.
-	**
-	** We reserve one longword at the bottom of the stack as
-	** scratch space.  Above that, we simulate a call to exit() by
-	** pushing the address of exit() as a "return address".  Finally,
-	** above that we place an context_t area that is initialized with
-	** the standard initial register contents.
-	**
-	** The low end of the stack will contain these values:
-	**
-	**      esp ->  ?       <- context save area
-	**              ...     <- context save area
-	**              ?       <- context save area
-	**              exit    <- return address for main()
-	**              filler  <- last word in stack
-	**
-	** When this process is dispatched, the context restore
-	** code will pop all the saved context information off
-	** the stack, leaving the "return address" on the stack
-	** as if the main() for the process had been "called" from
-	** the exit() stub.
-	*/
+// A hack for now
+Status _create_kernel_thread( const Pcb const* parent, Uint32 entry ) {
 
-	// first, compute a pointer to the second-to-last longword
+	if ( parent == NULL ) {
+		return BAD_PARAM;
+	}
 
-	ptr = ((Uint32 *) (stack + 1)) - 2;
+	Pcb *new = _pcb_alloc();
+	if ( new == NULL) {
+		_kpanic("_create_kernel_thread", "Failed to create a new thread\n", 0);
+		return FAILURE;
+	}
 
-	// assign the "return" address
+	_kmemcpy((void *)new, (void *)parent, sizeof(Pcb));
 
-	*ptr = (Uint32) exit;
+	new->page_directory = parent->page_directory;
 
-	// next, set up the process context
+	Stack* stack = new->stack;
+	if ( stack == NULL ) {
+		stack = _stack_alloc();
+		if ( stack == NULL ) {
+			return ( ALLOC_FAILED );
+		}
+		new->stack = stack;
+	}
 
-	context = ((Context *) ptr) - 1;
-	pcb->context = context;
+	new->pid  = _next_pid++;
+	new->ppid = parent->pid;
+	new->state = NEW;
+
+	_kmemclr( (void *)stack, sizeof(Stack));
+
+	Uint32* ptr = ((Uint32 *) (stack + 1)) - 2;
+	*ptr = (Uint32) _kill_thread;	
+
+	Context* context = ((Context *) ptr) - 1;
+	new->context = context;
 
 	// initialize all the fields that should be non-zero, starting
 	// with the segment registers
@@ -183,6 +179,9 @@ Status _create_process( Pcb *pcb, Uint32 entry ) {
 	// "back" to this context
 
 	context->eflags = DEFAULT_EFLAGS;
+	
+	context->esp = (Uint32)(((Uint32 *)context)) - 4;
+	context->ebp = ((Uint32 *)((stack) + 1)) - 2;
 
 	// EIP must contain the entry point of the process; in
 	// essence, we're pretending that this is where we were
@@ -190,10 +189,16 @@ Status _create_process( Pcb *pcb, Uint32 entry ) {
 
 	context->eip = entry;
 
+
+	Status status = _sched( new );
+	if ( status != SUCCESS ) {
+		_kill_thread( new );
+		return FAILURE;
+	}
+
+	serial_printf("Scheduled new thread!\n");
 	return( SUCCESS );
-
 }
-
 
 /*
 ** _init - system initialization routine
@@ -203,8 +208,6 @@ Status _create_process( Pcb *pcb, Uint32 entry ) {
 */
 
 void _init( void ) {
-	Pcb *pcb;
-	Status status;
 
 	/*
 	** BOILERPLATE CODE - taken from basic framework
@@ -243,13 +246,16 @@ void _init( void ) {
 	__phys_initialize_bitmap();
 	__virt_initialize_paging();
 	__kmem_init_kmalloc();
+
+	_sio_init();
 	// Initialize C++ support, we do this after the memory is intialized so static/global
 	// C++ objects can use the new operator in their constructors
 	__cpp_init();
 
 	__pci_init();
 	__pci_dump_all_devices();
-	__net_init();
+//	__net_init();
+	__vm8086_init();
 
 	// Test the C++ support
 	_test_cpp();
@@ -257,7 +263,6 @@ void _init( void ) {
 	_q_init();		// must be first
 	_pcb_init();
 	_stack_init();
-	_sio_init();
 	_syscall_init();
 	_sched_init();
 	_sem_init();
@@ -287,6 +292,12 @@ void _init( void ) {
 	__install_isr( INT_VEC_SERIAL_PORT_1, _isr_sio );
 
 	/*
+	** Initialize the bios module
+	*/
+
+	_bios_init();
+
+	/*
 	** Create the initial process
 	**
 	** Code mostly stolen from _sys_fork(); if that routine
@@ -295,31 +306,32 @@ void _init( void ) {
 	** First, get a PCB and a stack
 	*/
 
-	pcb = _pcb_alloc();
+	Pcb *pcb = _pcb_alloc();
 	if( pcb == NULL  ) {
 		_kpanic( "_init", "first pcb alloc failed\n", FAILURE );
-	}
-
-	pcb->stack = _stack_alloc();
-	if( pcb->stack == NULL ) {
-		_kpanic( "_init", "first stack alloc failed\n", FAILURE );
 	}
 
 	/*
 	** Next, set up various PCB fields
 	*/
 
+	c_printf("Setting up PCB\n");
+
 	pcb->pid  = _next_pid++;
 	pcb->ppid = pcb->pid;
 	pcb->priority = PRIO_HIGH;	// init() should finish first
+	pcb->page_directory = __virt_clone_directory(); // Clone's the kernels directory
+	__virt_switch_page_directory(pcb->page_directory);
 
 	/*
 	** Set up the initial process context.
 	*/
 
-	status = _create_process( pcb, (Uint32) init );
-	if( status != SUCCESS ) {
-		_kpanic( "_init", "create init process status %s\n", status );
+	Status status;
+	char file_path[] = "/etc/initproc";
+	if ((status = _elf_load_from_file(pcb, &file_path[0])) != SUCCESS)
+	{
+		_kpanic("_init", "Failed to load init process: %s\n", status);
 	}
 
 	/*
@@ -327,6 +339,11 @@ void _init( void ) {
 	*/
 
 	_current = pcb;
+
+	/*
+	** Start the desktop refreshing thread
+	 */
+	_create_kernel_thread( pcb, (Uint32)_desktop_run );
 
 	/*
 	** Turn on the SIO receiver (the transmitter will be turned

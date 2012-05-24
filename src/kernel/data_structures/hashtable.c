@@ -1,7 +1,8 @@
 #include "hashtable.h"
 
-#include "../lib/klib.h"
-#include "../memory/kmalloc.h"
+#include "defs.h"
+#include "lib/klib.h"
+#include "memory/kmalloc.h"
 
 typedef struct KeyValue
 {

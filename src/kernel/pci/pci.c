@@ -1,9 +1,12 @@
 #include "pci.h"
-#include "../serial.h"
+#include "defs.h"
+#include "serial.h"
 #include "../../boot/startup.h"
-#include "../memory/kmalloc.h"
-#include "../data_structures/linkedlist.h"
-#include "../lib/klib.h"
+#include "memory/kmalloc.h"
+#include "memory/physical.h"
+#include "memory/paging.h"
+#include "data_structures/linkedlist.h"
+#include "lib/klib.h"
 
 linked_list_t* lst_pci_devices;
 
@@ -179,12 +182,11 @@ void __pci_scan_devices()
 				{
 					case 0:
 						{
-							pci_config->type_0.bar_address_0 = __pci_config_read_long(bus, slot, func, 0x10);
-							pci_config->type_0.bar_address_1 = __pci_config_read_long(bus, slot, func, 0x14);
-							pci_config->type_0.bar_address_2 = __pci_config_read_long(bus, slot, func, 0x18);
-							pci_config->type_0.bar_address_3 = __pci_config_read_long(bus, slot, func, 0x1C);
-							pci_config->type_0.bar_address_4 = __pci_config_read_long(bus, slot, func, 0x20);
-							pci_config->type_0.bar_address_5 = __pci_config_read_long(bus, slot, func, 0x24);
+							Uint32 offset = 0x10;
+							for (Int32 i = 0; i < 6; ++i, offset += 4)
+							{
+								pci_config->type_0.bar_address[i] = __pci_config_read_long(bus, slot, func, offset);
+							}
 							pci_config->type_0.cardbus_cis_pointer = __pci_config_read_long(bus, slot, func, 0x28);
 							pci_config->type_0.subsystem_vendor_id = __pci_config_read_short(bus, slot, func, 0x2C);
 							pci_config->type_0.subsystem_id = __pci_config_read_short(bus, slot, func, 0x2E);
@@ -194,6 +196,8 @@ void __pci_scan_devices()
 							pci_config->type_0.interrupt_pin = __pci_config_read_byte(bus, slot, func, 0x3D);
 							pci_config->type_0.min_grant = __pci_config_read_byte(bus, slot, func, 0x3E);
 							pci_config->type_0.max_latency = __pci_config_read_byte(bus, slot, func, 0x3F);
+
+							__pci_get_memory_size(pci_config);
 						}
 						break;
 					case 1:
@@ -283,8 +287,24 @@ Uint32 __pci_get_memory_size(pci_config_t* config)
 					size = ~size;
 					size += 1;
 
+					Int32 index = (offset - 0x10) / 4;
+
+					config->type_0.bar_sizes[index] = size;
+
 					serial_printf("Orig 0x%x: %x\n", offset, orig);
 					serial_printf("Memory size required: 0x%x\n", size);
+					/* We need to mark these addresses as used, and identity map them! */
+					void* start_addr = (void *)(orig & 0xFFFFF000);
+					// Skip addresses that are 0x0 or below 1MiB which is already identity mapped
+				/*	if (start_addr != (void *)0x0 && start_addr > (void *)0x100000)
+					{
+						void* end_addr = start_addr + size;
+						for (; start_addr < end_addr; start_addr += PAGE_SIZE)
+						{
+							__phys_set_bit(start_addr);
+							__virt_map_page(start_addr, start_addr, PG_READ_WRITE);
+						}
+					}*/
 				}
 
 			}
@@ -331,12 +351,10 @@ void __pci_dump_all_devices()
 			case 0:
 				{
 					serial_printf("\nHeader type: 0\n");	
-					serial_printf("Bar address 0: %x\n", config->type_0.bar_address_0);
-					serial_printf("Bar address 1: %x\n", config->type_0.bar_address_1);
-					serial_printf("Bar address 2: %x\n", config->type_0.bar_address_2);
-					serial_printf("Bar address 3: %x\n", config->type_0.bar_address_3);
-					serial_printf("Bar address 4: %x\n", config->type_0.bar_address_4);
-					serial_printf("Bar address 5: %x\n", config->type_0.bar_address_5);
+					for (Int32 i = 0; i < 6; ++i)
+					{
+						serial_printf("Bar address %d: %x\n", i, config->type_0.bar_address[i]);
+					}
 					serial_printf("Carbus pointer: %x\n", config->type_0.cardbus_cis_pointer);
 					serial_printf("Subsystem Vendor ID: %x\n", config->type_0.subsystem_vendor_id);
 					serial_printf("Subsystem ID: %x\n", config->type_0.subsystem_id);
@@ -346,8 +364,6 @@ void __pci_dump_all_devices()
 					serial_printf("Interrupt pin: %x\n", config->type_0.interrupt_pin);
 					serial_printf("Min grant: %x\n", config->type_0.min_grant);
 					serial_printf("Max latency: %x\n", config->type_0.max_latency);
-
-					__pci_get_memory_size(config);
 				}
 				break;
 			case 1:
@@ -409,7 +425,7 @@ void __pci_dump_all_devices()
 	}
 }
 
-pci_config_t* __pci_find_by_class(Uint8 base_class, Uint8 sub_class, Uint8 prog_if)
+const pci_config_t* __pci_find_by_class(Uint8 base_class, Uint8 sub_class, Uint8 prog_if)
 {
 	list_element_t* node = list_head(lst_pci_devices);
 
@@ -419,6 +435,24 @@ pci_config_t* __pci_find_by_class(Uint8 base_class, Uint8 sub_class, Uint8 prog_
 		if (pci_info->base_class == base_class && 
 				pci_info->sub_class == sub_class &&
 				pci_info->programming_if == prog_if)
+		{
+			return pci_info;
+		}
+
+		node = list_next(node);
+	}
+
+	return NULL;
+}
+
+const pci_config_t* __pci_find_by_device(Uint16 vendor_id, Uint16 device_id)
+{
+	list_element_t* node = list_head(lst_pci_devices);
+
+	while (node != NULL)
+	{
+		pci_config_t* pci_info = (pci_config_t *)list_data(node);
+		if (pci_info->vendor_id == vendor_id && pci_info->device_id == device_id)
 		{
 			return pci_info;
 		}

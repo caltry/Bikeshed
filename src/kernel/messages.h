@@ -11,7 +11,7 @@
 #ifndef _LOCKS_H
 #define _LOCKS_H
 
-#include "headers.h"
+#include "types.h"
 
 /*
 ** General (C and/or assembly) definitions

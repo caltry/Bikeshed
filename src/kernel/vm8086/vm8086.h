@@ -1,7 +1,7 @@
 #ifndef _VM8086_H_
 #define _VM8086_H_
 
-#include "headers.h"
+#include "types.h"
 
 #define INT_VEC_GPF 0xD 
 
