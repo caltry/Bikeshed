@@ -46,12 +46,9 @@ void Window::Move(Uint32 x, Uint32 y)
 	//TODO: lock desktop wite lock
 
 	bounds.SetPosition(x, y);
-	Rect* rect = desktop->GetBounds().Intersection(bounds);
-	painter->SetClipping(*rect);
-	delete rect;
+	desktop->Invalidate();
 
 	//TODO: unlock desktop write lock
-	desktop->Invalidate();
 }
 
 

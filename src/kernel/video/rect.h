@@ -21,7 +21,7 @@ public:
 
 	void SetPosition(Uint32 x, Uint32 y);
 
-	Rect* Intersection(const Rect& other) const;
+	Rect Clip(const Rect& other) const;
 
 	bool Intersects(const Rect& other) const;
 	bool Contains(Uint32 x, Uint32 y) const;
@@ -29,7 +29,6 @@ public:
 
 	Rect& operator=(const Rect& other);
 	bool operator==(const Rect& other) const;
-	Rect operator+(const Rect& other);
 
 	Uint32 x, y, width, height;
 	Uint32 x2, y2;

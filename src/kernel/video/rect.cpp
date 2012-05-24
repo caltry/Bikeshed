@@ -57,18 +57,17 @@ bool Rect::Contains(const Rect& other) const
 }
 
 
-#define MAX(x, y)		((x > y) ? x : y)
-#define MIN(x, y)		((x < y) ? x : y)
+#define CLAMP(x, min, max)	((x < min) ? min : (x > max) ? max : x)
 
 
-Rect* Rect::Intersection(const Rect& other) const
+Rect Rect::Clip(const Rect& other) const
 {
-	Uint32 x = MAX(this->x, other.x);
-	Uint32 y = MAX(this->x, other.x);
-	Uint32 x2 = MIN(this->x2, other.x2);
-	Uint32 y2 = MIN(this->y2, other.y2);
+	Uint32 x = CLAMP(this->x, other.x, other.x2);
+	Uint32 y = CLAMP(this->y, other.y, other.y2);
+	Uint32 x2 = CLAMP(this->x2, other.x, other.x2);
+	Uint32 y2 = CLAMP(this->y2, other.y, other.y2);
 
-	return new Rect(x, y, x2, y2);
+	return Rect(x, y, x2 - x, y2 - y);
 }
 
 
@@ -92,10 +91,4 @@ bool Rect::operator==(const Rect& other) const
 {
 	return (this->x == other.x) && (this->y == other.y)
 		&& (this->width == other.width) && (this->height == other.height);
-}
-
-
-Rect Rect::operator+(const Rect& other)
-{
-	return Rect(this->x + other.x, this->y + other.y, other.width, other.height);
 }

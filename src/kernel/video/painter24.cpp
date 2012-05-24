@@ -44,8 +44,8 @@ void Painter24::Fill(Uint32 color) {
 }
 
 
-void Painter24::FillRect(Rect clipped_rect, Uint32 color) {
-	//Rect *clipped_rect = &bounds;//.Intersection(bounds + rect);
+void Painter24::FillRect(Rect rect, Uint32 color) {
+	Rect clipped_rect = rect.Clip(bounds);
 
 	Uint8 *start = (Uint8 *)_video_aquire_buffer(screen)
 		 + (clipped_rect.y * screen->pitch) + (clipped_rect.x * 3);

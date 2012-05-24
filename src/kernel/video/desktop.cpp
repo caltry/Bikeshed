@@ -204,8 +204,6 @@ extern "C" {
 
 		serial_printf("Entering draw loop...\n");
 		do {
-			asm volatile("cli");
-			
 			// Check for new event messages
 			while (_events_fetch(&event, &event_type) != EMPTY_QUEUE) {
 				// Handle the event
@@ -214,23 +212,27 @@ extern "C" {
 				}
 
 				// Dispose of the event message
+				asm volatile("cli");
 				__kfree(event);
+				asm volatile("sti");
 			}
 
 			// Repaint the desktop
 			desktop.Draw();
 
+			asm volatile("cli");
 			// Copy the back buffer to the screen
 			_kmemcpy((void *)(kScreen->frame_buffer),
 				(void *)(kScreen->back_buffer), kScreen->size);
 
 			// Draw the mouse
 			desktop.DrawCursor();
-
-			// Update at about 200 fps
 			asm volatile("sti");
 
+#ifdef QEMU
+			// Update at about 100 fps
 			msleep(10);
+#endif
 		} while ( 1 );
 	}
 }

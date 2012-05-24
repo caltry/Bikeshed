@@ -112,7 +112,12 @@ Status _mouse_init(void)
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 void _mouse_isr(int vector, int code)
 {
+#ifdef QEMU
 	static Int8 byte_cycle = -1;
+#else
+	static Int8 byte_cycle = 0;
+#endif
+
 	static Int8 bytes[3];
 
 	bytes[byte_cycle++] = __inb(0x60);
