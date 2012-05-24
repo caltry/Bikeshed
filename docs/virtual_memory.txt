@@ -140,3 +140,15 @@ to the same physical page table. This means if this page table is changed it
 is seen by all processes who share it. So that's why the kernels page tables
 are copied into each process, but not physically copied to another piece of memory.
 This ensures there is only one copy of the kernel floating around.
+
+This also means that the current virtual memory manager does not support
+copy-on-write. So forking is a litle inefficient, especially if exec() is
+called immediately after.
+
+
+Exec-ing
+===================================
+When exec() is called all of the user address space addresses are cleared and
+freed marked as available in the physical memory manager. The
+__virt_reset_page_directory() function is careful not to free any of the
+kernel's address space.
