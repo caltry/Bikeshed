@@ -11,10 +11,11 @@
 #include <types.h>
 
 typedef enum {
-	E_OK		= 0,	// No error
-	E_NOFILE	= 1,	// File not found
-	E_BADFD		= 2,	// Not a valid file descriptor
-	E_IO		= 3,	// An I/O error occurred.
+	FS_E_OK         = 0,	// No error
+	FS_E_NOFILE     = 1,	// File not found
+	FS_E_BADFD      = 2,	// Not a valid file descriptor
+	FS_E_IO         = 3,	// An I/O error occurred.
+	FS_E_NOT_FQN    = 4,	// The path give is not fully qualified
 } VFSStatus;
 
 typedef Uint32 FileDescriptor;
@@ -44,53 +45,41 @@ VFSStatus unlink( const char *name );
 
 
 /******************************************
- * Creating and deleting file descriptors.
+ * Interacting with the contents of files.
  ******************************************/
 
-typedef enum {
-	OPEN_RO	= 1,	// Open for reading only
-	OPEN_WO	= 2,	// Open for writing only
-	OPEN_RW	= 3,	// Open for reading and writing
-} OpenMode;
-
 /*
- * Open an already created file, by its fully-qualified _name_. On success, it
- * sets _fd_ to a valid file descriptor for the open file.
+ *
+ * Read _nbytes_ from a file (given its _path_) into a _buf_. Reading begins at
+ * _offset_ bytes into the file. Stores the number of _bytes_read_.
  *
  * Returns:
- * 	E_OK		If the file was opened properly
- * 	E_NOFILE	If the file doesn't exist (you must create() it first)
+ * 	FS_E_OK     If we read any number of bytes.
+ * 	FS_E_NOFILE If there is no file with that name.
+ * 	FS_E_IO	    If there was some I/O error.
  */
-VFSStatus open( const char *name, OpenMode oflags, FileDescriptor *fd );
+VFSStatus raw_read
+	(const char *path,
+	void *buf,
+	Uint32 *bytes_read,
+	Uint32 offset,
+	Uint32 nbytes);
 
 /*
- * Close an open file by its file descriptor (_fd_).
- */
-VFSStatus close( FileDescriptor fd );
-
-
-/**********************************************
- * Interacting with the contents of the files.
- **********************************************/
-
-/*
- * Read _nbytes_ bytes from a file (_fd_) into a _buf_. Stores the number of
- * _bytes_read_.
+ * From the _offset_, write _nbytes_ from _buf_ into a file at _path_. Stores
+ * the number of _bytes_read_.
  *
  * Returns:
- * 	E_OK	If we read any number of bytes.
- * 	E_IO	If there was some I/O error.
+ * 	E_OK           If we wrote any number of bytes.
+ * 	FS_E_NOFILE    If there is no file with that name.
+ * 	FS_E_BAD_START If the initial offset into the file doesn't yet exist.
+ * 	E_IO           If there was some I/O error.
  */
-VFSStatus read( FileDescriptor fd, void *buf, Uint nbytes, Uint *bytes_read );
-
-/*
- * Write _nbytes_ bytes from a _buf_ to a file described in the file descriptor
- * (_fd_).
- *
- * Returns:
- * 	E_OK	If we wrote any number of bytes.
- * 	E_IO	If there was some I/O error.
- */
-VFSStatus write( FileDescriptor fd, const void *buf, Uint nbytes );
+VFSStatus raw_write
+	(const char *path,
+	const void *buf,
+	Uint32 *bytes_written,
+	Uint32 offset,
+	Uint32 nbytes);
 
 #endif // VFS_H

@@ -16,9 +16,7 @@
 ** General C definitions
 */
 
-/* The virtual address the screen is mapped to */
-#define FRAMEBUFFER_ADDRESS			0xc2000000
-
+#define FRAMEBUFFER_ADDRESS			0xc8000000
 
 /*
 ** Types

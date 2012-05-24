@@ -67,6 +67,15 @@ ext2_raw_read
 	Uint start,
 	Uint nbytes);
 
+/*
+ * Get the size of a file, determined by _path_. Making sure that the file
+ * exists is up to the callee (though we do handle non-existant files safely).
+ *
+ * Returns the file size or 0 if the file does not exist.
+ */
+Uint32
+get_file_size(struct ext2_filesystem_context *context, const char *path );
+
 
 /***************
  * Directories *

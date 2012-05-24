@@ -9,6 +9,8 @@
 #include "c_io.h"
 #include "lib/klib.h"
 
+#include "scheduler.h"
+
 
 #define serial_string(...) 
 #define serial_printf(...)
@@ -31,6 +33,8 @@ typedef struct Heap
 } heap_t;
 
 heap_t kernel_heap;
+
+extern Uint32* scratch_pd;
 
 // 256MB of Kernel heap Space
 #define HEAP_START_LOCATION 0xD0000000
@@ -121,6 +125,16 @@ void* __kmalloc(Uint32 size)
 		// We need to allocate at least 1 page, but also include some fudge for the next
 		// header which will need to come after this as we're expanding the last node
 		Uint32 num_pages = (size - current_node->size + sizeof(linked_node_t)) / PAGE_SIZE + 1;
+
+		// We need to do something special, we need a common place for all of the other
+		// processes to get the new page locations from. So we'll switch to the kpage_directory
+		// page directory, map the pages, and then copy them to the current process. This way
+		// if we get a page fault from another process we know where to get the missing pages
+		// from
+
+		// Switch to the base page directory
+		__virt_switch_page_directory(__virt_kpage_directory);
+
 		for (Uint32 i = 0; i < num_pages; ++i)
 		{
 			if (kernel_heap.end_address > kernel_heap.max_address)
@@ -133,6 +147,22 @@ void* __kmalloc(Uint32 size)
 			__virt_map_page(__phys_get_free_4k(), kernel_heap.end_address, PG_READ_WRITE | PG_PRESENT);
 			kernel_heap.end_address += PAGE_SIZE;
 		}
+
+		// This is clumsy would have been better to have a statically allocated kernel directory
+		// then this would be a simple loop...
+		__virt_clear_page(scratch_pd);
+		__virt_map_page(_current->page_directory, scratch_pd, PG_READ_WRITE);
+
+		Uint32* pd = PAGE_DIR_ADDR;
+		for (Uint32 i = ADDR_TO_PD_IDX(HEAP_START_LOCATION); i < ADDR_TO_PD_IDX(HEAP_MAX_LOCATION); ++i)
+		{
+			serial_printf("KMALLOC - INDEX: %d\n", i);
+			scratch_pd[i] = pd[i];
+		}
+		__virt_clear_page(scratch_pd);
+
+		// Switch back
+		__virt_switch_page_directory(_current->page_directory);
 
 		// Adjust current_node's size accordingly
 		current_node->size += num_pages * PAGE_SIZE;

@@ -29,12 +29,6 @@ union PageDirectory
 typedef long unsigned int ul;
 
 
-#define ADDR_TO_PD_IDX(x) ((x) >> 22)
-#define ADDR_TO_PT_IDX(x) (((x) >> 12) & 0x03FF) 
-#define PAGE_DIR_ADDR 0xFFFFF000
-#define PAGE_TBL_FROM_ADDR(x) (((Uint32 *)0xFFC00000) + (0x400 * (((Uint32)(x)) >> 22)))
-#define PAGE_TBL_FROM_INDEX(x) (((Uint32 *)0xFFC00000) + (0x400 * (x)))
-
 
 // TODO change this to directly link to the already defined page directory
 page_directory_t *__virt_kpage_directory = 0;//&BootPageDirectory;
@@ -45,9 +39,9 @@ static Uint32 KERNEL_PAGE_TBL_START = 0;
 static Uint32 KERNEL_PAGE_TBL_END   = 0;
 
 // Used for cloning page directories
-static Uint32* scratch_pd;
-static Uint32* scratch_pt;
-static Uint32* scratch_pte;
+Uint32* scratch_pd;
+Uint32* scratch_pt;
+Uint32* scratch_pte;
 
 void __virt_initialize_paging()
 {

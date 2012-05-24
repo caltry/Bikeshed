@@ -13,6 +13,7 @@
 #include "kernel/lib/klib.h"
 #include "kernel/lib/string.h"
 #include "cpp_magic.h"
+#include "common_ext2.h"
 
 #define true 1
 #define false 0
@@ -45,63 +46,6 @@ struct ext2_filesystem_context *bikeshed_ramdisk_context;
  * Private helper function definitions.
  */
 void print_file_data(struct ext2_filesystem_context *context, const char *path);
-
-static inline Uint get_block_size( struct ext2_superblock *sb )
-{
-	return 1024 << sb->logarithmic_block_size;
-}
-
-static inline void*
-block_number_to_address( struct ext2_filesystem_context *context,
-			Uint32 one_indexed_block_number )
-{
-	Uint32 block_number = one_indexed_block_number-1;
-
-	return (void*) (context->base_address + EXT2_SUPERBLOCK_LOCATION)
-		+ (block_number * get_block_size(context->sb));
-}
-
-/*
- * Get the next directory entry.
- *
- * This has *no* guarentee that there will actually be a directory entry, but
- * is more like an array++ operator. It's entirely possible that the dirent
- * returned isn't even in the same block. You should check for this.
- */
-static inline struct ext2_directory_entry*
-get_next_dirent( struct ext2_directory_entry *dirent )
-{
-	return ((void*) dirent) + dirent->entry_length;
-}
-
-
-/*
- * Determine if the size of this dirent is too large. This means that this is
- * the last file entry in the directory.
- */
-static inline _Bool
-dirent_is_too_large( struct ext2_directory_entry *dirent )
-{
-	Uint16 expected_size = sizeof( struct ext2_directory_entry )
-	                     + dirent->name_length;
-	// Pad size to 4 byte boundary
-	if( expected_size % 4 )
-	{
-		expected_size += 4 - (expected_size % 4);
-	}
-
-	return expected_size < dirent->entry_length;
-}
-
-/*
- * Give the number of data blocks that a single indirect block can point to.
- */
-static inline Uint32
-indirect_data_block_size( struct ext2_filesystem_context *context )
-{
-	return get_block_size( context->sb ) / sizeof(Uint32);
-}
-
 
 struct ext2_inode*
 get_inode( struct ext2_filesystem_context *context, Uint32 inode_number );
@@ -674,12 +618,6 @@ get_file_from_dir_path( struct ext2_filesystem_context *context,
 	if( dirpath[0] == DIRECTORY_SEPARATOR )
 	{
 		dirpath++;
-
-		// Don't skip the first slash if we really want the root dir!
-		if( !(dirpath[0]) )
-		{
-			dirpath--;
-		}
 	}
 	const char *slash = _kstrchr( dirpath, DIRECTORY_SEPARATOR );
 	Uint dir_name_length = slash - dirpath;
@@ -692,8 +630,13 @@ get_file_from_dir_path( struct ext2_filesystem_context *context,
 	root_inode = get_inode(context, EXT2_INODE_ROOT );
 	struct ext2_inode *current_inode = root_inode;
 
-	struct ext2_directory_entry *current_dirent = 0;
-	do {
+	// Make the current dirent root (/)
+	struct ext2_directory_entry *current_dirent =
+		get_file_from_dir_inode( context, current_inode, "." );
+
+	// While we still have more subdirectories to traverse to
+	while( *dirpath )
+	{
 		_kmemcpy( current_dir_name, dirpath, dir_name_length );
 		current_dir_name[dir_name_length] = '\0';
 		dirpath += dir_name_length+1;
@@ -711,11 +654,45 @@ get_file_from_dir_path( struct ext2_filesystem_context *context,
 		serial_printf( "fetching new dir inode: %d\n\r",
 				 current_dirent->inode_number );
 		current_inode = get_inode(context, current_dirent->inode_number);
-	} while( *dirpath );
+	}
 
 	struct ext2_inode *dirent_inode;
 	dirent_inode = get_inode( context, current_dirent->inode_number );
 	return get_file_from_dir_inode( context, dirent_inode, filename );
+}
+
+Uint32
+get_file_size(struct ext2_filesystem_context *context, const char *path )
+{
+	if( path[0] != DIRECTORY_SEPARATOR )
+	{
+		return EXT2_READ_NO_LEADING_SLASH;
+	}
+
+	// Split up the path into the filename and dirname components
+	Uint path_length = _kstrlen( path );
+	const char *filename = _kstrrchr( path, DIRECTORY_SEPARATOR ) + 1;
+
+	// Set up the directory name, keep the trailing slash, ignore filename.
+	char dirname[path_length+1];
+	_kmemcpy( dirname, path, path_length+1 );
+	((char *)_kstrrchr( dirname, DIRECTORY_SEPARATOR ))[1] = '\0';
+
+	struct ext2_directory_entry* file =
+		get_file_from_dir_path( context, dirname, filename );
+
+	if( file )
+	{
+		struct ext2_inode *fp = get_inode(context, file->inode_number);
+		if( fp )
+		{
+			return fp->size;
+		} else {
+			return 0;
+		}
+	} else {
+		return 0;
+	}
 }
 
 ext2_read_status

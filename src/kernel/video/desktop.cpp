@@ -129,7 +129,9 @@ extern "C" {
 		/*
 		** Start up the system graphics module
 		*/
+		serial_printf("Enabling video...\n");
 		_video_init();
+		serial_printf("Enabling mouse...\n");
 		_events_init();
 		_mouse_init();
 
@@ -151,6 +153,7 @@ extern "C" {
 		Uint32 event_type;
 		void *event;
 
+		serial_printf("Entering draw loop...\n");
 		do {
 			asm volatile("cli");
 			

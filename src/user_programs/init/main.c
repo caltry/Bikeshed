@@ -36,6 +36,7 @@ int main()
 	put_string(0, 0, "Loaded an ELF and running C code!");
 	put_string(0, 1, "Program");
 
+	/*
 	Pid pid = -1;
 	if (fork(&pid) == 0)
 	{
@@ -59,6 +60,7 @@ int main()
 			put_string(20, 0, "PARENT!");
 		}
 	}
+	*/
 	
 
 	set_priority(PRIO_IDLE);

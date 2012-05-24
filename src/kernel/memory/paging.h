@@ -22,6 +22,12 @@ typedef struct Page
 #define PG_WRITE_THRU	 0x8
 #define PG_CACHE_DISABLE 0x10
 
+#define ADDR_TO_PD_IDX(x) ((x) >> 22)
+#define ADDR_TO_PT_IDX(x) (((x) >> 12) & 0x03FF) 
+#define PAGE_DIR_ADDR 0xFFFFF000
+#define PAGE_TBL_FROM_ADDR(x) (((Uint32 *)0xFFC00000) + (0x400 * (((Uint32)(x)) >> 22)))
+#define PAGE_TBL_FROM_INDEX(x) (((Uint32 *)0xFFC00000) + (0x400 * (x)))
+
 struct Page;
 typedef struct Page page_t;
 
