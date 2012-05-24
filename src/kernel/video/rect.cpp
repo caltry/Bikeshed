@@ -9,13 +9,13 @@
 #include "rect.h"
 
 
-Rect::Rect(Uint32 x, Uint32 y, Uint32 width, Uint32 height)
-	: x(x)
-	, y(y)
-	, width(width)
-	, height(height)
-	, x2(x + width)
-	, y2(y + height)
+Rect::Rect(Int32 _x, Int32 _y, Uint32 _width, Uint32 _height)
+	: x(_x)
+	, y(_y)
+	, width(_width)
+	, height(_height)
+	, x2(_x + _width)
+	, y2(_y + _height)
 {
 }
 
@@ -25,7 +25,7 @@ Rect::~Rect(void)
 }
 
 
-void Rect::SetPosition(Uint32 x, Uint32 y)
+void Rect::SetPosition(Int32 x, Int32 y)
 {
 	this->x = x;
 	this->y = y;
@@ -44,7 +44,7 @@ bool Rect::Intersects(const Rect &other) const
 	}
 
 
-bool Rect::Contains(Uint32 x, Uint32 y) const
+bool Rect::Contains(Int32 x, Int32 y) const
 {
 	return (x >= this->x) && (x <= this->x2)
 		&& (y >= this->y) && (y <= this->y2);
@@ -62,12 +62,12 @@ bool Rect::Contains(const Rect& other) const
 
 Rect Rect::Clip(const Rect& other) const
 {
-	Uint32 x = CLAMP(this->x, other.x, other.x2);
-	Uint32 y = CLAMP(this->y, other.y, other.y2);
-	Uint32 x2 = CLAMP(this->x2, other.x, other.x2);
-	Uint32 y2 = CLAMP(this->y2, other.y, other.y2);
+	Uint32 _x = CLAMP(this->x, other.x, other.x2);
+	Uint32 _y = CLAMP(this->y, other.y, other.y2);
+	Uint32 _x2 = CLAMP(this->x2, other.x, other.x2);
+	Uint32 _y2 = CLAMP(this->y2, other.y, other.y2);
 
-	return Rect(x, y, x2 - x, y2 - y);
+	return Rect(_x, _y, _x2 - _x, _y2 - _y);
 }
 
 

@@ -17,8 +17,7 @@ public:
 	Painter24(Screen *screen, Rect bounds);
 	virtual ~Painter24(void);
 
-	void DrawChar(char letter, int x, int y, int scale = 3, Uint32 color = 0x0);
-	void SetPixel(Uint32 x, Uint32 y, Uint32 color);
+	void SetPixel(Int32 x, Int32 y, Uint32 color);
 	void FillRect(Rect bounds, Uint32 color);
 	void Fill(Uint32 color);
 
