@@ -13,8 +13,10 @@ extern "C" {
 	#include "ulib.h"
 	#include "linkedlist.h"
 	#include "video.h"
+	#include "events.h"
 	#include "mouse.h"
 	#include "semaphores.h"
+	#include "serial.h"
 }
 
 #include "window.h"
@@ -37,6 +39,8 @@ void delete_window(void* data)
 Desktop::Desktop(Screen *_screen)
 	: screen(_screen)
 	, bounds(Rect(0, 0, _screen->width, _screen->height))
+	, cursor_x(_screen->width / 2)
+	, cursor_y(_screen->height /2)
 {
 	window_list = (linked_list_t *)__kmalloc(sizeof(linked_list_t));
 	list_init(window_list, delete_window);
@@ -99,9 +103,22 @@ void Desktop::Draw(void)
 //	sem_post(list_sem);
 }
 
-void Desktop::DrawCursor(Int32 x, Int32 y)
+#define CLAMP(x, min, max)	((x < min) ? min : (x > max) ? max : x)
+
+void Desktop::HandleMouseEvent(MouseEvent *event)
 {
-	painter->DrawCursor(x, y);
+	// Apply the mouse coordinate changes
+	cursor_x = CLAMP(cursor_x + (event->delta_x * 2), 0, (Int32)bounds.width);
+	cursor_y = CLAMP(cursor_y - (event->delta_y * 2), 0, (Int32)bounds.height);
+
+	//serial_printf("Mouse:  x: %d  y:  %d  states:  %d  active: %d type: %d\n",
+	//	event->delta_x, event->delta_y, event->button_states,
+	//	event->active_button, event->type);
+}
+
+void Desktop::DrawCursor(void)
+{
+	painter->DrawCursor(cursor_x, cursor_y);
 }
 
 
@@ -113,6 +130,7 @@ extern "C" {
 		** Start up the system graphics module
 		*/
 		_video_init();
+		_events_init();
 		_mouse_init();
 
 		// Create a desktop
@@ -130,9 +148,24 @@ extern "C" {
 		desktop.AddWindow(window);
 		desktop.AddWindow(_gconsole);
 
+		Uint32 event_type;
+		void *event;
+
 		do {
-			// Repaint the desktop
 			asm volatile("cli");
+			
+			// Check for new event messages
+			while (_events_fetch(&event, &event_type) != EMPTY_QUEUE) {
+				// Handle the event
+				if (event_type == EVENT_MOUSE) {
+					desktop.HandleMouseEvent((MouseEvent *)event);
+				}
+
+				// Dispose of the event message
+				__kfree(event);
+			}
+
+			// Repaint the desktop
 			desktop.Draw();
 
 			// Copy the back buffer to the screen
@@ -140,10 +173,11 @@ extern "C" {
 				(void *)(kScreen->back_buffer), kScreen->size);
 
 			// Draw the mouse
-			desktop.DrawCursor(_mouse_x, _mouse_y);
-		
+			desktop.DrawCursor();
+
 			// Update at about 200 fps
 			asm volatile("sti");
+
 			msleep(10);
 		} while ( 1 );
 	}

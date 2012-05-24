@@ -14,6 +14,7 @@
 extern "C" {
 	#include "linkedlist.h"
 	#include "video.h"
+	#include "mouse.h"
 }
 
 #include "rect.h"
@@ -31,8 +32,10 @@ public:
 	Rect& GetBounds(void) { return bounds; }
 	Painter *GetPainter(void) { return painter; }
 
+	void HandleMouseEvent(MouseEvent *event);
+
 	void Draw(void);
-	void DrawCursor(Int32 x, Int32 y);
+	void DrawCursor(void);
 	
 private:
 	Screen *screen;
@@ -40,6 +43,7 @@ private:
 	Painter *painter;
 
 	linked_list_t *window_list;
+	Int32 cursor_x, cursor_y;
 
 	Sem list_sem;
 };
