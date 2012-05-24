@@ -178,6 +178,7 @@ page_directory_t* __virt_clone_directory()
 	void* phys_pd_address = __phys_get_free_4k();
 
 	__virt_map_page(phys_pd_address, scratch_pd, PG_READ_WRITE);
+	_kmemclr(scratch_pd, PAGE_SIZE);
 
 	Uint32* kernel_pd = (Uint32 *)PAGE_DIR_ADDR;
 	Uint32* kernel_pt = (Uint32 *)PAGE_TBL_FROM_INDEX(0);
@@ -197,23 +198,25 @@ page_directory_t* __virt_clone_directory()
 
 	for (Uint32 dir_index = ADDR_TO_PD_IDX((Uint32)address); dir_index < KERNEL_PAGE_DIR_INDEX; ++dir_index)
 	{
-		if (kernel_pd[dir_index] != 0)
+		if ((kernel_pd[dir_index] & PG_PRESENT) > 0)
 		{
 			kernel_pt = PAGE_TBL_FROM_INDEX(dir_index);
 			
 			__virt_clear_page(scratch_pt);
 			void* phys_pt_address = __phys_get_free_4k();
 			__virt_map_page(phys_pt_address, scratch_pt, PG_READ_WRITE);
+			_kmemclr(scratch_pt, PAGE_SIZE);
 
 			scratch_pd[dir_index] = (Uint32)phys_pt_address | (kernel_pd[dir_index] & 0xFFF); // Copy the kernel's flags
 
 			for (Uint32 j = 0; j < 1024; ++j, address += PAGE_SIZE)
 			{
-				if (kernel_pt[j] != 0)
+				if ((kernel_pt[j] & PG_PRESENT) > 0)
 				{
 					__virt_clear_page(scratch_pte);
 					void* phys_pte_address = __phys_get_free_4k();
 					__virt_map_page(phys_pte_address, scratch_pte, PG_READ_WRITE);
+					_kmemclr(scratch_pte, PAGE_SIZE);
 
 					scratch_pt[j] = (Uint32)phys_pte_address | (kernel_pt[j] & 0xFFF); // Copy the kernel's flags
 
@@ -273,6 +276,7 @@ void __virt_clear_page(void *virtual_addr)
 
 	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)virtual_addr & 0xFFFFF000)));	
 	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pt & 0xFFFFF000)));	
+	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pd & 0xFFFFF000)));	
 }
 
 void __virt_unmap_page(void *virtual_addr)
@@ -331,6 +335,7 @@ void __virt_unmap_page(void *virtual_addr)
 	// Is this the virtual address or the physical address?
 	asm volatile("invlpg %0"::"m" (*(char *)(virtual_addr)));	
 	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pt & 0xFFFFF000)));	
+	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pd & 0xFFFFF000)));	
 }
 
 void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
@@ -383,6 +388,7 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
 	// Is this the virtual address or the physical address?
 	asm volatile("invlpg %0"::"m" (*(char *)(virtual_addr)));	
 	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pt & 0xFFFFF000)));	
+	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pd & 0xFFFFF000)));	
 }
 
 void __virt_switch_page_directory(page_directory_t *page_directory)
