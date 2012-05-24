@@ -7,8 +7,6 @@
 #include "support.h"
 #include "c_io.h"
 #include "kmalloc.h"
-
-//#include "../lib/klib.h"
 #include "lib/klib.h"
 
 struct Page 
@@ -29,8 +27,10 @@ union PageDirectory
 
 typedef long unsigned int ul;
 
-// TODO change this to directly link to the already defined page directory
-page_directory_t *__virt_kpage_directory = 0;//&BootPageDirectory;
+#define RESERVED_ADDR_LO 0x400000
+#define RESERVED_ADDR_HI 0xC0000000
+
+page_directory_t *__virt_kpage_directory = 0;
 
 static Uint32 KERNEL_PAGE_DIR_INDEX     = 0;
 static Uint32 KERNEL_PAGE_DIR_INDEX_END = 0;
@@ -151,7 +151,7 @@ void* __virt_get_phys_addr(void *virtual_addr)
 
 void __virt_reset_page_directory()
 {
-	for (void* address = (void *)0x400000; address < (void *)0xC0000000; address += PAGE_SIZE)
+	for (void* address = (void *)RESERVED_ADDR_LO; address < (void *)RESERVED_ADDR_HI; address += PAGE_SIZE)
 	{
 		__virt_unmap_page(address);
 	}
@@ -192,7 +192,7 @@ page_directory_t* __virt_clone_directory()
 	}
 
 	// Now we need to copy what's inside of the user space portion	
-	void* address = (void *)0x400000;
+	void* address = (void *)RESERVED_ADDR_LO;
 	if (ADDR_TO_PD_IDX((Uint32)address) != 1) { _kpanic("CLONE DIRECTORY", "BAD INDEX", 0); }	
 
 	for (Uint32 dir_index = ADDR_TO_PD_IDX((Uint32)address); dir_index < KERNEL_PAGE_DIR_INDEX; ++dir_index)
@@ -239,7 +239,7 @@ page_directory_t* __virt_clone_directory()
 
 void __virt_clear_page(void *virtual_addr)
 {
-	if ((virtual_addr < (void *)0x100000 || virtual_addr >= (void *)KERNEL_LINK_ADDR) &&
+	if ((virtual_addr < (void *)ONE_MEGABYTE || virtual_addr >= (void *)RESERVED_ADDR_HI) &&
 			virtual_addr != scratch_pd && virtual_addr != scratch_pt && virtual_addr != scratch_pte)
 	{
 		_kpanic("Clear Page", "Tried to free a reserved address!", 0);
@@ -277,7 +277,7 @@ void __virt_clear_page(void *virtual_addr)
 
 void __virt_unmap_page(void *virtual_addr)
 {
-	if (virtual_addr < (void *)0x400000 || virtual_addr >= (void *)0xC0000000)
+	if (virtual_addr < (void *)RESERVED_ADDR_LO || virtual_addr >= (void *)RESERVED_ADDR_HI)
 	{
 		_kpanic("Unmap Page", "Tried to free a reserved address!", 0);
 	}
