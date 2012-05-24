@@ -46,11 +46,8 @@ private:
 	Painter *painter;
 
 	linked_list_t *window_list;
-	Window *focused_window;
 	Int32 cursor_x, cursor_y;
 	bool dirty;
-
-	Sem list_sem;
 };
 
 extern "C" {

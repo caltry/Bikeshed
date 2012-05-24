@@ -7,6 +7,7 @@ typedef struct ListElement
 {
 	void* data;
 	struct ListElement* next;
+	struct ListElement* prev;
 } list_element_t;
 
 typedef struct LinkedList
@@ -70,5 +71,7 @@ Int32 list_remove_next(linked_list_t* list, list_element_t* element, void** data
 #define list_data(element) ((element)->data)
 
 #define list_next(element) ((element)->next)
+
+#define list_prev(element) ((element)->prev)
 
 #endif

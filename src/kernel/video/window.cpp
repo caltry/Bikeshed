@@ -100,4 +100,6 @@ void Window::HandleMouseEvent(MouseEvent *event)
 			break;
 		}
 	}
+
+	event->consumed = 1;
 }
