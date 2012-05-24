@@ -61,6 +61,8 @@ int main()
 		}
 	}
 	*/
+	Pid pid;
+	spawn(&pid, "/etc/msg_test");
 	
 
 	set_priority(PRIO_IDLE);

@@ -343,7 +343,7 @@ void _init( void ) {
 	/*
 	** Start the desktop refreshing thread
 	 */
-	_create_kernel_thread( pcb, (Uint32)_desktop_run );
+	//_create_kernel_thread( pcb, (Uint32)_desktop_run );
 
 	/*
 	** Turn on the SIO receiver (the transmitter will be turned

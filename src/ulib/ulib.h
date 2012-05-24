@@ -348,7 +348,9 @@ Status message_try_receive( Pid *fromPid, void **data, Uint32 *size );
 **
 ** usage:   status = message_()
 */
-Status message_has_message();
+Status message_has_message( void );
+
+void writef(const char *fmt, ...);
 
 #endif
 
