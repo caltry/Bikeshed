@@ -1155,7 +1155,7 @@ void user_messages_test( void ) {
 	status = fork( &pid );
 	if ( status == SUCCESS ) {
 		if ( pid > 0) { //in parent
-			sleep(2); //sleep for two seconds
+			//sleep(2); //sleep for two seconds
 			status = message_send( pid, message, 26 );
 			if ( status == SUCCESS ) {
 				prt_status( "User messages_test(Parent) message_send status %s\n", status);
@@ -1167,7 +1167,7 @@ void user_messages_test( void ) {
 			char *receivedMessage;
 			Uint32 size;
 			Pid fromPid;
-
+			sleep(2);
 			c_puts( "User messages_test(Child) waiting for message\n");
 			status = message_receive( &pid, &receivedMessage, &size );
 			if ( status == SUCCESS ) {
