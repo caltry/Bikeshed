@@ -1,25 +1,24 @@
-SP1/SP2 standalone framework information
 
-Version:  @(#)README	1.8
-Date:     10/17/11
+\~------------------\~_    ______ _ _             _              _
+|#|~~~~~~~~~~~~~~~~~|##-   | ___ (_) |           | |            | |
+|##|  |--|          |##|   | |_/ /_| | _____  ___| |__   ___  __| |
+|##|    |\---/<==>  |##|   | ___ \ | |/ / _ \/ __| '_ \ / _ \/ _` |
+|##|  /**\\-/-/**\  |##|   | |_/ / |   <  __/\__ \ | | |  __/ (_| |
+|##|  \**/    \**/  |##|   \____/|_|_|\_\___||___/_| |_|\___|\__,_|
+
+---------------------------------------------------------------------------
+Bikeshed Version:     0.0.1
+README Last updated:  05/22/12
 ---------------------------------------------------------------------------
 
-Notes on the Makefile:
-
-	DO NOT USE makemake!  You must edit the given Makefile to tell
-	it about the file(s) you create.  Add your own file names (both 
-	source and object versions) to the U_* macros at the top of the
-	Makefile.
-
-	After adding or removing files from the Makefile (or changing
-	your #includes), do a "make depend" to adjust the Makefile's
-	dependency entries.
-
-To create your program:
+To build Bikeshed:
 
 	* run 'make' in your project directory
 
-To copy it onto a USB flash drive:
+	This will make a file named usb.image that can be copied to a
+	usb drive with the dd command.
+
+To copy Bikeshed onto a USB flash drive:
 
 	All machines in the DSL have at least two front-panel USB slots
 	located at the bottom on the front of the machine; some have a
@@ -42,10 +41,6 @@ To copy it onto a USB flash drive:
 
 	This will remake the usb.image file (if necessary), and will then
 	copy it out to /local/devices/disk.
-
-To copy it onto a 3.5" floppy in the drive:
-
-	* run 'make floppy' in your project directory
 
 To boot your program:
 

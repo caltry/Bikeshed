@@ -53,8 +53,12 @@ bikeshed_fs: build/debugfs_commands.debugfs
 
 # Run the OS in qemu
 qemu: 
-	CFLAGS=-DQEMU\ -DQEMU_SERIAL CXXFLAGS=-DQEMU $(MAKE) usb.image
+	CFLAGS="$(CFLAGS) -DQEMU -DQEMU_SERIAL" CXXFLAGS=-DQEMU $(MAKE) usb.image
 	qemu-system-i386 -m 1024 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial stdio -net user -net nic,model=i82559er -vga vmware -no-kvm
+
+dave:
+	CFLAGS=-DQEMU\ -DQEMU_SERIAL CXXFLAGS=-DQEMU $(MAKE) usb.image
+	qemu-system-i386 -m 1024 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial stdio -net user -net nic,model=i82559er -vga vmware
 
 walter:	
 	CFLAGS=-DQEMU\ -DQEMU_SERIAL CXXFLAGS=-DQEMU $(MAKE) usb.image

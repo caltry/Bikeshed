@@ -17,6 +17,8 @@
 ** General (C and/or assembly) definitions
 */
 
+#define DELAY_STD 2500000
+
 #ifndef __ASM__20113__
 
 /*
@@ -38,6 +40,14 @@
 /*
 ** Types
 */
+
+typedef enum {
+	FS_E_OK         = 0,	// No error
+	FS_E_NOFILE     = 1,	// File not found
+	FS_E_BADFD      = 2,	// Not a valid file descriptor
+	FS_E_IO         = 3,	// An I/O error occurred.
+	FS_E_NOT_FQN    = 4,	// The path give is not fully qualified
+} FSStatus;
 
 /*
 ** Globals
@@ -348,7 +358,26 @@ Status message_try_receive( Pid *fromPid, void **data, Uint32 *size );
 **
 ** usage:   status = message_()
 */
-Status message_has_message();
+Status message_has_message( void );
+
+void writef(const char *fmt, ...);
+
+/*
+ *
+ * Read _nbytes_ from a file (given its _path_) into a _buf_. Reading begins at
+ * _offset_ bytes into the file. Stores the number of _bytes_read_.
+ *
+ * Returns:
+ * 	FS_E_OK     If we read any number of bytes.
+ * 	FS_E_NOFILE If there is no file with that name.
+ * 	FS_E_IO	    If there was some I/O error.
+ */
+FSStatus fs_read
+	(const char *path,
+	void *buf,
+	Uint32 *bytes_read,
+	Uint32 offset,
+	Uint32 nbytes);
 
 #endif
 

@@ -5,6 +5,8 @@ mkdir etc
 cd etc
 write welcome welcome
 write initproc initproc
+write msg_test msg_test
+write print_motd print_motd
 write motd motd
 lcd ..
 cd ..

@@ -62,7 +62,7 @@ Status _message_send( Pid fromPid, Pid toPid, void *data, Uint32 size );
 ** 
 ** Receives a message.
 */
-Status _message_receive( Pcb pcb, Pid toPid, Pid *fromPid, void **data, Uint32 *size );
+Status _message_receive( Pcb *pcb, Pid toPid, Pid *fromPid, void **data, Uint32 *size );
 
 /*
 ** _message_try_receive( Pid, Pid*, void**, UInt32* )
@@ -76,7 +76,7 @@ Status _message_try_receive( Pid toPid, Pid *fromPid, void **data, Uint32 *size 
 ** 
 ** Checks if there is a message waiting.
 */
-Status _message_has_message( Pid pid );
+Status _message_has_message( Pid toPid );
 
 #endif
 
