@@ -4,4 +4,4 @@ all:
 
 clean:
 	rm -f *.o
-	rm -f initproc
+	rm -f print_motd
