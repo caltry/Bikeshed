@@ -188,7 +188,6 @@ extern "C" {
 		Desktop desktop(kScreen);
 
 		// Add the graphical console window
-		gcon_init();
 		_gconsole = new GConsole(&desktop, 16, 16);
 
 		// Add some initial windows to the desktop
@@ -231,7 +230,7 @@ extern "C" {
 
 #ifdef QEMU
 			// Update at about 100 fps
-			msleep(10);
+			msleep(20);
 #endif
 		} while ( 1 );
 	}
