@@ -51,11 +51,11 @@ typedef struct qnode {
 
 // A queue
 
-typedef struct queue {
+struct queue {
 	Qnode *head;
 	Qnode *tail;
 	int (*compare)(Key, Key);
-} Queue;
+};
 
 // We define this so that we don't get the "fake" Queue definitions
 

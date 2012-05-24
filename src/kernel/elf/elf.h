@@ -6,9 +6,8 @@
 #define __ELF_KLOADER_H__
 
 #include "types.h"
+#include "pcbs.h"
 
-struct pcb;
-typedef struct pcb Pcb;
 
 /* These data structures and types were taken from the ELF specification */
 
