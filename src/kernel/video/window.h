@@ -39,7 +39,7 @@ public:
 	**
 	** Moves the window to the given x and y coordinates on screen.
 	*/
-	void Move(Uint32 x, Uint32 y);
+	void Move(Int32 x, Int32 y);
 
 	/*
 	** SetFocused(focus)

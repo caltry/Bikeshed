@@ -188,16 +188,16 @@ extern "C" {
 		Desktop desktop(kScreen);
 
 		// Add the graphical console window
-		//gcon_init();
-		//_gconsole = new GConsole(&desktop, 16, 16);
+		gcon_init();
+		_gconsole = new GConsole(&desktop, 16, 16);
 
 		// Add some initial windows to the desktop
-		Window *window = new Window(&desktop,
-			Rect(200, 200, 400, 400), (char *)"BIKESHED");
-		window->SetFocused(true);
+		//Window *window = new Window(&desktop,
+		//	Rect(200, 200, 400, 400), (char *)"BIKESHED");
+		//window->SetFocused(true);
 
-		desktop.AddWindow(window);
-		//desktop.AddWindow(_gconsole);
+		//desktop.AddWindow(window);
+		desktop.AddWindow(_gconsole);
 
 		Uint32 event_type;
 		void *event;

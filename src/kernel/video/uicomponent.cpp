@@ -35,6 +35,19 @@ UIComponent::~UIComponent(void)
 }
 
 
+void UIComponent::Move(Int32 x, Int32 y)
+{
+	bounds.SetPosition(x, y);
+
+	ListElement *cur_node = list_head(children);
+	while (cur_node != NULL) {
+		((UIComponent *)list_data(cur_node))->Move(x, y);
+
+		cur_node = cur_node->next;
+	}
+}
+
+
 void UIComponent::AddComponent(UIComponent *component)
 {
 	list_insert_next(children, NULL, component);

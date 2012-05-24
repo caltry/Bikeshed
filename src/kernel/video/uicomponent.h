@@ -24,6 +24,8 @@ public:
 
 	void AddComponent(UIComponent *component);
 
+	virtual void Move(Int32 x, Int32 y);
+
 	void Invalidate(void);
 
 	Rect& GetBounds(void) { return bounds; }

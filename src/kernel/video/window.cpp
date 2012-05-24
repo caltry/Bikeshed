@@ -41,11 +41,12 @@ Window::~Window(void)
 }
 
 
-void Window::Move(Uint32 x, Uint32 y)
+void Window::Move(Int32 x, Int32 y)
 {
 	//TODO: lock desktop wite lock
 
-	bounds.SetPosition(x, y);
+	UIComponent::Move(x, y);
+
 	desktop->Invalidate();
 
 	//TODO: unlock desktop write lock
