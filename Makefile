@@ -53,16 +53,23 @@ bikeshed_fs: build/debugfs_commands.debugfs
 
 # Run the OS in qemu
 qemu: 
-	CFLAGS="$(CFLAGS) -DQEMU_SERIAL" $(MAKE) usb.image
+	CFLAGS="$(CFLAGS) -DQEMU -DQEMU_SERIAL" CXXFLAGS=-DQEMU $(MAKE) usb.image
 	qemu-system-i386 -m 1024 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial stdio -net user -net nic,model=i82559er -vga vmware -no-kvm
 
+dave:
+	CFLAGS=-DQEMU\ -DQEMU_SERIAL CXXFLAGS=-DQEMU $(MAKE) usb.image
+	qemu-system-i386 -m 1024 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial stdio -net user -net nic,model=i82559er -vga vmware
+
 walter:	
-	CFLAGS=-DQEMU_SERIAL $(MAKE) usb.image
+	CFLAGS=-DQEMU\ -DQEMU_SERIAL CXXFLAGS=-DQEMU $(MAKE) usb.image
 	qemu-system-i386 -m 1024 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er -vga vmware -no-kvm
 
 mit: 
-	CFLAGS=-DQEMU_SERIAL $(MAKE) usb.image
+	CFLAGS=-DQEMU\ -DQEMU_SERIAL CXXFLAGS=-DQEMU $(MAKE) usb.image
 	~/qemu/bin/qemu -m 1024 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er
+
+video:
+	CFLAGS=-DQEMU\ -DQEMU_SERIAL\ -DVIDEO_ENABLE CPPFLAGS=-DVIDEO_ENABLE CXXFLAGS=-DQEMU\ -DVIDEO_ENABLE $(MAKE) usb.image
 #
 # Special rule for creating the modification and offset programs
 #

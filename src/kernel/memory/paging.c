@@ -6,8 +6,7 @@
 #include "scheduler.h"
 #include "support.h"
 #include "c_io.h"
-
-//#include "../lib/klib.h"
+#include "kmalloc.h"
 #include "lib/klib.h"
 
 struct Page 
@@ -28,10 +27,10 @@ union PageDirectory
 
 typedef long unsigned int ul;
 
+#define RESERVED_ADDR_LO 0x400000
+#define RESERVED_ADDR_HI 0xC0000000
 
-
-// TODO change this to directly link to the already defined page directory
-page_directory_t *__virt_kpage_directory = 0;//&BootPageDirectory;
+page_directory_t *__virt_kpage_directory = 0;
 
 static Uint32 KERNEL_PAGE_DIR_INDEX     = 0;
 static Uint32 KERNEL_PAGE_DIR_INDEX_END = 0;
@@ -136,27 +135,23 @@ void* __virt_get_phys_addr(void *virtual_addr)
 	Uint32 page_tbl_index = (Uint32)virtual_addr >> 12 & 0x03FF;
 
 	Uint32 *pd = (Uint32 *)0xFFFFF000;
-
-	// TODO Check whether or not the page directory is present
 	if (pd[page_dir_index] == 0)
 	{
 		return (void *)0xFFFFFFFF;
 	}
-	
 
 	Uint32 *pt = ((Uint32*)0xFFC00000) + (0x400 * page_dir_index);
 	if (pt[page_tbl_index] == 0)
 	{
 		return (void *)0xFFFFFFFF;
 	}
-	// TODO Here check whether the PT is present
 	
 	return (void *)((pt[page_tbl_index] & ~0xFFF) + ((Uint32)virtual_addr & 0xFFF));
 }
 
 void __virt_reset_page_directory()
 {
-	for (void* address = (void *)0x400000; address < (void *)0xC0000000; address += PAGE_SIZE)
+	for (void* address = (void *)RESERVED_ADDR_LO; address < (void *)RESERVED_ADDR_HI; address += PAGE_SIZE)
 	{
 		__virt_unmap_page(address);
 	}
@@ -183,6 +178,7 @@ page_directory_t* __virt_clone_directory()
 	void* phys_pd_address = __phys_get_free_4k();
 
 	__virt_map_page(phys_pd_address, scratch_pd, PG_READ_WRITE);
+	_kmemclr(scratch_pd, PAGE_SIZE);
 
 	Uint32* kernel_pd = (Uint32 *)PAGE_DIR_ADDR;
 	Uint32* kernel_pt = (Uint32 *)PAGE_TBL_FROM_INDEX(0);
@@ -197,29 +193,30 @@ page_directory_t* __virt_clone_directory()
 	}
 
 	// Now we need to copy what's inside of the user space portion	
-	void* address = (void *)0x400000;
+	void* address = (void *)RESERVED_ADDR_LO;
 	if (ADDR_TO_PD_IDX((Uint32)address) != 1) { _kpanic("CLONE DIRECTORY", "BAD INDEX", 0); }	
 
 	for (Uint32 dir_index = ADDR_TO_PD_IDX((Uint32)address); dir_index < KERNEL_PAGE_DIR_INDEX; ++dir_index)
 	{
-		if (kernel_pd[dir_index] != 0)
+		if ((kernel_pd[dir_index] & PG_PRESENT) > 0)
 		{
-			serial_printf("---Kernel pd: %d - non-empty\n");
 			kernel_pt = PAGE_TBL_FROM_INDEX(dir_index);
 			
 			__virt_clear_page(scratch_pt);
 			void* phys_pt_address = __phys_get_free_4k();
 			__virt_map_page(phys_pt_address, scratch_pt, PG_READ_WRITE);
+			_kmemclr(scratch_pt, PAGE_SIZE);
 
 			scratch_pd[dir_index] = (Uint32)phys_pt_address | (kernel_pd[dir_index] & 0xFFF); // Copy the kernel's flags
 
 			for (Uint32 j = 0; j < 1024; ++j, address += PAGE_SIZE)
 			{
-				if (kernel_pt[j] != 0)
+				if ((kernel_pt[j] & PG_PRESENT) > 0)
 				{
 					__virt_clear_page(scratch_pte);
 					void* phys_pte_address = __phys_get_free_4k();
 					__virt_map_page(phys_pte_address, scratch_pte, PG_READ_WRITE);
+					_kmemclr(scratch_pte, PAGE_SIZE);
 
 					scratch_pt[j] = (Uint32)phys_pte_address | (kernel_pt[j] & 0xFFF); // Copy the kernel's flags
 
@@ -245,7 +242,7 @@ page_directory_t* __virt_clone_directory()
 
 void __virt_clear_page(void *virtual_addr)
 {
-	if ((virtual_addr < (void *)0x100000 || virtual_addr >= (void *)KERNEL_LINK_ADDR) &&
+	if ((virtual_addr < (void *)ONE_MEGABYTE || virtual_addr >= (void *)RESERVED_ADDR_HI) &&
 			virtual_addr != scratch_pd && virtual_addr != scratch_pt && virtual_addr != scratch_pte)
 	{
 		_kpanic("Clear Page", "Tried to free a reserved address!", 0);
@@ -264,7 +261,6 @@ void __virt_clear_page(void *virtual_addr)
 	if (pt[page_tbl_index] != 0)
 	{
 		pt[page_tbl_index] = 0;
-		serial_printf("---Clear: Removing page table entry: %d - %x\nChecking if page table is empty\n", page_tbl_index, virtual_addr);
 
 		Uint32 i = 0;
 		for (; i < 1024; ++i)
@@ -274,18 +270,18 @@ void __virt_clear_page(void *virtual_addr)
 
 		if (i == 1024)
 		{
-			serial_printf("================================================CLEAR PAGE: FREEING PDE\n");
 			pd[page_dir_index] = 0;
 		}
 	}
 
 	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)virtual_addr & 0xFFFFF000)));	
 	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pt & 0xFFFFF000)));	
+	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pd & 0xFFFFF000)));	
 }
 
 void __virt_unmap_page(void *virtual_addr)
 {
-	if (virtual_addr < (void *)0x400000 || virtual_addr >= (void *)0xC0000000)
+	if (virtual_addr < (void *)RESERVED_ADDR_LO || virtual_addr >= (void *)RESERVED_ADDR_HI)
 	{
 		_kpanic("Unmap Page", "Tried to free a reserved address!", 0);
 	}
@@ -339,6 +335,7 @@ void __virt_unmap_page(void *virtual_addr)
 	// Is this the virtual address or the physical address?
 	asm volatile("invlpg %0"::"m" (*(char *)(virtual_addr)));	
 	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pt & 0xFFFFF000)));	
+	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pd & 0xFFFFF000)));	
 }
 
 void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
@@ -391,6 +388,7 @@ void __virt_map_page(void *physical_addr, void *virtual_addr, Uint32 flags)
 	// Is this the virtual address or the physical address?
 	asm volatile("invlpg %0"::"m" (*(char *)(virtual_addr)));	
 	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pt & 0xFFFFF000)));	
+	asm volatile("invlpg %0"::"m" (*(char *)((Uint32)pd & 0xFFFFF000)));	
 }
 
 void __virt_switch_page_directory(page_directory_t *page_directory)
@@ -411,6 +409,32 @@ static const char* const page_table_errors[] = {
 
 void _isr_page_fault(int vector, int code)
 {
+	Uint32 error_type = code & 0x7;
+	unsigned int cr2 = read_cr2();
+	// Check if we need to map in the kernel's heap to a process that missed an update by another process
+	if ((code == 0 || code == 2) && cr2 >= HEAP_START_LOCATION && cr2 <= HEAP_MAX_LOCATION) {
+		// We need to map this into the requesting process
+		// Switch to the base page directory
+		__virt_switch_page_directory(__virt_kpage_directory);
+
+		// This is clumsy would have been better to have a statically allocated kernel directory
+		// then this would be a simple loop...
+		__virt_clear_page(scratch_pd);
+		__virt_map_page(_current->page_directory, scratch_pd, PG_READ_WRITE);
+
+		Uint32* pd = PAGE_DIR_ADDR;
+		for (Uint32 i = ADDR_TO_PD_IDX(HEAP_START_LOCATION); i < ADDR_TO_PD_IDX(HEAP_MAX_LOCATION); ++i)
+		{
+			scratch_pd[i] = pd[i];
+		}
+		__virt_clear_page(scratch_pd);
+
+		// Switch back
+		__virt_switch_page_directory(_current->page_directory);
+
+		return; // We've handled this error
+	}
+
 	UNUSED(vector);
 	serial_string("US RW P - Description\n");
 	serial_printf("%d  ",  code & 0x4);
@@ -420,7 +444,6 @@ void _isr_page_fault(int vector, int code)
 	serial_string("\n");
 	serial_printf("OFFENDING ADDRESS: %x\n", _current->context->eip);
 	serial_printf("Offending process: %d\n", _current->pid);
-	unsigned int cr2 = read_cr2();
 	serial_printf("Address: %x\n", cr2);
 	serial_printf("Page Directory Entry: %d\n", (cr2 >> 22));
 	serial_printf("Page Table Entry:     %d\n", (cr2 >> 12) & 0x3FF);

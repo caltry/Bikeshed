@@ -10,6 +10,7 @@ extern "C" {
 	#include "kmalloc.h"
 	#include "defs.h"
 	#include "linkedlist.h"
+	#include "input/mouse.h"
 }
 
 #include "rect.h"
@@ -31,6 +32,19 @@ UIComponent::~UIComponent(void)
 {
 	list_destroy(children);
 	__kfree(children);
+}
+
+
+void UIComponent::Move(Int32 x, Int32 y)
+{
+	bounds.SetPosition(x, y);
+
+	ListElement *cur_node = list_head(children);
+	while (cur_node != NULL) {
+		((UIComponent *)list_data(cur_node))->Move(x, y);
+
+		cur_node = cur_node->next;
+	}
 }
 
 
@@ -65,4 +79,9 @@ void UIComponent::Repaint(void)
 	}
 
 	dirty = false;
+}
+
+
+void UIComponent::HandleMouseEvent(MouseEvent *event)
+{
 }

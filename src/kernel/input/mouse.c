@@ -9,16 +9,13 @@
 #include "support.h"
 #include "startup.h"
 #include "x86arch.h"
-#include "video.h"
-#include "gconsole.h"
+#include "memory/kmalloc.h"
+#include "events.h"
 
 #include "mouse.h"
 
 
-Int32 _mouse_x, _mouse_y;
-Int32 x_vel, y_vel;
-
-int left_pressed, right_pressed, middle_pressed;
+static Uint8 last_button_states;
 
 
 static void _mouse_wait(Uint32 type)
@@ -65,33 +62,14 @@ static Uint8 _mouse_read(void)
 
 Status _mouse_init(void)
 {
-	// Set the initial mouse coordinates to the center of the screen
-	_mouse_x = kScreen->width / 2;
-	_mouse_y = kScreen->height / 2;
-
 	// Buttons are initially unpressed
-	left_pressed = 0;
-	right_pressed = 0;
+	last_button_states = 0;
 
-	// Disable the keyboard for a bit
-	//_mouse_wait(1);
-	//__outb(0x64, 0xad);
+	asm volatile("cli");
 
 	// Send the initial enable message
 	_mouse_wait(1);
 	__outb(0x64, 0xa8);
-
-	// Reset the mouse
-	//_mouse_write(0xff);
-
-	// Wait for reset completion
-	/*_mouse_wait(0);
-	__inb(0x60);					// Reset ACK
-	if (__inb(0x60) != 0xaa)		// Check reset success
-		return BAD_PARAM;*/
-
-	// Get the mouse id
-	//__inb(0x60);
 
 	// Request the status byte
 	_mouse_wait(1);
@@ -124,6 +102,8 @@ Status _mouse_init(void)
 	// Install the mouse isr
 	__install_isr(0x2c, _mouse_isr);
 
+	asm volatile("sti");
+
 	return SUCCESS;
 }
 
@@ -132,7 +112,12 @@ Status _mouse_init(void)
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 void _mouse_isr(int vector, int code)
 {
+#ifdef QEMU
 	static Int8 byte_cycle = -1;
+#else
+	static Int8 byte_cycle = 0;
+#endif
+
 	static Int8 bytes[3];
 
 	bytes[byte_cycle++] = __inb(0x60);
@@ -141,51 +126,52 @@ void _mouse_isr(int vector, int code)
 		// Reset the byte cycle count
 		byte_cycle = 0;
 
-		// Get the x and y deltas
-		x_vel = bytes[1] * 2;
-		y_vel = bytes[2] * 2;
+		// Create a new mouse event
+		MouseEvent *event = (MouseEvent *)__kmalloc(sizeof(MouseEvent));
 
-		// Update the x and y positions
-		_mouse_x += x_vel;
-		_mouse_y -= y_vel;
+		// Initialize the event
+		event->button_states = bytes[0] & 0x7;
+		event->start_x = 0;
+		event->start_y = 0;
+		event->x = 0;
+		event->y = 0;
+		event->delta_x = bytes[1];
+		event->delta_y = bytes[2];
+		event->active_button = 0;
+		event->type = MOUSE_EVENT_MOVED;
 
-		if (_mouse_x > kScreen->width)
-			_mouse_x = kScreen->width;
-		if (_mouse_y > kScreen->height)
-			_mouse_y = kScreen->height;
-		if (_mouse_x < 0)
-			_mouse_x = 0;
-		if (_mouse_y < 0)
-			_mouse_y = 0;
+		// Update the x and y coordinate threshold
 
-		// Check the button states
-		if (bytes[0] & 0x1) {
-			if (!left_pressed) {
-				// Left button pressed mouse event
-				left_pressed = 1;
-			}
-		} else {
-			left_pressed = 0;
+		// Check which buttons have changed
+		if ((bytes[0] & MOUSE_BUTTON_LEFT) !=
+			(last_button_states & MOUSE_BUTTON_LEFT))
+		{
+			event->active_button = MOUSE_BUTTON_LEFT;
+		} else if ((bytes[0] & MOUSE_BUTTON_RIGHT) !=
+			(last_button_states & MOUSE_BUTTON_RIGHT))
+		{
+			event->active_button = MOUSE_BUTTON_RIGHT;
+		} else if ((bytes[0] & MOUSE_BUTTON_MIDDLE) !=
+			(last_button_states & MOUSE_BUTTON_MIDDLE))
+		{
+			event->active_button = MOUSE_BUTTON_MIDDLE;
 		}
 
-		if (bytes[0] & 0x2) {
-			if (!right_pressed) {
-				// Right button pressed mouse event
-				right_pressed = 1;
-			}
-		} else {
-			right_pressed = 0;
+		if (event->active_button) {
+			// If any buttons have changed, determine the type of mouse event 
+			event->type = (bytes[0] & event->active_button)
+				? MOUSE_EVENT_PRESSED : MOUSE_EVENT_CLICKED;
+		} else if (bytes[0] & 0x7) {
+			// If there are no new button changes and a button is pressed
+			//   then the mosue is being dragged
+			event->type = MOUSE_EVENT_DRAGGED;
 		}
 
-		if (bytes[0] & 0x4) {
-			if (!middle_pressed) {
-				// Middle button pressed mouse event
-				middle_pressed = 1;
-			}
-		} else {
-			middle_pressed = 0;
-		}
-
+		// Send the event
+		_events_dispatch((void *)event, EVENT_MOUSE);
+		
+		// Save the button states
+		last_button_states = bytes[0];
 	}
 
 	// Signal the end of the interrupt

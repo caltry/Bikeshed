@@ -17,6 +17,8 @@
 ** General (C and/or assembly) definitions
 */
 
+#define DELAY_STD 2500000
+
 #ifndef __ASM__20113__
 
 /*

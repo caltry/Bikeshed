@@ -24,7 +24,7 @@ DYN_OBJ_FILES = $(shell ls *.[csS] *.cpp 2> /dev/null | sed -e 's/^\(.*\).[csS]$
 #
 CPP = cpp
 # CPPFLAGS = $(USER_OPTIONS) -nostdinc -I- $(INCLUDES)
-CPPFLAGS = $(USER_OPTIONS) -nostdinc $(INCLUDES)
+CPPFLAGS += $(USER_OPTIONS) -nostdinc $(INCLUDES)
 
 CC = gcc
 CFLAGS += -std=gnu99 -Wshadow -fno-stack-protector -fno-builtin -Wall -Wextra 
