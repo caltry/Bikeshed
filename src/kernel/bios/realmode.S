@@ -138,11 +138,6 @@ _int_number:
 switch_to_real_mode:
 	cli
 
-	/* Disable paging */
-	movl	%cr0, %eax
-	andl	$0x7fffffff, %eax
-	movl	%eax, %cr0
-
 	/* Save the current ESP and EBP values */
 	movl	%esp, %eax
 	movl	%eax, RM_SAVED_ESP
@@ -155,6 +150,11 @@ switch_to_real_mode:
 	/* Copy the return address to the real stack */
 	movl	(%esp), %ecx
 	movw	%cx, (REAL_STACK)
+
+	/* Disable paging */
+	movl	%cr0, %eax
+	andl	$0x7fffffff, %eax
+	movl	%eax, %cr0
 
 	/* Switch to using the real mode stack */
 	movl	$(REAL_STACK), %eax

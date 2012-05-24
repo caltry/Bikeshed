@@ -13,7 +13,7 @@
 #ifndef _SCHEDULER_H
 #define _SCHEDULER_H
 
-#include "headers.h"
+#include "types.h"
 
 /*
 ** General (C and/or assembly) definitions

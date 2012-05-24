@@ -1,8 +1,9 @@
 #include "physical.h"
+#include "paging.h"
 #include "serial.h"
 
-#include "../../boot/bootstrap.h"
-#include "../lib/klib.h"
+#include "boot/bootstrap.h"
+#include "lib/klib.h"
 
 #include "c_io.h"
 
@@ -138,6 +139,7 @@ Uint32 __phys_check_bit(void* address)
 
 void __phys_unset_bit(void* address)
 {
+	serial_printf("----BITMAP: freeing address: %x\n", address);
 	Uint32 index = ADDR_TO_INDEX(address);
 	if (index >= __phys_bitmap_4k_elements)
 	{
@@ -173,10 +175,10 @@ void* __phys_get_free_4k()
 	}
 
 	// A bit has to be free because this section is != 0xFFFFFFFF
-	Uint32 bit = 0x80000000, offset = 0;
+	Uint32 bit = 0x00000001, offset = 0;
 	while ((__phys_bitmap_4k[i] & bit) != 0 && bit != 0)
 	{
-		bit >>= 1;
+		bit <<= 1;
 		++offset; // Used in address calcUint32ation
 	}
 	serial_printf("Offset: %d\n", offset);

@@ -17,6 +17,8 @@
 #include "c_io.h"
 #include "x86arch.h"
 #include "bootstrap.h"
+#include "scheduler.h"
+#include "serial.h"
 
 /*
 ** Global variables and local data types.
@@ -59,6 +61,7 @@ typedef struct	{
 **		to ever occur.  It handles them by calling panic.
 */
 static void __default_unexpected_handler( int vector, int code ){
+	c_printf("Location: %x\n", _current->context->eip);
 	c_printf( "\nVector=0x%02x, code=%d\n", vector, code );
 	__panic( "Unexpected interrupt" );
 }
@@ -213,6 +216,7 @@ static void init_idt( void ){
 void __panic( char *reason ){
 	asm( "cli" );
 	c_printf( "\nPANIC: %s\nHalting...", reason );
+	serial_printf("\nPANIC: %s\nHalting...", reason);
 	for(;;){
 		;
 	}

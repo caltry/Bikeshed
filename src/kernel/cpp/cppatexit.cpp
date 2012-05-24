@@ -26,7 +26,7 @@ extern "C"
 	 *
 	 * Inserts the destructor and argument into a table
 	 */
-	int __cxa_atexit(void (*destructor) (void *), void* arg, void* __dso_handle)
+	int __cxa_atexit(void (*destructor) (void *), void* arg, void* dso_handle)
 	{
 		serial_printf("At exit called: %x\n", destructor);
 
@@ -34,7 +34,7 @@ extern "C"
 		atexit_entry* entry = (atexit_entry *)__kmalloc(sizeof(atexit_entry));
 		entry->destructor = destructor;
 		entry->argument = arg;
-		entry->dso_handle = __dso_handle;
+		entry->dso_handle = dso_handle;
 		entry->next = NULL;
 
 		if (head_at_exit_entry == NULL)

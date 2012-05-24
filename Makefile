@@ -54,15 +54,15 @@ bikeshed_fs: build/debugfs_commands.debugfs
 # Run the OS in qemu
 qemu: 
 	CFLAGS=-DQEMU_SERIAL $(MAKE) usb.image
-	qemu-system-x86_64 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial stdio -net user -net nic,model=i82559er
+	qemu-system-i386 -m 1024 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial stdio -net user -net nic,model=i82559er -vga vmware -no-kvm
 
 walter:	
 	CFLAGS=-DQEMU_SERIAL $(MAKE) usb.image
-	kvm -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er
+	qemu-system-i386 -m 1024 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er -vga vmware -no-kvm
 
 mit: 
 	CFLAGS=-DQEMU_SERIAL $(MAKE) usb.image
-	~/qemu/bin/qemu -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er
+	~/qemu/bin/qemu -m 1024 -cpu core2duo -drive file=usb.image,format=raw,cyls=200,heads=16,secs=63 -serial /dev/pts/1 -monitor stdio -net user -net nic,model=i82559er
 #
 # Special rule for creating the modification and offset programs
 #

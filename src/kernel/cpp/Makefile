@@ -1,7 +1,7 @@
 include ../../defs.mk
 
-CFLAGS += -I../../include -I../../ulib -I..
-CXXFLAGS += -I../../include -I../../ulib -I..
+CFLAGS += -I../../include -I..
+CXXFLAGS += -I../../include -I..
 
 SRC_FILES = $(DYN_SRC_FILES)
 OBJ_FILES = $(DYN_OBJ_FILES)

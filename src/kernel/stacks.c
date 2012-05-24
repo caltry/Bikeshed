@@ -12,8 +12,10 @@
 
 #define	__KERNEL__20113__
 
-#include "headers.h"
+#include "defs.h"
+#include "types.h"
 
+#include "c_io.h"
 #include "queues.h"
 #include "stacks.h"
 

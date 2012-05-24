@@ -9,7 +9,7 @@
 #define SIXTY_FOUR_KB (64 * ONE_KILOBYTE) 
 #define SIXTEEN_MEG   (16 * ONE_MEGABYTE)
 
-#include "headers.h"
+#include "types.h"
 
 /* This symbol is defined in a linker script and 
  * it is placed at the end of the kernel. So if you
