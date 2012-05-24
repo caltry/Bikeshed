@@ -1,0 +1,117 @@
+Whats in this file
+===================================
+
+This file explains the virtual memory layout of Bikeshed OS. It will also give
+an overview of how user processes are laid out in memory. An explanation of
+cloning page tables will also be given.
+
+
+Layout of Bikeshed OS
+===================================
+Bikeshed OS uses a modified bootloader to load the kernel and sub-modules
+above the 1 MiB realmode limit. The following two figures show how physical
+and virtual memory is laid out after Bikeshed OS finishes the boot process.
+
+The second figure shows how Bikeshed OS appears in virtual memory. You can see
+that the kernel is 'living' in high memory, even though it's physically in low
+memory. See the next section for an explanation of how this is accomplished.
+
+
+Overall physical memory map
+===================================
+
+.--------------------------.
+| Bootloader and realmode  | 0x0 - 0xFFFFF (< 1 MiB)
+|           code           |
+|--------------------------|
+|   Kernel code and data   | 0x100000 - Kernel End
+|--------------------------|
+|   Real mode bios code    | 0x200000 - 0x200200
+|  that is relocated later |
+|--------------------------|
+|     Ramdisk physical     | 0x400000 - Filesystem End
+|        location          |
+|--------------------------|
+|                          |
+|                          | Filesystem End - 0xFFFFFFFF
+|          Unused          |
+|                          |
+|                          |
+|                          |
+|__________________________|
+
+
+Overall virtual memory map
+==================================
+
+.--------------------------.
+| Bootloader and realmode  | 0x0 - 0xFFFFF
+|           code           |
+|--------------------------| 
+|                          | 
+|    For user programs     | 0x100000 - 0xBFFFFFFF
+|                          |
+Z                          Z
+|                          |
+|--------------------------|
+|   Unused but reserved    | 0xC0000000 - 0xC00FFFFF
+|--------------------------|
+|                          |
+|   Kernel Code and Data   | 0xC0100000 - Kernel End
+|                          |
+|--------------------------|
+|                          |
+|       Kernel Heap        | 0xD0000000 - 0xDFFFFFFF
+|                          |
+|--------------------------|
+|                          |
+|       Ramdisk Space      | 0xE0000000 - 0xEFFFFFFF
+|                          |
+|--------------------------|
+|                          |
+|        PCI Devices       | 0xF0000000 - 0xFFBFFFFF
+|                          |
+|--------------------------|
+|  Page directory mapped   | 0xFFC00000 - 0xFFFFFFFF
+|      back to itself      |
+'--------------------------'
+
+
+Higher half kernel
+===================================
+To 'move' the kernel to high half memory a couple things need to be in order.
+First the kernel must think it's in higher memory. To accomplish this we used
+a linker script (src/kernel.ld) to make all of the virtual addresses live at
+the higher address.
+
+Once this is accomplished all references to calling functions and variable
+locations will be based off the new higher address. Unfortunately when we're
+booting the kernel it's not really there and we encounter a bit of a chicken
+and the egg problem. We want to run kernel code, but we can't jump to any
+symbols because they're at a currently invalid address!
+
+To get around this problem we have to do a few things. First we need to setup
+a preliminary page directory. We hardcode this into the pre-kernel code.
+(src/boot/startup.S - boot_page_directory). The pre-kernel page directory is
+setup so the first 4MiB of addresses are identity mapped and then 0xC0000000 -
+0xC0400000 are mapped to 0x0 - 0x400000. This means we can enable paging with
+EIP still using the lower addresses and not cause a fault.
+
+Once we have paging enabled we can change EIP to it's higher memory address.
+After this step, EIP is taking instructions from the upper addresses and we no
+longer need the lower 4MiB identity mapped, but we leave it as the boot page
+directory will be replaced by a proper 4KiB page directory in the kernel's
+initialization routine.
+
+
+Processes in memory
+===================================
+Each user process in Bikeshed OS have their own virtual address space. In fact
+all of the processes share the same stack location, and same executable code
+location (if they use our src/user_programs/clinker.ld script). We leave
+roughly 3GiB of address space for user processes to use. The lowest 1MiB is
+still identity mapped because we're currently missing a good standard I/O 
+implementation.
+
+
+
