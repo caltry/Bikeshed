@@ -6,6 +6,7 @@
 #include "scheduler.h"
 #include "support.h"
 #include "c_io.h"
+#include "kmalloc.h"
 
 //#include "../lib/klib.h"
 #include "lib/klib.h"
@@ -27,8 +28,6 @@ union PageDirectory
 };
 
 typedef long unsigned int ul;
-
-
 
 // TODO change this to directly link to the already defined page directory
 page_directory_t *__virt_kpage_directory = 0;//&BootPageDirectory;
@@ -136,20 +135,16 @@ void* __virt_get_phys_addr(void *virtual_addr)
 	Uint32 page_tbl_index = (Uint32)virtual_addr >> 12 & 0x03FF;
 
 	Uint32 *pd = (Uint32 *)0xFFFFF000;
-
-	// TODO Check whether or not the page directory is present
 	if (pd[page_dir_index] == 0)
 	{
 		return (void *)0xFFFFFFFF;
 	}
-	
 
 	Uint32 *pt = ((Uint32*)0xFFC00000) + (0x400 * page_dir_index);
 	if (pt[page_tbl_index] == 0)
 	{
 		return (void *)0xFFFFFFFF;
 	}
-	// TODO Here check whether the PT is present
 	
 	return (void *)((pt[page_tbl_index] & ~0xFFF) + ((Uint32)virtual_addr & 0xFFF));
 }
@@ -204,7 +199,6 @@ page_directory_t* __virt_clone_directory()
 	{
 		if (kernel_pd[dir_index] != 0)
 		{
-			serial_printf("---Kernel pd: %d - non-empty\n");
 			kernel_pt = PAGE_TBL_FROM_INDEX(dir_index);
 			
 			__virt_clear_page(scratch_pt);
@@ -264,7 +258,6 @@ void __virt_clear_page(void *virtual_addr)
 	if (pt[page_tbl_index] != 0)
 	{
 		pt[page_tbl_index] = 0;
-		serial_printf("---Clear: Removing page table entry: %d - %x\nChecking if page table is empty\n", page_tbl_index, virtual_addr);
 
 		Uint32 i = 0;
 		for (; i < 1024; ++i)
@@ -274,7 +267,6 @@ void __virt_clear_page(void *virtual_addr)
 
 		if (i == 1024)
 		{
-			serial_printf("================================================CLEAR PAGE: FREEING PDE\n");
 			pd[page_dir_index] = 0;
 		}
 	}
@@ -413,6 +405,7 @@ void _isr_page_fault(int vector, int code)
 {
 	Uint32 error_type = code & 0x7;
 	unsigned int cr2 = read_cr2();
+	// Check if we need to map in the kernel's heap to a process that missed an update by another process
 	if ((code == 0 || code == 2) && cr2 >= HEAP_START_LOCATION && cr2 <= HEAP_MAX_LOCATION) {
 		// We need to map this into the requesting process
 		// Switch to the base page directory
