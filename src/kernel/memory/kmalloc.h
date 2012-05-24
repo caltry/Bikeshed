@@ -3,6 +3,10 @@
 
 #include "types.h"
 
+// 256MB of Kernel heap Space
+#define HEAP_START_LOCATION 0xD0000000
+#define HEAP_MAX_LOCATION   0xE0000000
+
 /* Initialize the kernel virtual memory allocator. 
  *
  * The kernel heap starts at 0xD0000000 and ends at 0xE0000000.

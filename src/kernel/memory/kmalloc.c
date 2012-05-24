@@ -36,9 +36,6 @@ heap_t kernel_heap;
 
 extern Uint32* scratch_pd;
 
-// 256MB of Kernel heap Space
-#define HEAP_START_LOCATION 0xD0000000
-#define HEAP_MAX_LOCATION   0xE0000000
 #define HEAP_INITIAL_PAGES  2
 
 void __kmem_init_kmalloc()

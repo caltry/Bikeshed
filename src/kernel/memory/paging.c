@@ -411,6 +411,31 @@ static const char* const page_table_errors[] = {
 
 void _isr_page_fault(int vector, int code)
 {
+	Uint32 error_type = code & 0x7;
+	unsigned int cr2 = read_cr2();
+	if ((code == 0 || code == 2) && cr2 >= HEAP_START_LOCATION && cr2 <= HEAP_MAX_LOCATION) {
+		// We need to map this into the requesting process
+		// Switch to the base page directory
+		__virt_switch_page_directory(__virt_kpage_directory);
+
+		// This is clumsy would have been better to have a statically allocated kernel directory
+		// then this would be a simple loop...
+		__virt_clear_page(scratch_pd);
+		__virt_map_page(_current->page_directory, scratch_pd, PG_READ_WRITE);
+
+		Uint32* pd = PAGE_DIR_ADDR;
+		for (Uint32 i = ADDR_TO_PD_IDX(HEAP_START_LOCATION); i < ADDR_TO_PD_IDX(HEAP_MAX_LOCATION); ++i)
+		{
+			scratch_pd[i] = pd[i];
+		}
+		__virt_clear_page(scratch_pd);
+
+		// Switch back
+		__virt_switch_page_directory(_current->page_directory);
+
+		return; // We've handled this error
+	}
+
 	UNUSED(vector);
 	serial_string("US RW P - Description\n");
 	serial_printf("%d  ",  code & 0x4);
@@ -420,7 +445,6 @@ void _isr_page_fault(int vector, int code)
 	serial_string("\n");
 	serial_printf("OFFENDING ADDRESS: %x\n", _current->context->eip);
 	serial_printf("Offending process: %d\n", _current->pid);
-	unsigned int cr2 = read_cr2();
 	serial_printf("Address: %x\n", cr2);
 	serial_printf("Page Directory Entry: %d\n", (cr2 >> 22));
 	serial_printf("Page Table Entry:     %d\n", (cr2 >> 12) & 0x3FF);
