@@ -21,7 +21,7 @@
 #include "memory/paging.h"
 #include "memory/physical.h"
 
-#define TRACE_MESSAGES
+//#define TRACE_MESSAGES
 #ifdef TRACE_MESSAGES
 #	define TRACE(...) c_printf(__VA_ARGS__)
 #else
@@ -60,6 +60,7 @@ Queue *_waitingPcbs;
 // CLOSENOUGH MEMORY ALLOCATION FOR MESSAGES THIS IS BAD AND I SHOULD FEEL BAD.
 #define MESSAGE_LOCATION_START 0xB0000000
 void *_messageLoc = MESSAGE_LOCATION_START;
+
 void *_messages_copy_kern_to_proc( Pcb *toPcb, void *data, Uint32 size ) {
 	__virt_switch_page_directory( toPcb->page_directory );
 	__virt_map_page( __phys_get_free_4k(), _messageLoc, PG_USER | PG_READ_WRITE | PG_PRESENT );
@@ -129,20 +130,20 @@ Status _message_send( Pid fromPid, Pid toPid, void *data, Uint32 size ) {
 
 	//first check to see if the to process is wating for a message.
 	Pcb *pcb;
-	Status status = _q_get_by_key( _waitingPcbs, (void**) &pcb, (Key) (toPid * 1) );
+	Status status = _q_remove_by_key( _waitingPcbs, (void**) &pcb, (Key) (toPid * 1) );
 	if ( status == SUCCESS ) {
 		//copy into kernel memory
 		void *dataCopy = __kmalloc( size );
 		_kmemcpy( dataCopy, data, size );
 		void *finalCopy = _messages_copy_kern_to_proc( pcb, dataCopy, size );
 
-		//__virt_switch_page_directory( pcb->page_directory );
+		__virt_switch_page_directory( pcb->page_directory );
 		//We found it waiting set all the things and schedule it to run
 		*((Pid*) ARG(pcb)[1]) = fromPid;
 		*((void**) ARG(pcb)[2]) = finalCopy;
 		*((Uint32*) ARG(pcb)[3]) = size;
 		RET(pcb) = SUCCESS;
-		//__virt_switch_page_directory( _current );
+		__virt_switch_page_directory( _current->page_directory );
 
 		_sched(pcb);
 
@@ -207,7 +208,22 @@ Status _message_receive( Pcb *pcb, Pid toPid, Pid *fromPid, void **data, Uint32 
 ** Receives a message if there is one.
 */
 Status _message_try_receive( Pid toPid, Pid *fromPid, void **data, Uint32 *size ) {
-	return ( FEATURE_UNIMPLEMENTED );
+	// find the queue for this process if one exists
+	Queue *msgQueue;
+	Status status = _q_get_by_key( _messageQueues, (void **) &msgQueue, (Key) (toPid * 1) );
+	if ( status == SUCCESS ) { //queue found
+		Message *msg;
+		status = _q_remove( msgQueue, (void**) &msg );
+		if ( status == SUCCESS ) {
+			*fromPid = msg->fromPid;
+			*data = _messages_copy_kern_to_proc( _current, msg->data, msg->size );
+			*size = msg->size;
+			TRACE("MESSAGES: Message received from %d to %d \"%s\"\n",  msg->fromPid, toPid, msg->data);
+			return ( SUCCESS );
+		}
+	}
+
+	return ( NOT_FOUND );
 }
 
 /*
@@ -215,6 +231,16 @@ Status _message_try_receive( Pid toPid, Pid *fromPid, void **data, Uint32 *size 
 ** 
 ** Checks if there is a message waiting.
 */
-Status _message_has_message( Pid pid ) {
-	return ( FEATURE_UNIMPLEMENTED );
+Status _message_has_message( Pid toPid ) {
+	// find the queue for this process if one exists
+	Queue *msgQueue;
+	Status status = _q_get_by_key( _messageQueues, (void **) &msgQueue, (Key) (toPid * 1) );
+	if ( status == SUCCESS ) { //queue found
+		Message *msg;
+		if ( ! _q_empty( msgQueue ) ) {
+			return ( SUCCESS );
+		}
+	}
+
+	return ( NOT_FOUND );
 }

@@ -76,7 +76,7 @@ Status _message_try_receive( Pid toPid, Pid *fromPid, void **data, Uint32 *size 
 ** 
 ** Checks if there is a message waiting.
 */
-Status _message_has_message( Pid pid );
+Status _message_has_message( Pid toPid );
 
 #endif
 
