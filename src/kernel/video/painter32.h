@@ -3,7 +3,7 @@
 **
 ** Author:	Sean Congden
 **
-** Description:	Basic drawing functions
+** Description:	Basic drawing functions for a 32 bits per pixel video mode
 */
 
 #ifndef _PAINTER32_H
@@ -14,6 +14,12 @@
 class Painter32 : public Painter {
 public:
 
+	/*
+	** Painter32(screen,bounds)
+	**
+	** A painter that provides 32 bits per pixel drawing routines.
+	** See painter.h for method descriptions.
+	*/
 	Painter32(Screen *screen, Rect bounds);
 	virtual ~Painter32(void);
 

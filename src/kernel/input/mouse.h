@@ -44,6 +44,7 @@ typedef struct {
 	Uint8 button_states;
 	Uint8 active_button;
 	Uint8 type;
+	Uint8 consumed;
 } MouseEvent;
 
 

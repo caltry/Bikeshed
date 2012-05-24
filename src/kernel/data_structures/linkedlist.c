@@ -48,14 +48,19 @@ Int32 list_insert_next(linked_list_t* list, list_element_t* element, const void*
 			list->tail = new_element;
 		}
 
+		if (list->head != NULL)
+			list->head->prev = new_element;
 		new_element->next = list->head;
 		list->head = new_element;
+		new_element->prev = NULL;
 	} else {
 		if (element->next == NULL)
 		{
 			list->tail = new_element;
 		}
 
+		new_element->prev = element;
+		element->next->prev = new_element;
 		new_element->next = element->next;
 		element->next = new_element;
 	}

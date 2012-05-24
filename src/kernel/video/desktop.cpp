@@ -40,16 +40,12 @@ void delete_window(void* data)
 Desktop::Desktop(Screen *_screen)
 	: screen(_screen)
 	, bounds(Rect(0, 0, _screen->width, _screen->height))
-	, focused_window(NULL)
 	, cursor_x(_screen->width / 2)
 	, cursor_y(_screen->height /2)
 	, dirty(true)
 {
 	window_list = (linked_list_t *)__kmalloc(sizeof(linked_list_t));
 	list_init(window_list, delete_window);
-
-	//sem_init(&list_sem);
-	//sem_post(list_sem);
 
 	// Create the graphics painters
 	if (screen->bpp == 24) {
@@ -70,21 +66,20 @@ Desktop::~Desktop(void)
 
 void Desktop::AddWindow(Window *window)
 {
-//	sem_wait(list_sem);
-	list_insert_next(window_list, NULL, (void *)window);
-	focused_window = window;
+	ListElement *focused_elem = list_tail(window_list);
+	if (focused_elem != NULL) {
+		((Window *)list_data(focused_elem))->SetFocused(false);
+	}
+		
+	list_insert_next(window_list, focused_elem, (void *)window);
+
+	window->SetFocused(true);
 	dirty = true;
-//	sem_post(list_sem);
 }
 
 void Desktop::CloseWindow(Window *window)
 {
-	//sem_wait(list_sem);
 	ListElement *element = list_head(window_list);
-
-	if ((focused_window == window) && (element != NULL)) {
-		focused_window = (Window *)list_data(element);
-	}
 
 	while (element != NULL) {
 		if ((Window *)list_data(element) == window) {
@@ -94,20 +89,15 @@ void Desktop::CloseWindow(Window *window)
 
 		element = list_next(element);
 	}
-	//sem_post(list_sem);
-
-	dirty = true;
 	
-	//delete window;
+	dirty = true;
 }
 
 void Desktop::Draw(void)
 {
-	//sem_wait(list_sem);
-
 	// Draw all of the windows
 	ListElement *cur_node = list_head(window_list);
-	Region *updateRegion = new Region();
+	//Region *updateRegion = new Region();
 
 	if (dirty) {
 		// Redraw the whole background
@@ -119,20 +109,18 @@ void Desktop::Draw(void)
 
 		// Only draw a window if it is dirty or a window it
 		//   is overlapping has been repainted
-		if (dirty || window->IsDirty() ||
-			updateRegion->Intersects(window->GetBounds()))
-		{
+		//if (dirty || window->IsDirty() ||
+		//	updateRegion->Intersects(window->GetBounds()))
+		//{
 			window->Repaint();
-			updateRegion->AddRect(window->GetBounds());
-		}
+		//	updateRegion->AddRect(window->GetBounds());
+		//}
 
 		cur_node = list_next(cur_node);
 	}
 
-	delete updateRegion;
+	//delete updateRegion;
 	dirty = false;
-
-	//sem_post(list_sem);
 }
 
 #define CLAMP(x, min, max)	((x < min) ? min : (x > max) ? max : x)
@@ -145,12 +133,13 @@ void Desktop::HandleMouseEvent(MouseEvent *event)
 	cursor_x = CLAMP(cursor_x + event->delta_x, 0, (Int32)bounds.width);
 	cursor_y = CLAMP(cursor_y - event->delta_y, 0, (Int32)bounds.height);
 
-	// If the event was a click, determine if the window focus should change
+	// Draw all of the windows
+	ListElement *cur_node = list_tail(window_list);
+	while (cur_node != NULL) {
+		Window *window = (Window *)list_data(cur_node);
 
-	// Send the event to the focused window
-	if (focused_window) {
 		// Offset the x and y coordinates to window space
-		Rect win_bounds = focused_window->GetBounds();
+		Rect win_bounds = window->GetBounds();
 		event->start_x = start_x - win_bounds.x;
 		event->start_y = start_y - win_bounds.y;
 		event->x = cursor_x - win_bounds.x;
@@ -160,8 +149,12 @@ void Desktop::HandleMouseEvent(MouseEvent *event)
 		if ((start_x >= win_bounds.x && start_x <= win_bounds.x2) &&
 			(start_y >= win_bounds.y && start_y <= win_bounds.y2))
 		{
-			focused_window->HandleMouseEvent(event);
+			window->HandleMouseEvent(event);
+			if (event->consumed)
+				return;
 		}
+
+		cur_node = list_prev(cur_node);
 	}
 }
 
@@ -191,12 +184,11 @@ extern "C" {
 		_gconsole = new GConsole(&desktop, 16, 16);
 
 		// Add some initial windows to the desktop
-		//Window *window = new Window(&desktop,
-		//	Rect(200, 200, 400, 400), (char *)"BIKESHED");
-		//window->SetFocused(true);
+		Window *window = new Window(&desktop,
+			Rect(200, 200, 400, 400), (char *)"BIKESHED");
 
-		//desktop.AddWindow(window);
 		desktop.AddWindow(_gconsole);
+		desktop.AddWindow(window);
 
 		Uint32 event_type;
 		void *event;

@@ -16,7 +16,7 @@
 #include "vesa.h"
 
 
-#define TRACE_VESA
+//#define TRACE_VESA
 #ifdef TRACE_VESA
 #	define TRACE(...) c_printf(__VA_ARGS__)
 #else

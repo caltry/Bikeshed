@@ -139,6 +139,7 @@ void _mouse_isr(int vector, int code)
 		event->delta_y = bytes[2];
 		event->active_button = 0;
 		event->type = MOUSE_EVENT_MOVED;
+		event->consumed = 0;
 
 		// Update the x and y coordinate threshold
 
