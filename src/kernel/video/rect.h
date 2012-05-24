@@ -16,23 +16,22 @@ extern "C" {
 class Rect {
 public:
 
-	Rect(Uint32 x, Uint32 y, Uint32 width, Uint32 height);
+	Rect(Int32 x, Int32 y, Uint32 width, Uint32 height);
 	~Rect(void);
 
-	void SetPosition(Uint32 x, Uint32 y);
+	void SetPosition(Int32 x, Int32 y);
 
-	Rect* Intersection(const Rect& other) const;
+	Rect Clip(const Rect& other) const;
 
 	bool Intersects(const Rect& other) const;
-	bool Contains(Uint32 x, Uint32 y) const;
+	bool Contains(Int32 x, Int32 y) const;
 	bool Contains(const Rect& other) const;
 
 	Rect& operator=(const Rect& other);
 	bool operator==(const Rect& other) const;
-	Rect operator+(const Rect& other);
 
-	Uint32 x, y, width, height;
-	Uint32 x2, y2;
+	Int32 x, y, x2, y2;
+	Uint32 width, height;
 };
 
 #endif

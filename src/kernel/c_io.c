@@ -88,6 +88,8 @@ static unsigned int __c_strlen( char const *str ){
 	return len;
 }
 
+#ifndef VIDEO_ENABLE
+
 static void __c_putchar_at( unsigned int x, unsigned int y, unsigned int c ){
 	/*
 	** If x or y is too big or small, don't do any output.
@@ -507,6 +509,8 @@ void c_printf_at( unsigned int x, unsigned int y, const char *fmt, ... ){
 void c_printf( const char *fmt, ... ){
 	__c_do_printf( -1, -1, &fmt );
 }
+
+#endif
 
 unsigned char scan_code[ 2 ][ 128 ] = {
 	{

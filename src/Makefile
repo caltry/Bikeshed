@@ -7,7 +7,7 @@
 #
 
 # Modules must end with a trailing slash.
-MODULES :=  boot/ kernel/lib/ kernel/ serial/ kernel/memory/ kernel/vm8086/ kernel/bios/ kernel/pci/ kernel/data_structures/ kernel/network/ kernel/cpp/ fs/ fs/ext2/ kernel/elf/ ulib/ kernel/video/ kernel/mouse/ user_programs/
+MODULES :=  boot/ kernel/lib/ kernel/ serial/ kernel/memory/ kernel/vm8086/ kernel/bios/ kernel/pci/ kernel/data_structures/ kernel/network/ kernel/cpp/ fs/ fs/ext2/ kernel/elf/ ulib/ kernel/video/ kernel/input/ user_programs/
 
 # That's right, there's no default support for newlines in Make.
 define NL

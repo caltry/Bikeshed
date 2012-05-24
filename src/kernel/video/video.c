@@ -52,16 +52,13 @@ Status _video_init(void) {
 	}
 
 	kScreen->frame_buffer = (Uint16 *)(FRAMEBUFFER_ADDRESS);
-	_kmemset(kScreen->frame_buffer, 0xff, kScreen->size);
 
 	// Switch to the mode
 	_vesa_select_mode(mode_num);
 
 	// Clear the background
-	_kmemset(kScreen->frame_buffer, 0x0A, kScreen->size);
-	_kmemset(kScreen->back_buffer, 0x0A, kScreen->size);
-	//_kmemclr(kScreen->frame_buffer, kScreen->size);
-	//_kmemclr(kScreen->back_buffer, kScreen->size);
+	_kmemclr(kScreen->frame_buffer, kScreen->size);
+	_kmemclr(kScreen->back_buffer, kScreen->size);
 
 	return SUCCESS;
 }

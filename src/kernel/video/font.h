@@ -12,6 +12,9 @@
 
 #include "types.h"
 
+#define FONT_WIDTH					5
+#define FONT_HEIGHT					7
+
 // The font data
 extern Uint8 font_data[];
 

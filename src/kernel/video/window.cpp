@@ -12,6 +12,8 @@ extern "C" {
 	#include "linkedlist.h"
 	#include "lib/string.h"
 	#include "lib/klib.h"
+	#include "input/mouse.h"
+	#include "serial.h"
 }
 
 #include "lookandfeel.h"
@@ -23,7 +25,8 @@ extern "C" {
 Window::Window(Desktop *desktop, Rect bounds, char *title)
 	: UIComponent(desktop->GetPainter(), bounds)
 	, desktop(desktop)
-	, hasFocus(false)
+	, has_focus(false)
+	, close_bounds(Rect(bounds.width - 16, 8, 16, 16))
 {
 	// Probably a good idea to save a copy, in case the string was
 	// created in a temporary location, ran into this problem with
@@ -38,14 +41,13 @@ Window::~Window(void)
 }
 
 
-void Window::Move(Uint32 x, Uint32 y)
+void Window::Move(Int32 x, Int32 y)
 {
 	//TODO: lock desktop wite lock
 
-	bounds.SetPosition(x, y);
-	Rect* rect = desktop->GetBounds().Intersection(bounds);
-	painter->SetClipping(*rect);
-	delete rect;
+	UIComponent::Move(x, y);
+
+	desktop->Invalidate();
 
 	//TODO: unlock desktop write lock
 }
@@ -53,7 +55,7 @@ void Window::Move(Uint32 x, Uint32 y)
 
 void Window::Draw(void)
 {
-	Uint32 focusColor = (hasFocus) ? WINDOW_ACTIVE_COLOR
+	Uint32 focusColor = (has_focus) ? WINDOW_ACTIVE_COLOR
 		 : WINDOW_INACTIVE_COLOR;
 	
 	// Draw the window base
@@ -69,11 +71,33 @@ void Window::Draw(void)
 	// Draw the title text
 	painter->DrawString(title, bounds.x + 12, bounds.y + 2, 4, focusColor);
 
-	// Draw the close buttor
-	int close_x = 16;
-	int close_y = 4;
-	int closeoff = (ysize - close_y) / 2;
-	Rect close = Rect(bounds.x2 - closeoff - close_x, bounds.y + closeoff,
-		close_x, close_y);
+	// Draw the close button
+	Rect close = Rect(bounds.x2 - WINDOW_CLOSE_OFFSET - WINDOW_CLOSE_X_SIZE,
+		bounds.y + WINDOW_CLOSE_Y_SIZE + 10, WINDOW_CLOSE_X_SIZE,
+		WINDOW_CLOSE_Y_SIZE);
 	painter->FillRect(close, focusColor);
+}
+
+
+void Window::HandleMouseEvent(MouseEvent *event)
+{
+	switch (event->type) {
+		case MOUSE_EVENT_CLICKED: {
+			// Check if the close button is clicked
+			if (close_bounds.Contains(event->x, event->y)) {
+				serial_string("close window\n");
+				desktop->CloseWindow(this);
+			}
+			break;
+		}
+
+		case MOUSE_EVENT_DRAGGED: {
+			// Move the window if the title bar is dragged
+			if (event->start_y < 32) {
+				Move(bounds.x + event->delta_x, bounds.y - event->delta_y);
+			}
+
+			break;
+		}
+	}
 }
