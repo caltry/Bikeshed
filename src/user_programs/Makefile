@@ -37,7 +37,7 @@ make_user_programs:
 FORCE:
 
 crt0: 
-	$(AS) $(ASFLAGS) -c crt0.S -o crt0.o
+	$(AS) $(ASFLAGS) crt0.S -o crt0.o
 
 clean:
 	rm -f *.o	
