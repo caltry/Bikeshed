@@ -12,4 +12,9 @@ is the main change to the bootloader.
 
 How this is accomplished
 ===================================
+In short the bootloader uses the read_prog function to read a few sectors into
+a temporary buffer that's below 1MiB. Then the bootloader switches to
+protected mode and copies the buffer to the correct location. Then it repeats
+until there is no more data to be read.
+
 
