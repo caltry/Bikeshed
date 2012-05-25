@@ -1,10 +1,6 @@
 #ifndef __ELF_KLOADER_H__
 #define __ELF_KLOADER_H__
 
-/* This file is an ELF loader used by the kernel
- * to load programs into memory
- */
-
 #include "types.h"
 #include "pcbs.h"
 
@@ -445,6 +441,16 @@ typedef struct {
  *
  */
 
+/* Loads an ELF file from the filesystem
+ *
+ * Parameters:
+ *     pcb - The PCB to load the ELF image into
+ *     file_name - The ELF to load
+ *
+ * Returns: SUCCESS if everything went as expected, otherwise
+ *          it returns a value other than SUCCESS that describes
+ *          the error
+ */
 Status _elf_load_from_file(Pcb* pcb, const char* file_name);
 
 #endif
