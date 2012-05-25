@@ -165,6 +165,17 @@ void Desktop::DrawCursor(void)
 
 
 extern "C" {
+
+	void _kfaster(register Uint32* dest, register Uint32* src, register Uint32 size)
+	{
+		while (size > 0)
+		{
+			*dest = *src;
+			++dest; ++src;
+			size -= 4;
+		}
+	}
+
 	void _desktop_run(void) {
 		asm volatile("cli");
 
@@ -194,6 +205,7 @@ extern "C" {
 		void *event;
 
 		serial_printf("Entering draw loop...\n");
+		set_priority(PRIO_STD);
 		do {
 			// Check for new event messages
 			while (_events_fetch(&event, &event_type) != EMPTY_QUEUE) {
@@ -213,8 +225,8 @@ extern "C" {
 
 			asm volatile("cli");
 			// Copy the back buffer to the screen
-			_kmemcpy((void *)(kScreen->frame_buffer),
-				(void *)(kScreen->back_buffer), kScreen->size);
+			_kfaster((Uint32 *)(kScreen->frame_buffer),
+				(Uint32 *)(kScreen->back_buffer), kScreen->size);
 
 			// Draw the mouse
 			desktop.DrawCursor();
@@ -223,6 +235,8 @@ extern "C" {
 #ifdef QEMU
 			// Update at about 100 fps
 			msleep(20);
+#else
+			msleep(0);
 #endif
 		} while ( 1 );
 	}

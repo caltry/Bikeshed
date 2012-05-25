@@ -23,8 +23,22 @@ begins, advance 1024 bytes (the size of the mbr+some) then cast that memory
 into a superblock struct.
 
 
-Rationale
-=========
+References
+----------
+
+This is designed to be a clean-room implementation of ext2. The following
+sources were used to implement the functionality:
+
+- Design and Implementation of the Second Extended Filesystem. Rémy Card,
+  Theodore Ts'o and Stephen Tweedie
+  <http://web.mit.edu/tytso/www/linux/ext2intro.html>
+
+- The Second Extended File System: Internal Layout. Dave Poirier, et. al.
+  <http://www.nongnu.org/ext2-doc/>
+
+
+Development
+===========
 
 Reading a file (by inode)
 -------------------------

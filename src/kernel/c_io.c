@@ -88,7 +88,7 @@ static unsigned int __c_strlen( char const *str ){
 	return len;
 }
 
-#ifndef VIDEO_ENABLE
+#ifdef VIDEO_DISABLE
 
 static void __c_putchar_at( unsigned int x, unsigned int y, unsigned int c ){
 	/*
@@ -685,7 +685,7 @@ int c_input_queue( void ){
 	return n_chars;
 }
 
-#ifndef VIDEO_ENABLE
+#ifdef VIDEO_DISABLE
 
 /*
 ** Initialization routines
