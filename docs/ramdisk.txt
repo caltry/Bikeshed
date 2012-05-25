@@ -1,0 +1,50 @@
+Ramdisk
+=======
+
+In the original design goals for Bikeshed, it was one person's task to
+implement the filesystem and SATA support. It was decided that we should
+implement the filesystem first as a ramdisk so that we could get some
+functionality while everything is in development. In the end, support for the
+SATA drive was dropped to spend more time on the development of the
+filesystem.
+
+When picking what filesystem to implement, there were a few features that were
+important: (i) easy population at buildtime, (ii) a production filesystem and
+(iii) userland support on most GNU/Linux systems. This narrowed down the
+choices to:
+
+- Fat16/Fat32
+- Ext2
+- BeFS
+
+BeFS was excluded because while userland support for it existed, it was not
+common. FAT was excluded because it didn't seem interesting enough. Ext2
+satisfied all of the criteria and seemed to have a Goldy-locks complexity (not
+too tough, not too easy).
+
+The filesystem is populated at build time by programs which are part of
+e2fsutils. mke2fs(8) is used to construct the empty ramdisk and debugfs(8) is
+used to populate it. We chose to use e2fsutils, rather than write our own
+programs because (i) it allows us to test against a known working
+implementation and (ii) it's easier. If we had decided to not drop HDD
+support, we would have also been able to fsck(8) our filesystem to make sure
+that we weren't mangling it.
+
+To make sure that your files show up in the ramdisk:
+
+1. Make sure that the files you want in the ramdisk are in
+   build/ramdisk_staging.
+2. Update the 'build/debugfs_commands.debugfs' script to include the
+   files you want. It's a very stateful interface right now -- I hope
+   to eventually generate it with another script, but that's not how
+   things work right now. There are k things that you need to know when
+   writing adding to the commands to populate the ramdisk:
+    1. 'lcd' changes the working directory on *your* filesystem. I use
+       this to move around ramdisk_staging.
+    2. 'cd' changes the working directory on the ramdisk.
+    3. 'mkdir' makes a directory on the ramdisk.
+    4. 'write' is the command that you use to copy a file over from
+       your filesystem to the ramdisk filesystem.
+    5. For everything else, 'man debugfs' should help you out. You can
+       also use debugfs directly to explore the ramdisk to make sure
+       that you're populating it correctly.
