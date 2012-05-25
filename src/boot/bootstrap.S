@@ -55,7 +55,7 @@ begtext:
 	movw	$BOOT_SEGMENT, %ax	/* get our data seg */
 	movw	%ax, %ds
 	movw	%ax, %ss	/* stack segment starts at BOOT_SEGMENT */
-	movw	$REAL_STACK, %ax	/* and the stack starts 0x4000 beyond that */
+	movw	$REAL_STACK, %ax	/* and the stack starts 0x6000 beyond that */
 	movw	%ax, %sp
 
 /*
@@ -401,7 +401,6 @@ boot_sig:
 kernel_location: .quad 0x0
 load_location: .quad 0x0
 remaining: .quad 0x1
-flag: .quad 0x0
 
 	/* Okay we're good, copy the block to the right address */
 
@@ -450,6 +449,15 @@ stop_executing:
 	/* The rest of the code is still 16-bits! */
 	.code16
 
+/* Loads a single module off the disk and into ram
+ *
+ * Parameters:
+ *     None
+ *
+ * Returns:
+ *     EAX - Contains -1 if there are no more modules to load.
+ *           Otherwise it contains a non -1 value.
+ */
 .code16
 load_module:
 	pushw %bx
@@ -490,6 +498,8 @@ kernel_location_already_saved:
 	/* This is a one time deal, since we skipped the first 8 bytes, but we loaded
 	 * and copied 512 bytes with the copy_buffer, we need to fix the load_location
 	 * by subtracting 8 bytes, otherwise we'll have a hole in our data
+	 *
+	 * Remember: load_location is adjusted by copy_buffer
 	 */
 	movl load_location, %edx
 	subl $8, %edx
@@ -533,7 +543,7 @@ exit_load_module:
 
 /* Copies data from a buffer to a 32-bit address
  *
- * Paramters:
+ * Parameters:
  *    EAX - The source address
  *    EBX - The number of sectors to copy 
  *
@@ -558,6 +568,7 @@ copy_buffer:
 	 */
 	movl %esp, COPY_BUFFER_OLD_ESP
 	movl %ebp, COPY_BUFFER_OLD_EBP
+
 
 	/* We need to switch into protected mode */
 	call switch_to_protected_mode
@@ -605,8 +616,8 @@ copy_loop:
 /*
 ** Switches from protected mode to real mode
 */
-PROT_MODE_ESP: .quad 0x0
-PROT_MODE_EBP: .quad 0x0
+PROT_MODE_ESP: .quad PROT_STACK+BOOT_ADDRESS
+PROT_MODE_EBP: .quad PROT_STACK+BOOT_ADDRESS
 .code32
 .globl switch_to_real_mode
 switch_to_real_mode:
@@ -676,8 +687,8 @@ _real_mode_segment:
 /*
 ** Returns to protected mode from real mode
 */
-REAL_MODE_ESP: .quad 0x0
-REAL_MODE_EBP: .quad 0x0
+REAL_MODE_ESP: .quad REAL_STACK
+REAL_MODE_EBP: .quad REAL_STACK
 .globl switch_to_protected_mode
 switch_to_protected_mode:
 .code16
