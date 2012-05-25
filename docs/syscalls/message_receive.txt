@@ -1,0 +1,18 @@
+NAME
+	message_receive - receives a message
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	Status message_receive( Pid *fromPid, void **data, Uint32 *size );
+
+DESCRIPTION
+	message_receive() receives a message from the processes' message queue. This
+	call will block until a message has been sent to the process if there isn't
+	one waiting in the queue
+
+RETURN VALUE
+	Returns the status of the message receiving.
+
+ERRORS
+	FAILURE - The message could not be received.

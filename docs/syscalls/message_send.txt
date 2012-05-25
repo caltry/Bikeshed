@@ -1,0 +1,16 @@
+NAME
+	message_send - sends a message to another process
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	Status message_send( Pid pid, void *data, Uint32 size );
+
+DESCRIPTION
+	message_send() sends a message to another process.
+
+RETURN VALUE
+	Returns the status of the message sending.
+
+ERRORS
+	FAILURE - The message could not be sent.
