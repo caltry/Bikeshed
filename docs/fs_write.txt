@@ -1,0 +1,51 @@
+FS_WRITE                                                               FS_WRITE
+
+
+
+NAME
+       fs_write - write directly to a file
+
+SYNOPSIS
+       #include <ulib.h>
+
+        typedef enum {
+                FS_E_OK         = 0,	// No error
+                FS_E_NOFILE     = 1,	// File not found
+                FS_E_BADFD      = 2,	// Not a valid file descriptor
+                FS_E_IO         = 3,	// An I/O error occurred.
+                FS_E_NOT_FQN    = 4,	// The path give is not fully qualified
+                FS_BAD_OFFSET	= 5,	// Offset is past the end of the file
+        } FSStatus;
+
+       FSStatus fs_write
+                (const char *path,
+                void *buf,
+                Uint32 *bytes_written,
+                Uint32 offset,
+                Uint32 nbytes);
+
+DESCRIPTION
+       fs_write() attempts to write up to _nbytes_ to the file path _path_
+       from _buf_. Writing begins at _offset_ bytes into the file.  Stores the
+       number of _bytes_written_.
+
+RETURN VALUE
+        On success, returns FS_E_OK. On error, returns one of the following:
+
+ERRORS
+        FS_E_NOFILE
+                No file with that name exists.
+        FS_E_IO
+                An unknown I/O error occurred
+        FS_E_NOT_FQN
+                The path specified isn't a complete path to the file from the
+                root of the directory tree.
+        FS_BAD_OFFSET
+                The offset into the file is past the current end of the file.
+
+NOTES
+        This interface provides no locking or guarentees of exclusive access
+        to the file.
+
+SEE ALSO
+       fs_read
