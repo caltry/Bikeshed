@@ -1,0 +1,48 @@
+FS_READ                                                                 FS_READ
+
+
+
+NAME
+       fs_read - read directly from a file
+
+SYNOPSIS
+       #include <ulib.h>
+
+        typedef enum {
+                FS_E_OK         = 0,	// No error
+                FS_E_NOFILE     = 1,	// File not found
+                FS_E_BADFD      = 2,	// Not a valid file descriptor
+                FS_E_IO         = 3,	// An I/O error occurred.
+                FS_E_NOT_FQN    = 4,	// The path give is not fully qualified
+        } FSStatus;
+
+       FSStatus fs_read
+                (const char *path,
+                void *buf,
+                Uint32 *bytes_read,
+                Uint32 offset,
+                Uint32 nbytes);
+
+DESCRIPTION
+       fs_read() attempts to read up to _nbytes_ from the file path _path_
+       into _buf_. Reading begins at _offset_ bytes into the file.  Stores the
+       number of _bytes_read_.
+
+RETURN VALUE
+        On success, returns FS_E_OK. On error, returns one of the following:
+
+ERRORS
+        FS_E_NOFILE
+                No file with that name exists.
+        FS_E_IO
+                An unknown I/O error occurred
+        FS_E_NOT_FQN
+                The path specified isn't a complete path to the file from the
+                root of the directory tree.
+
+NOTES
+        This interface provides no locking or guarentees of exclusive access
+        to the file.
+
+SEE ALSO
+       fs_write

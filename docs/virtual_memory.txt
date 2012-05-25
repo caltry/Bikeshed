@@ -1,0 +1,170 @@
+Whats in this file
+===================================
+This file explains the virtual memory layout of Bikeshed OS. It will also give
+an overview of how user processes are laid out in memory. An explanation of
+cloning page tables will also be given.
+
+
+Layout of Bikeshed OS
+===================================
+Bikeshed OS uses a modified bootloader to load the kernel and sub-modules
+above the 1 MiB realmode limit. The following two figures show how physical
+and virtual memory is laid out after Bikeshed OS finishes the boot process.
+
+The second figure shows how Bikeshed OS appears in virtual memory. You can see
+that the kernel is 'living' in high memory, even though it's physically in low
+memory. See the next section for an explanation of how this is accomplished.
+
+
+Overall physical memory map
+===================================
+
+.--------------------------.
+| Bootloader and realmode  | 0x0 - 0xFFFFF (< 1 MiB)
+|           code           |
+|--------------------------|
+|   Kernel code and data   | 0x100000 - Kernel End
+|--------------------------|
+|   Real mode bios code    | 0x200000 - 0x200200
+|  that is relocated later |
+|--------------------------|
+|     Ramdisk physical     | 0x400000 - Filesystem End
+|        location          |
+|--------------------------|
+|                          |
+|                          | Filesystem End - 0xFFFFFFFF
+|          Unused          |
+|                          |
+|                          |
+|                          |
+|__________________________|
+
+
+Overall virtual memory map
+==================================
+
+.--------------------------.
+| Bootloader and realmode  | 0x0 - 0xFFFFF
+|           code           |
+|--------------------------| 
+|                          | 
+|    For user programs     | 0x100000 - 0xBFFFFFFF
+|                          |
+Z                          Z
+|                          |
+|--------------------------|
+|   Unused but reserved    | 0xC0000000 - 0xC00FFFFF
+|--------------------------|
+|                          |
+|   Kernel Code and Data   | 0xC0100000 - Kernel End
+|                          |
+|--------------------------|
+|                          |
+|       Kernel Heap        | 0xD0000000 - 0xDFFFFFFF
+|                          |
+|--------------------------|
+|                          |
+|       Ramdisk Space      | 0xE0000000 - 0xEFFFFFFF
+|                          |
+|--------------------------|
+|                          |
+|        PCI Devices       | 0xF0000000 - 0xFFBFFFFF
+|                          |
+|--------------------------|
+|  Page directory mapped   | 0xFFC00000 - 0xFFFFFFFF
+|      back to itself      |
+'--------------------------'
+
+It's useful to have the page directory mapped back to itself because the page
+mapping and clearing code doesn't need to know the current page directory,
+because it's always mapped at the 0xFFFFF000 address. By reading this address
+you can read the contents of the current page directory. By reading form the
+address 0xFFC00000 you can read and modify the contents of each of the page
+tables.
+
+
+Higher half kernel
+===================================
+To 'move' the kernel to high half memory a couple things need to be in order.
+First the kernel must think it's in higher memory. To accomplish this we used
+a linker script (src/kernel.ld) to make all of the virtual addresses live at
+the higher address.
+
+Once this is accomplished all references to calling functions and variable
+locations will be based off the new higher address. Unfortunately when we're
+booting the kernel it's not really there and we encounter a bit of a chicken
+and the egg problem. We want to run kernel code, but we can't jump to any
+symbols because they're at a currently invalid address!
+
+To get around this problem we have to do a few things. First we need to setup
+a preliminary page directory. We hardcode this into the pre-kernel code.
+(src/boot/startup.S - boot_page_directory). The pre-kernel page directory is
+setup so the first 4MiB of addresses are identity mapped and then 0xC0000000 -
+0xC0400000 are mapped to 0x0 - 0x400000. This means we can enable paging with
+EIP still using the lower addresses and not cause a fault.
+
+Once we have paging enabled we can change EIP to it's higher memory address.
+After this step, EIP is taking instructions from the upper addresses and we no
+longer need the lower 4MiB identity mapped, but we leave it as the boot page
+directory will be replaced by a proper 4KiB page directory in the kernel's
+initialization routine.
+
+
+Processes in memory
+===================================
+Each user process in Bikeshed OS have their own virtual address space. In fact
+all of the processes share the same stack location, and same executable code
+location (if they use our src/user_programs/clinker.ld script). We leave
+roughly 3GiB of address space for user processes to use. The lowest 1MiB is
+still identity mapped because we're currently missing a good standard I/O 
+implementation.
+
+
+Page directory cloning
+===================================
+When a new process is made with fork() the page directory of the parent is
+cloned. This means a new page directory is created the parent's memory map is
+replicated.
+
+Index   Parent's page directory
+       .-------------------------.
+  0    | 0x0 - 0x3FFFFF (0-4MiB) | -> Entry copied (not physically)
+       |-------------------------|
+       |                         |
+ 1-767 | 0x400000 - 0xBFFFFFFF   | -> Entries physically copied to new regions
+       |                         |    of memory (new page directory entries and
+       |-------------------------|    page table entries)
+       |                         |
+768-   | 0xC0000000 - 0xFFC00000 | -> Entries copied (not physically)
+1022   |                         |
+       |-------------------------|
+1023   | 0xFFC00000 - 0xFFFFFFFF | -> Points to the physical address of the 
+       |_________________________|    current page directory
+
+What is meant by copied, but not physically is the page directory entry points
+to the same physical page table. This means if this page table is changed it
+is seen by all processes who share it. So that's why the kernel's page tables
+are copied into each process, but not physically copied to another piece of memory.
+This ensures there is only one copy of the kernel floating around.
+
+This also means that the current virtual memory manager does not support
+copy-on-write. So forking is a litle inefficient, especially if exec() is
+called immediately after.
+
+To actually copy the pages physically is a little difficult. The kernel needs
+access to both page directories simultaneously which is problematic because
+you can only have one page directory active at a time. To get around this
+problem the kernel makes three buffer pages. One for the new page directory,
+one for the current page table, and one for the current page table entry. The
+page table and page table entries are changed out while walking the source's
+page directory. This allows the kernel to use virtual addresses to perform the
+copying. At the end of the copying the temporary pages are removed and the
+physical address of the new page directory is returned.
+
+
+Exec-ing
+===================================
+When exec() is called all of the user address space addresses are cleared and
+freed marked as available in the physical memory manager. The
+__virt_reset_page_directory() function is careful not to free any of the
+kernel's address space.

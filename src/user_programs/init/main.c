@@ -36,6 +36,7 @@ int main()
 	put_string(0, 0, "Loaded an ELF and running C code!");
 	put_string(0, 1, "Program");
 
+	// Some tests of the fork() and exec() syscalls
 	Pid pid = -1;
 	if (fork(&pid) == 0)
 	{
@@ -60,10 +61,7 @@ int main()
 		}
 	}
 
-	
 	spawn(&pid, "/etc/msg_test");
-
-	
 
 	set_priority(PRIO_IDLE);
 	while (1) {
