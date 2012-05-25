@@ -379,6 +379,23 @@ FSStatus fs_read
 	Uint32 offset,
 	Uint32 nbytes);
 
+/*
+ * From the _offset_, write _nbytes_ from _buf_ into a file at _path_. Stores
+ * the number of _bytes_read_.
+ *
+ * Returns:
+ * 	E_OK           If we wrote any number of bytes.
+ * 	FS_E_NOFILE    If there is no file with that name.
+ * 	FS_E_BAD_START If the initial offset into the file doesn't yet exist.
+ * 	E_IO           If there was some I/O error.
+ */
+FSStatus fs_write
+	(const char *path,
+	void *buf,
+	Uint32 *bytes_written,
+	Uint32 offset,
+	Uint32 nbytes);
+
 #endif
 
 #endif

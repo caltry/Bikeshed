@@ -16,6 +16,7 @@ typedef enum {
 	FS_E_BADFD      = 2,	// Not a valid file descriptor
 	FS_E_IO         = 3,	// An I/O error occurred.
 	FS_E_NOT_FQN    = 4,	// The path give is not fully qualified
+	FS_BAD_OFFSET	= 5,	// Offset is past the end of the file
 } VFSStatus;
 
 typedef Uint32 FileDescriptor;
