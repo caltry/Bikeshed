@@ -1,6 +1,5 @@
 Whats in this file
 ===================================
-
 This file explains the virtual memory layout of Bikeshed OS. It will also give
 an overview of how user processes are laid out in memory. An explanation of
 cloning page tables will also be given.
@@ -75,6 +74,13 @@ Z                          Z
 |  Page directory mapped   | 0xFFC00000 - 0xFFFFFFFF
 |      back to itself      |
 '--------------------------'
+
+It's useful to have the page directory mapped back to itself because the page
+mapping and clearing code doesn't need to know the current page directory,
+because it's always mapped at the 0xFFFFF000 address. By reading this address
+you can read the contents of the current page directory. By reading form the
+address 0xFFC00000 you can read and modify the contents of each of the page
+tables.
 
 
 Higher half kernel

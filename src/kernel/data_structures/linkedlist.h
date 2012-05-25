@@ -1,6 +1,15 @@
 #ifndef __LINKED_LIST_H__
 #define __LINKED_LIST_H__
 
+/* The code for this data structure was taken and modified from the book
+ *
+ * Mastering Algorithms with C - Chapter 5 - Linked Lists
+ *
+ * ISBN-10: 1565924533
+ * ISBN-13: 978-1565924536
+ *
+ */
+
 #include "types.h"
 
 typedef struct ListElement

@@ -107,7 +107,7 @@ void* __kmalloc(Uint32 size)
 
 	// Find a node that will fit it
 	linked_node_t* current_node = kernel_heap.start_node;
-	while (current_node->next != 0 && current_node->size <= (size + sizeof(linked_node_t))) // TODO re-think the size part
+	while (current_node->next != 0 && current_node->size <= (size + sizeof(linked_node_t)))
 	{
 		current_node = current_node->next;
 	}
