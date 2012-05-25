@@ -76,7 +76,7 @@ VFSStatus raw_write
 			vfs_write_status = FS_E_NOT_FQN;
 			break;
 		case EXT2_WRITE_NON_CONTIGUOUS:
-			vfs_write_status = FS_BAD_OFFSET;
+			vfs_write_status = FS_E_BAD_OFFSET;
 			break;
 		default:
 			vfs_write_status = FS_E_IO;
