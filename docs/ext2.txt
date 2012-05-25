@@ -23,6 +23,9 @@ begins, advance 1024 bytes (the size of the mbr+some) then cast that memory
 into a superblock struct.
 
 
+Rationale
+=========
+
 Reading a file (by inode)
 -------------------------
 
@@ -52,7 +55,7 @@ file relied on the previous directory lookup functionality.
 
 
 Directory Traversal
------------------
+-------------------
 
 A function which could traverse to a directory, given by a path was
 implemented. This function took the directory and the filename as separate
@@ -66,5 +69,27 @@ bounds for reading.
 Writing to a file
 -----------------
 
+Much of the previous work (notably file reading and lookup) contributed to the
+work of implementing write support. If the write would not alter the size of
+the file, the write behaves almost exactly like read -- it simply copies from
+the user buffer, rather than into it.
+
 Allocating blocks
 -----------------
+
+A block allocator was written to expand the size of existing files. The block
+allocator scans a bitmap of the blocks and selects the first available block
+(preferably in the same block group, to reduce thrashing). It then increments
+the size of the inode and adds the new blocks to the direct (and indirect)
+indices.
+
+Indirect blocks
+---------------
+
+Indirect, dubily indirect and triply indirect blocks should be mentioned on
+their own because they made both reading and writing more complicated. The
+extra level of indirection makes it difficult to easily walk through a file
+(and especially, jump to a specific location!). This implementation only
+supports indirect blocks (for a total file size of block_size * (256+12),
+roughly 1MiB with our configuration), though it could scale to further levels
+of indirection with some effort.
