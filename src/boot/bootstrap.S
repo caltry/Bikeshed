@@ -7,6 +7,7 @@
 **		copyleft 1999 Jon Coles
 **
 ** Contributor:	Warren R. Carithers, K. Reek, Garrett C. Smith
+**              Walter T. Litwinczyk, Sean T. Congden
 **
 ** Description:	Bootstrap routine.
 **
@@ -15,29 +16,31 @@
 ** end with the hex sequence AA55 at location 1FE.
 **
 ** The bootstrap initially sets up a stack in low memory.  Next, it
-** loads a second sector at 0000:7E00 (immediately following the
-** boot block).  Then it loads the target program at TARGET_ADDRESS, 
-** switches to protected mode, and branches to the target program.
+** loads two more sectors at 0000:7E00 (immediately following the
+** boot block).  Then it loads the target program at TARGET_ADDRESS.
+**
+** After this it loads all higher-memory modules into their proper
+** locations and then jumps to the kernel. The kernel is assumed to
+** be the first higher-memory module loaded.
 **
 ** NOTE: This loader does NOT zero out the bss of any of the loaded
 ** programs.  However, a reset appears to set all memory locations
 ** between 0x10000 and 0x45d50 to 0, so there is no need to explicitly
 ** zero the bss in modules loaded into that range.
 **
-** Must assemble this as 16-bit code.
+** If using GNU assembler you must specify the flags '--32 -n32'
 */
 	.code16
 
 #define __ASM__20113__
 
 #include "bootstrap.h"
-#include "vesa.h"
 
 BOOT_SEGMENT	= 0x07C0	/* default BIOS addr to load boot sector */
 BOOT_ADDRESS 	= 0x00007C00
 START_SEGMENT	= 0x0000	/* where we'll put the startup code */
 START_OFFSET	= 0x00007E00
-SECTOR_SIZE	= 0x200		/* typical sector size for floppy & HD */
+SECTOR_SIZE	    = 0x200		/* typical sector size for floppy & HD */
 OFFSET_LIMIT	= 65536 - SECTOR_SIZE
 MAX_VALID_RAM 	= 0x7FFFF
 
