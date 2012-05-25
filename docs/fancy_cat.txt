@@ -6,12 +6,20 @@ recommended to use FancyCat to load things below 1MiB unless the load location
 is not within the bootloaders temporary copy buffer (0x10000 - 0x7FFFF) and it
 doesn't stomp on the realmode or protected mode's stacks.
 
+
 Usage of FancyCat:
+===================================
 
     FancyCat load_address load_file [load_address_2 load_file_2 [load_address_3
              load_file_3 [...]]]
 
+
+NOTE: It is assumed that the first module to load is the kernel. The load
+      address is saved by the bootloader and jumped to once all modules are loaded.
+
+
 Output file from FancyCat:
+===================================
 
    Data               Offset in file
 .-------------------.
