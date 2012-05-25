@@ -1,15 +1,17 @@
+#ifndef __ELF_KLOADER_H__
+#define __ELF_KLOADER_H__
+
 /* This file is an ELF loader used by the kernel
  * to load programs into memory
  */
 
-#ifndef __ELF_KLOADER_H__
-#define __ELF_KLOADER_H__
-
 #include "types.h"
 #include "pcbs.h"
 
-
-/* These data structures and types were taken from the ELF specification */
+/* Most of this documentation was transcribed from the ELF specification 
+ *
+ * These data structures and types were taken from the ELF specification
+ */
 
 typedef Uint32 Elf32_Addr;
 typedef Uint16 Elf32_Half;
