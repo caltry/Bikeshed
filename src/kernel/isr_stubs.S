@@ -178,7 +178,7 @@ __isr_restore:
 	pushl	$fmt
 	pushl	$1
 	pushl	$0
-#ifdef VIDEO_ENABLE
+#ifndef VIDEO_DISABLE
 	call	gcon_printf_at
 #else
 	call	c_printf_at

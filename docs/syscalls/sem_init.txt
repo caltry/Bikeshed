@@ -1,0 +1,18 @@
+NAME
+	sem_init - create a semaphore
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	Status sem_init( Sem *sem );
+
+DESCRIPTION
+	sem_init() creates a new semaphore.
+
+RETURN VALUE
+	Return the status of the new semaphore operation. SUCCESS means a semaphore 
+	was created and the sem parameter has now been filled with the key for the 
+	semaphore.
+
+ERRORS
+	FAILURE - Something went wrong. Semaphore not created.

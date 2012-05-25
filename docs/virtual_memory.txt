@@ -1,6 +1,5 @@
 Whats in this file
 ===================================
-
 This file explains the virtual memory layout of Bikeshed OS. It will also give
 an overview of how user processes are laid out in memory. An explanation of
 cloning page tables will also be given.
@@ -76,6 +75,13 @@ Z                          Z
 |      back to itself      |
 '--------------------------'
 
+It's useful to have the page directory mapped back to itself because the page
+mapping and clearing code doesn't need to know the current page directory,
+because it's always mapped at the 0xFFFFF000 address. By reading this address
+you can read the contents of the current page directory. By reading form the
+address 0xFFC00000 you can read and modify the contents of each of the page
+tables.
+
 
 Higher half kernel
 ===================================
@@ -124,11 +130,11 @@ Index   Parent's page directory
        .-------------------------.
   0    | 0x0 - 0x3FFFFF (0-4MiB) | -> Entry copied (not physically)
        |-------------------------|
-	   |                         |
+       |                         |
  1-767 | 0x400000 - 0xBFFFFFFF   | -> Entries physically copied to new regions
        |                         |    of memory (new page directory entries and
-	   |-------------------------|    page table entries)
-	   |                         |
+       |-------------------------|    page table entries)
+       |                         |
 768-   | 0xC0000000 - 0xFFC00000 | -> Entries copied (not physically)
 1022   |                         |
        |-------------------------|
@@ -137,6 +143,28 @@ Index   Parent's page directory
 
 What is meant by copied, but not physically is the page directory entry points
 to the same physical page table. This means if this page table is changed it
-is seen by all processes who share it. So that's why the kernels page tables
+is seen by all processes who share it. So that's why the kernel's page tables
 are copied into each process, but not physically copied to another piece of memory.
 This ensures there is only one copy of the kernel floating around.
+
+This also means that the current virtual memory manager does not support
+copy-on-write. So forking is a litle inefficient, especially if exec() is
+called immediately after.
+
+To actually copy the pages physically is a little difficult. The kernel needs
+access to both page directories simultaneously which is problematic because
+you can only have one page directory active at a time. To get around this
+problem the kernel makes three buffer pages. One for the new page directory,
+one for the current page table, and one for the current page table entry. The
+page table and page table entries are changed out while walking the source's
+page directory. This allows the kernel to use virtual addresses to perform the
+copying. At the end of the copying the temporary pages are removed and the
+physical address of the new page directory is returned.
+
+
+Exec-ing
+===================================
+When exec() is called all of the user address space addresses are cleared and
+freed marked as available in the physical memory manager. The
+__virt_reset_page_directory() function is careful not to free any of the
+kernel's address space.

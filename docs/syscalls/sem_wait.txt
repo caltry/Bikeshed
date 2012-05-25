@@ -1,0 +1,21 @@
+NAME
+	sem_wait - waits on a semaphore
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	Status sem_wait( Sem sem );
+
+DESCRIPTION
+	sem_wait() waits and decrements a semaphore. This call will return 
+	immeadiately if the value is greater than zero. If it is zero the 
+	proceess will be put on a queue to wait on this semaphore.
+
+RETURN VALUE
+	Return the status of the semaphore destruction operation. SUCCESS
+	denotes a successful increment.
+
+ERRORS
+	FAILURE - Something went wrong. Semaphore not decremented or destroyed.
+
+	NOT_FOUND - The semaphore with the given key does not exist.

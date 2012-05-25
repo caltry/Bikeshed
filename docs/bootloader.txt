@@ -1,0 +1,27 @@
+What's in this file
+===================================
+This file explains the changes that have bee made to the bootloader. It also
+explains how to use the new bootloader to load new sub-modules.
+
+
+What's changed
+===================================
+The bootloader now is able to load data above the 1 MiB real mode limit. This
+is the main change to the bootloader.
+
+
+How this is accomplished
+===================================
+In short the bootloader uses the read_prog function to read a few sectors into
+a temporary buffer that's below 1MiB. Then the bootloader switches to
+protected mode and copies the buffer to the correct location. Then it repeats
+until there is no more data to be read.
+
+The details of moving down to real mode and back are rather complicated, but
+it requries setting up another GDT and stack for the protected mode code. It's
+probably easier to see the two functions in src/boot/bootstrap.S,
+switch_to_protected_mode and switch_to_real_mode.
+
+
+-----------------------------------
+See fancy_cat.txt for information on the module format

@@ -1,0 +1,20 @@
+NAME
+	sem_destroy - destroys a semaphore
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	Status sem_destroy( Sem sem );
+
+DESCRIPTION
+	sem_destroy() destroys a semaphore. This releases all processes waiting
+	on the semaphore with FAILURE.
+
+RETURN VALUE
+	Return the status of the semaphore destruction operation. SUCCESS
+	denotes destruction of the semaphore.
+
+ERRORS
+	FAILURE - Something went wrong. Semaphore not destroyed.
+
+	NOT_FOUND - The semaphore with the given key does not exist.

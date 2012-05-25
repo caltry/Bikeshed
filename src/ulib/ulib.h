@@ -279,7 +279,7 @@ Status sem_init( Sem *sem );
 /*
 ** sem_destroy - Destroys a semaphore
 **
-** usage:	status = sem_destroy(&sem);
+** usage:	status = sem_destroy(sem);
 */
 
 Status sem_destroy( Sem sem );
@@ -287,7 +287,7 @@ Status sem_destroy( Sem sem );
 /*
 ** sem_post - Increments a semaphore
 **
-** usage:	status = sem_post(&sem);
+** usage:	status = sem_post(sem);
 */
 
 Status sem_post( Sem sem );
@@ -295,7 +295,7 @@ Status sem_post( Sem sem );
 /*
 ** sem_wait - Waits and decrements a semaphore
 **
-** usage:	status = sem_wait(&sem);
+** usage:	status = sem_wait(sem);
 */
 
 Status sem_wait( Sem sem );
@@ -303,7 +303,7 @@ Status sem_wait( Sem sem );
 /*
 ** sem_try_wait - Attempts to decrement a semaphore
 **
-** usage:	status = sem_try_wait(&sem);
+** usage:	status = sem_try_wait(sem);
 */
 
 Status sem_try_wait( Sem sem );

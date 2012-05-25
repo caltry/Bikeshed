@@ -1,0 +1,20 @@
+NAME
+	sem_post - increments the value of a semaphore
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	Status sem_post( Sem sem );
+
+DESCRIPTION
+	sem_post() increments the value of a semaphore by one. If there are any 
+	processes waiting on the semaphore the will be scheduled to run.
+
+RETURN VALUE
+	Return the status of the semaphore destruction operation. SUCCESS
+	denotes a successful increment.
+
+ERRORS
+	FAILURE - Something went wrong. Semaphore not incremented.
+
+	NOT_FOUND - The semaphore with the given key does not exist.

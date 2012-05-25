@@ -1,0 +1,56 @@
+User programs
+===================================
+The src/user_programs directory is meant to be a replacement for the current
+src/applications directory. In there is a Makefile that builds all of the user
+programs for Bikeshed OS.
+
+Refer to virtual_memory.txt for the virtual memory map of a process.
+
+
+Adding a new user program
+===================================
+To add a new user program to Bikeshed's ramdisk you must do the following:
+
+1.) Create a new directory in src/user_programs, usually the name of your program.
+
+2.) Create a new Makefile for your program. You can usually just copy the
+    Makefile from another directory (usually init/).
+
+3.) Write your program
+
+4.) In the Makefile there should be a rule or line to copy your executable
+    over to the ramdisk directory in build/ramdisk_staging
+
+5.) You will need to edit build/debugfs_commands.debugfs so it writes your
+    executable to the build-time generated filesystem. For more information on
+    writing this script you can view the man page for debugfs.
+
+6.) If you're not writing a C program you may need to specify your own linker
+    script instead of using the default one provided. This is because the ELF
+    loader is fairly primitive and only looks for the standard loadable
+    sections, like .text and .data. So you need to make sure all relevant
+    sections fit into text and data.
+
+
+Privileges of user programs
+===================================
+User programs still run at ring 0 because there isn't a TSS setup currently.
+This means you should be careful when writing user programs as they can write
+to the kernel's memory directly. So try to avoid writing a program that writes
+to addresses above 0xC0000000.
+
+On the other hand, this can be a nice because it allows the user program to
+write below the one megabyte line as well. This gives the user program access
+to the 0xB8000 video buffer.
+
+
+User library
+===================================
+There currently isn't a large user library available for user programs.
+Basically everything in ulib.h is available for user programs. This provides
+the basics like fork(), exec(), msleep(), set_time(), amongst others. Refer to
+ulib.h for a full listing of what's available to user programs.
+
+There currently is no support for a user heap or sbrk. So user programs should
+stick to statically allocated buffers. Support would be easy to add in the
+future.

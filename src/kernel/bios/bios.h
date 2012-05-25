@@ -20,8 +20,10 @@
 
 #ifndef __ASM__20113__
 
+// Casts to a UInt16 pointer
 #define PTR_16(x) ((Uint16)((Uint32)x))
 
+// Conversion of address types
 #define LINEAR_ADDRESS(segment, offset) \
 	(((Uint32)(segment) << 4) + (Uint32)(offset))
 #define SEGMENTED_TO_LINEAR(segmented) \
@@ -32,6 +34,7 @@
 ** Start of C-only definitions
 */
 
+/* Registers to set or capture around a BIOS call */
 typedef struct registers {
 	Uint16 di;
 	Uint16 si;
@@ -41,6 +44,7 @@ typedef struct registers {
 	Uint16 ax;
 } Registers;
 
+
 /*
 ** Prototypes
 */
@@ -48,11 +52,17 @@ typedef struct registers {
 /*
 ** _bios_init()
 **
-** initialize the bios module
+** Initialize the BIOS module
 */
-
 void _bios_init(void);
 
+/*
+** _bios_call()
+**
+** Calls the BIOS with the given interrupt vector.
+** The provided registers are set up before the call and then
+** modified to represent the registers after the call completes.
+*/
 void _bios_call(Uint16 interrupt, Registers *parameters);
 
 #endif

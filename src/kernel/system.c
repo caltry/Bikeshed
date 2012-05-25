@@ -343,7 +343,7 @@ void _init( void ) {
 	/*
 	** Start the desktop refreshing thread
 	 */
-#ifdef VIDEO_ENABLE
+#ifndef VIDEO_DISABLE
 	_create_kernel_thread( pcb, (Uint32)_desktop_run );
 #endif
 

@@ -16,7 +16,7 @@
 ** General C definitions
 */
 
-#define FRAMEBUFFER_ADDRESS			0xc8000000
+#define FRAMEBUFFER_ADDRESS			0xc4000000
 
 /*
 ** Types
