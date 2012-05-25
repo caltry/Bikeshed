@@ -1,0 +1,107 @@
+The Video Module
+---------------------
+
+VESA Initialization and Mode Setting
+
+The Bikeshed video module uses a VESA VBE linear framebuffer to handle
+drawing.  At startup, the video module calls the BIOS to get information about
+the VBE controller and the video modes it supports.  The module then iterates
+through all of the reported video modes and selects a supported video mode
+with a resolution closest to the (currently hard-coded) desired display
+resolution.
+
+
+The Painter
+
+The Painter class is a collection of drawing routines used to draw to the
+screen back buffer.  The painter class is initialized with a Screen and a
+bounding rectangle used for clipping.  There are currently two versions of
+painter for 24 and 32 bits per pixel drawing routines.  The correct painter
+type is instantiated in video initialization based on the chosen video mode.
+
+
+The UIComponent Hierarchy
+
+The main component used in creating graphics is the UIComponent class.  This
+class is the basis of all other drawable classes.  This class holds many of
+the required drawing functions like Repaint(), Draw(), and Invalidate()
+(discussed below) as well as methods for handling input events.  It is
+expected that the Draw() and HandleMouseEvent() functions will be overridden
+by subclasses.  UIComponents contain a list of subcomponents that also get
+drawn when the base component is drawn.  This allows the creation of subviews
+and graphical widgets to easily be added with a call to AddComponent().
+
+Right now, the only default UIComponent is a Window class.  The window class
+draws the Bikeshed window chrome and handles input events like moving or
+closing a window.  Other graphical programs can extend the Window class and
+add subviews that extend UIComponent.
+
+
+Repaint, Draw, and Invalidate
+
+All drawing of UI Components is handled in a single draw process.  This means
+that Draw() is never directly called when a change is made to a UIComponent
+that requires a repaint.  Instead, user processes should call Invalidate() on
+a component marking them as dirty.  The main drawing thread then iterates
+over all windows and recursively calls the Repaint() method on the components.
+The Repaint() method calls the current component's Draw call and then calls
+Repaint() on all of its children.  This means that user processes should also
+avoid calling Repaint() or Draw() on subcomponents in their Draw() functions
+as this is handled automatically.
+
+
+Input Events
+
+Input events are handled by a global event queue.  The mouse and keyboard
+drivers adds events to the queue and the desktop drawing thread dequeues them
+and dispatches them to windows on the desktop.  Events are added to the queue
+with the _events_dispatch() method.  This method takes a pointer to the event
+and a value indicating the type of event that is being sent.  Right now mouse
+events are the only supported event type but the queue can easily be used to
+add keyboard event types.
+
+
+The Desktop
+
+The Desktop class is Bikeshed's window manager.  The class contains an ordered
+list of Windows and it handles dispatching drawing and input event calls to
+the windows on the desktop.
+
+The current user interface creates one Desktop object and one drawing thread
+to manage it.  The _desktop_run() method is the main entry point to the video
+module.  This function first calls the video/VESA init functions discussed
+above and then enters a drawing loop that paints the windows present on the
+desktop.  This loop calls the Desktop Draw() function which iterates through
+all the windows and calls their repaint method if the window has been marked
+dirty.  If a window needs to be redrawn, its bounding area is recorded and any
+windows that are overlapping that window are also repainted.
+
+At present, the desktop launches a couple of test windows including a
+graphical console application.  The desktop loop is also responsible for
+distributing input events as they arrive from the event queue.  Mouse events
+are parsed by the Desktop generating the mouse cursor coordinates.  Mouse
+events are then passed to Windows in the desktop from the top most to the
+bottom most window.  If a window contains the mouse coordinates then the event
+is sent to its HandleMouseEvent() function.  The window can do what it wants
+with the event and marks the event as consumed if it has used the event.  If
+the event has not been consumed, the event travels down the window list.
+
+
+
+Example Application: The Graphical Console
+------------------------------------------
+One application currently written for the Bikeshed graphical system is a
+graphical version of the text console originally used in the base system.
+
+The console works by using copies of the text input functions that are then
+sent to a buffer.  A ConsoleView class is a UIComponent that manages the
+drawing of the buffer when the input is flushed.  It contains DrawString()
+calls for the buffer contents and _gcon_flush() calls the Invalidate() method
+of the GConsole window to repaint it.  The ConsoleView class is added as a
+subcomponent to the GConsole window so it is automatically updated on a
+repaint operation.
+
+The graphical console could easily be turned into an interactive console in
+the future.  Text input could be obtained by overriding the
+HandleKeyboardEvent() function (to be added) to populate an input buffer for
+the program.
