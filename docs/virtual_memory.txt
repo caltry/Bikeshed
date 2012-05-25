@@ -130,11 +130,11 @@ Index   Parent's page directory
        .-------------------------.
   0    | 0x0 - 0x3FFFFF (0-4MiB) | -> Entry copied (not physically)
        |-------------------------|
-	   |                         |
+       |                         |
  1-767 | 0x400000 - 0xBFFFFFFF   | -> Entries physically copied to new regions
        |                         |    of memory (new page directory entries and
-	   |-------------------------|    page table entries)
-	   |                         |
+       |-------------------------|    page table entries)
+       |                         |
 768-   | 0xC0000000 - 0xFFC00000 | -> Entries copied (not physically)
 1022   |                         |
        |-------------------------|
