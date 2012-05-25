@@ -1,0 +1,63 @@
+FancyCat
+===================================
+FancyCat is very similar to BuildImage. In fact it performs almost the same
+function except it describes data that should be loaded above 1MiB. It's NOT
+recommended to use FancyCat to load things below 1MiB unless the load location
+is not within the bootloaders temporary copy buffer (0x10000 - 0x7FFFF) and it
+doesn't stomp on the realmode or protected mode's stacks.
+
+
+Usage of FancyCat:
+===================================
+
+    FancyCat load_address load_file [load_address_2 load_file_2 [load_address_3
+             load_file_3 [...]]]
+
+
+NOTE: It is assumed that the first module to load is the kernel. The load
+      address is saved by the bootloader and jumped to once all modules are loaded.
+
+
+Output file from FancyCat:
+===================================
+
+   Data               Offset in file
+.-------------------.
+|   Load location   | 0x0
+|-------------------|
+| Number of sectors | 0x4
+|-------------------|
+|                   |
+|    File data      | 0x8
+|                   |
+|-------------------|
+|  Padding to next  | ...
+|  multiple of 512  |
+|-------------------|
+|  Load location 2  | 0x200
+|-------------------|
+| Number of sectors | 0x204
+|-------------------|
+|                   |
+|   File data 2     | 0x208
+|                   |
+|-------------------|
+|  Padding to next  | ...
+|  multiple of 512  |
+|-------------------|
+|  ... Repeat ...   | ...
+|-------------------|
+|    0xFFFFFFFF     | ... - Marks end of modules
+|-------------------|
+|    0xFFFFFFFF     | ... - Marks end of modules
+|-------------------|
+| Padded with zeros | ...
+'-------------------'
+
+
+NOTE:
+===================================
+There are some limitations to FancyCat. Currently there is no way to specify
+the output filename. It's always image.dat, but adding a switch wouldn't be
+too difficult. Otherwise there shouldn't be a limit to the number of modules
+you can load using FancyCat.

@@ -3,7 +3,7 @@
 **
 ** Author:	Sean Congden
 **
-** Description:	
+** Description:	A graphical desktop that can contain graphical applications.
 */
 
 extern "C" {

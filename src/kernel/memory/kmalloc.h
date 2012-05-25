@@ -68,6 +68,8 @@ void* __kmalloc(Uint32 size);
 void* __kcalloc(Uint32 size);
 
 /* Print some info about the status of the kernel heap
+ *
+ * Prints the current free list
  */
 void __kmalloc_info(void);
 

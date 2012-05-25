@@ -187,8 +187,6 @@ Status _elf_load_from_file(Pcb* pcb, const char* file_name)
 	}
 	_kmemclr((void *)USER_STACK_LOCATION, USER_STACK_SIZE);
 
-	// TODO - We eventually want to setup a kernel stack so we can have RING 3->RING 0 access
-
 	// Throw exit as the return address as a safe guard
 	serial_printf("ELF: setting up context\n");
 	// Setup the context

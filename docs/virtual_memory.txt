@@ -1,6 +1,5 @@
 Whats in this file
 ===================================
-
 This file explains the virtual memory layout of Bikeshed OS. It will also give
 an overview of how user processes are laid out in memory. An explanation of
 cloning page tables will also be given.
@@ -76,6 +75,13 @@ Z                          Z
 |      back to itself      |
 '--------------------------'
 
+It's useful to have the page directory mapped back to itself because the page
+mapping and clearing code doesn't need to know the current page directory,
+because it's always mapped at the 0xFFFFF000 address. By reading this address
+you can read the contents of the current page directory. By reading form the
+address 0xFFC00000 you can read and modify the contents of each of the page
+tables.
+
 
 Higher half kernel
 ===================================
@@ -140,3 +146,15 @@ to the same physical page table. This means if this page table is changed it
 is seen by all processes who share it. So that's why the kernels page tables
 are copied into each process, but not physically copied to another piece of memory.
 This ensures there is only one copy of the kernel floating around.
+
+This also means that the current virtual memory manager does not support
+copy-on-write. So forking is a litle inefficient, especially if exec() is
+called immediately after.
+
+
+Exec-ing
+===================================
+When exec() is called all of the user address space addresses are cleared and
+freed marked as available in the physical memory manager. The
+__virt_reset_page_directory() function is careful not to free any of the
+kernel's address space.

@@ -34,6 +34,7 @@
 ** Types
 */
 
+/* A mouse event struct that is queued in the event queue */
 typedef struct {
 	Int32 start_x;
 	Int32 start_y;
@@ -52,8 +53,20 @@ typedef struct {
 ** Prototypes
 */
 
+/*
+** _mouse_init()
+**
+** Initializes the PS/2 mouse module and installs a mouse isr.
+** Must be called after the input event module has been started.
+*/
 Status _mouse_init(void);
 
+/*
+** _mouse_isr(vector,code)
+**
+** Handles a mouse interrupt and places MouseEvents on the event queue.
+** Installed on IRQ 12 by _mouse_init()
+*/
 void _mouse_isr(int vector, int code);
 
 #endif

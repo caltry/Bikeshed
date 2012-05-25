@@ -343,9 +343,9 @@ void _init( void ) {
 	/*
 	** Start the desktop refreshing thread
 	 */
-#ifdef VIDEO_ENABLE
+//#ifdef VIDEO_ENABLE
 	_create_kernel_thread( pcb, (Uint32)_desktop_run );
-#endif
+//#endif
 
 	/*
 	** Turn on the SIO receiver (the transmitter will be turned
