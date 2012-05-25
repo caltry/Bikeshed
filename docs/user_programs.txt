@@ -23,13 +23,13 @@ To add a new user program to Bikeshed's ramdisk you must do the following:
 
 5.) You will need to edit build/debugfs_commands.debugfs so it writes your
     executable to the build-time generated filesystem. For more information on
-	writing this script you can view the man page for debugfs.
+    writing this script you can view the man page for debugfs.
 
 6.) If you're not writing a C program you may need to specify your own linker
     script instead of using the default one provided. This is because the ELF
-	loader is fairly primitive and only looks for the standard loadable
-	sections, like .text and .data. So you need to make sure all relevant
-	sections fit into text and data.
+    loader is fairly primitive and only looks for the standard loadable
+    sections, like .text and .data. So you need to make sure all relevant
+    sections fit into text and data.
 
 
 Privileges of user programs

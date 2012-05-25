@@ -1,0 +1,20 @@
+NAME
+	sem_try_wait - waits on a semaphore
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	Status sem_try_wait( Sem sem );
+
+DESCRIPTION
+	sem_try_wait() attempts to decrement a semaphore. Returns SUCCESS if the 
+	decrement was successful, FAILURE if it could not be decremented.
+
+RETURN VALUE
+	Return the status of the semaphore destruction operation. SUCCESS
+	denotes a successful increment.
+
+ERRORS
+	FAILURE - Semaphore value was zero.
+
+	NOT_FOUND - The semaphore with the given key does not exist.
