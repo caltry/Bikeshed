@@ -1,0 +1,11 @@
+The BIOS Call System
+-----------------------
+
+BIOS calls are possible in bikeshed with the _bios_call() function.  This
+function takes a struct of registers to set before calling a BIOS function and
+the interrupt number to call.  When the BIOS call is complete, the resulting
+registers are captured and returned in an update Regs struct.
+
+The _bios_call() method is written in x86 assembly and loaded seperately to
+the rest of the kernel.  The function switches between real and protected mode
+to make the BIOS call.
