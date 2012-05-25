@@ -58,7 +58,7 @@
 
 
 
-#ifdef VIDEO_ENABLE
+#ifndef VIDEO_DISABLE
 	#include "video/gconsole.h"
 
 	#define c_io_init			gcon_init

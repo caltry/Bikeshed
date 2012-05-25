@@ -148,7 +148,7 @@ clearbss:
 	movl	$80,%eax	//   This goes to the lower right
 	subl	$messagelen,%eax //  corner of the screen.
 	pushl	%eax
-#ifdef VIDEO_ENABLE
+#ifndef VIDEO_DISABLE
 	call	gcon_puts_at
 #else
 	call	c_puts_at
