@@ -1,0 +1,70 @@
+Ext2 Support
+============
+
+Datastructures
+--------------
+
+The ext2 filesystem is composed of the following structures:
+
+- Superblock
+- Inode
+- Block group entry
+- Directory entry
+
+The inodes, block group entries and directory entries are themselves
+concatenated together in an array-like fashion.
+
+We could navigate these structures by grabbing a hunk of memory (if this
+wasn't a ramdisk, we'd read it into a page) and casting it to a corresponding
+structure.
+
+For example: to grab the superblock we navigate to where the filesystem
+begins, advance 1024 bytes (the size of the mbr+some) then cast that memory
+into a superblock struct.
+
+
+Reading a file (by inode)
+-------------------------
+
+Development began by supporting ext2 by reading a file given its inode number.
+We select the file by inode number because we don't have to do any string
+manipulation or directory traversal to get at the file. To access the file, we
+can translate the inode number directly into a location on the filesystem.
+
+
+Directory Lookups
+-----------------
+
+Moving towards file lookup by name, we need a way to scan through a directory
+file and grab the directory entries contained within. This was accomplished by
+reading the first directory file by inode (root is defined as inode 2),
+casting directory structures and implementing a function to increment to the
+next directory entry (directory entries are not all sized the same).
+
+
+Reading a file (by filename)
+----------------------------
+
+After being able to read a file by inode, support for reading a file by name
+(in the root directory only) was implemented. Without handling directory
+traversals, the only string manipulation was comparison. Matching against a
+file relied on the previous directory lookup functionality.
+
+
+Directory Traversal
+-----------------
+
+A function which could traverse to a directory, given by a path was
+implemented. This function took the directory and the filename as separate
+parameters to easily separate out the logic.
+
+A wrapper function (ext2_raw_read) combined all of this functionality,
+allowing clients to simply specify a path to a file along with a buffer and
+bounds for reading.
+
+
+Writing to a file
+-----------------
+
+Allocating blocks
+-----------------
