@@ -1,0 +1,20 @@
+NAME
+	lock_unlock - unlocks a lock
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	Status lock_unlock( Lock lock, LockMode mode );
+
+DESCRIPTION
+	lock_unlock() unlocks a lock. The key to the lock must be specified by 
+	the lock parameter. Using LOCK_READ for the mode unlocks with shared read.
+	LOCK_WRITE mode will unlock the lock with exclusive write. 
+
+RETURN VALUE
+	Returns the status of the unlocking. SUCCESS if the lock was unlocked.
+
+ERRORS
+	FAILURE - The lock could not be unlocked.
+
+	NOT FOUND - The lock with the given key was not found.

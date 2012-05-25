@@ -1,0 +1,17 @@
+NAME
+	lock_init - creates a lock
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	Status lock_init( Lock *lock );
+
+DESCRIPTION
+	lock_init() creates a new lock. The key to the lock is stored at the 
+	location provided in the lock parameter.
+
+RETURN VALUE
+	Returns the status of the lock creation. SUCCESS if the lock was created.
+
+ERRORS
+	FAILURE - The lock could not be created.

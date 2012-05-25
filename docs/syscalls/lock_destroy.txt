@@ -1,0 +1,18 @@
+NAME
+	lock_destroy - destroys a lock
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	Status lock_destroy( Lock lock );
+
+DESCRIPTION
+	lock_destroy() destroys a lock. The key to the lock must be specified by the lock parameter.
+
+RETURN VALUE
+	Returns the status of the lock deletion. SUCCESS if the lock was deleted.
+
+ERRORS
+	FAILURE - The lock could not be created.
+
+	NOT FOUND - The lock with the given key was not found.
