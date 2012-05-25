@@ -205,6 +205,7 @@ extern "C" {
 		void *event;
 
 		serial_printf("Entering draw loop...\n");
+		set_priority(PRIO_STD);
 		do {
 			// Check for new event messages
 			while (_events_fetch(&event, &event_type) != EMPTY_QUEUE) {
@@ -234,6 +235,8 @@ extern "C" {
 #ifdef QEMU
 			// Update at about 100 fps
 			msleep(20);
+#else
+			msleep(0);
 #endif
 		} while ( 1 );
 	}
