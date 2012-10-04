@@ -1,23 +1,16 @@
 include src/fs_defs.mk
 
-BUILDIMAGE = build/BuildImage
-FANCYCAT   = build/FancyCat
+FANCYCAT = build/FancyCat
 
 #
 # Targets for remaking bootable image of the program
 #
 # Default target:  usb.image
 #
-
+#
 usb.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE) $(FANCYCAT) bikeshed_fs
-	$(BUILDIMAGE) -d usb -o build.image -b src/boot/bootstrap.b dummy 0x10000
 	$(FANCYCAT) 0x100000 src/prog.b 0x200000 src/real.b $(RAMDISK_PHYS_LOCATION) bikeshed_fs
-	/bin/cat build.image image.dat > usb.image
-
-floppy.image: src/boot/bootstrap.b src/prog.b $(BUILDIMAGE) $(FANCYCAT) bikeshed_fs
-	$(BUILDIMAGE) -d floppy -o build.image -b src/boot/bootstrap.b dummy 0x10000
-	$(FANCYCAT) 0x100000 src/prog.b 0x200000 src/real.b $(RAMDISK_PHYS_LOCATION) bikeshed_fs
-	/bin/cat build.image image.dat > floppy.image
+	/bin/cat src/boot/bootstrap.b image.dat > usb.image
 
 #
 # Additional dependencies to make sure that bootstrap.b and prog.b are made
@@ -37,9 +30,6 @@ FORCE:
 #
 # Targets for copying bootable image onto boot devices
 #
-
-floppy:	floppy.image
-	dd if=floppy.image of=/dev/fd0
 
 usb:	usb.image
 	dd if=usb.image of=/local/devices/disk

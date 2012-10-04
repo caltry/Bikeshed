@@ -52,6 +52,11 @@ int main()
 					put_string(40, 0, "Child returned!?");
 				} else {
 					put_string(60, 0, "Fork 2!");
+					while (1)
+					{
+						write('A');
+						msleep(250);
+					}
 					exit();
 				}
 			}

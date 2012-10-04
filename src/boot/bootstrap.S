@@ -1,458 +1,363 @@
-/*
-** SCCS ID:	@(#)bootstrap.S	1.7	01/29/11
-**
-** File:	bootstrap.S
-**
-** Author:	Jon Coles
-**		copyleft 1999 Jon Coles
-**
-** Contributor:	Warren R. Carithers, K. Reek, Garrett C. Smith
-**              Walter T. Litwinczyk, Sean T. Congden
-**
-** Description:	Bootstrap routine.
-**
-** This bootstrap program is loaded by the PC BIOS into memory at
-** location 0000:7C00.  It must be exactly 512 bytes long, and must
-** end with the hex sequence AA55 at location 1FE.
-**
-** The bootstrap initially sets up a stack in low memory.  Next, it
-** loads two more sectors at 0000:7E00 (immediately following the
-** boot block).  Then it loads the target program at TARGET_ADDRESS.
-**
-** After this it loads all higher-memory modules into their proper
-** locations and then jumps to the kernel. The kernel is assumed to
-** be the first higher-memory module loaded.
-**
-** NOTE: This loader does NOT zero out the bss of any of the loaded
-** programs.  However, a reset appears to set all memory locations
-** between 0x10000 and 0x45d50 to 0, so there is no need to explicitly
-** zero the bss in modules loaded into that range.
-**
-** If using GNU assembler you must specify the flags '--32 -n32'
-*/
-	.code16
+/* FancyCat compliant booloader - TODO - Document specifics of 
+ * switch_to_real_mode and switch_to_protected_mode
+ *
+ * Date: 07/07/2012
+ *
+ * Author: Walter Litwinczyk
+ * Contributors: David C. Larsen, Sean T. Congden
+ *
+ * Adapted from the Rochester Institute of Technology - Systems Programming 2
+ * course
+ *     Author: Jon Coles
+ *     Contributors: Warren R. Carithers, K. Reek, Garrett C. Smith
+ */
 
-#define __ASM__20113__
+/* GDT Constants */
+GDT_CODE  = 0x0010 /* All of memory, R/E */
+GDT_DATA  = 0x0018 /* All of memory, R/W */
+GDT_STACK = 0x0020 /* All of memory, R/W */
+GDT_CODE_16  = 0x0028
+GDT_DATA_16  = 0x0030
+GDT_STACK_16 = 0x0038
 
-#include "bootstrap.h"
+/* Stack constants */
+REAL_STACK = 0x7C00-2 /* Start the stack right before the bootloader code */
+PROT_STACK = REAL_STACK - 0x1000 /* Give the real mode 4KiB of stack */
+/* This should put the realmode stack at 0x6C00-0x7c00
+ * and the protected mode stack gets from the end of the
+ * GDT and IDT (0x2D00 = ~11KiB) to 0x6C00, which should
+ * be more than enough for the bootloaders purposes.
+ * Especially because the bootloader does very little 
+ * stack allocation. This also allows the copy buffer to
+ * be larger.
+ */
 
-BOOT_SEGMENT	= 0x07C0	/* default BIOS addr to load boot sector */
-BOOT_ADDRESS 	= 0x00007C00
-START_SEGMENT	= 0x0000	/* where we'll put the startup code */
-START_OFFSET	= 0x00007E00
-SECTOR_SIZE	    = 0x200		/* typical sector size for floppy & HD */
-OFFSET_LIMIT	= 65536 - SECTOR_SIZE
-MAX_VALID_RAM 	= 0x7FFFF
+/* GDT constants */
+GDT_SEGMENT = 0x0050
+GDT_ADDRESS = 0x0500
 
-/*
-** Symbol for locating the beginning of the code.
-*/
-	.globl begtext
+/* IDT constants */
+IDT_SEGMENT = 0x0250
+IDT_ADDRESS = 0x2500
 
-	.text
-begtext:
+/* Memory map constants */
+MMAP_SEGMENT = 0x02D0
+MMAP_ADDRESS = 0x2D00
+MMAP_EXT_LO = 0x00
+MMAP_EXT_HI = 0x02
+MMAP_CFG_LO = 0x04
+MMAP_CFG_HI = 0x06
 
-/*
-** Entry point.	Begin by setting up a runtime stack.
-*/
-	movw	$BOOT_SEGMENT, %ax	/* get our data seg */
-	movw	%ax, %ds
-	movw	%ax, %ss	/* stack segment starts at BOOT_SEGMENT */
-	movw	$REAL_STACK, %ax	/* and the stack starts 0x6000 beyond that */
-	movw	%ax, %sp
+/* Other constants */
+BOOT_SEGMENT  = 0x07c0 /* Default BIOS address to load the bootsector */
+BOOT_ADDRESS  = 0x7c00 /* 32-bit address of the bootloader */
+START_SEGMENT = 0x0000
+START_OFFSET  = 0x7E00
+SECTOR_SIZE   = 0x0200 /* 512 bytes */
+OFFSET_LIMIT  = 65536 - SECTOR_SIZE
 
-/*
-** Next, verify that the disk is there and working.
-*/
-	movb	$0x01, %ah	/* test the disk status and make sure */
-	movb	drive, %dl	/* it's safe to proceed */
-	int	$0x13
-	jnc	diskok
+/* Copy buffer constants */
+/* This is the location of the buffer used
+ * to copy data from real mode to protected
+ * mode
+ */
+BUFFER_START = 0x8200 /* XXX - Adjust this value if the bootloader grows! */
+BUFFER_SEG = 0x0820 /* XXX - Adjust this value if the bootloader grows! */
+BUFFER_OFF = 0
+BUFFER_SECTORS = 100
+COPY_START_FOR_PROTECTED_MODE = BUFFER_START + 0x8 /* Skip the header information */
 
-	movw	$err_diskstatus, %si /* Something went wrong; print a message */
-	call	dispMsg		/* and freeze. */
-	jmp	.
+.code16
+#.globl begtext
+#begtext:
+.globl bootloader_entry
+bootloader_entry:
+	/* Setup the realmode runtime stack */
+	movw $BOOT_SEGMENT, %ax /* Load the data segment */
+	movw %ax, %ds
 
-diskok:
-	movw	$0,%ax		/* Reset the disk */
-	movb	drive,%dl
-	int	$0x13
+	xorw %ax, %ax
+	movw %ax, %ss /* Stack segment starts at 0x0 */
+	movw $REAL_STACK, %ax /* Stack starts before our bootloader */
+	movw %ax, %sp
 
-	/* get drive parameters to determine number of heads and sectors/track */
-	xorw	%ax, %ax	/* set ES:DI = 0000:0000 in case of BIOS bugs */
-	movw	%ax, %es
-	movw	%ax, %di
-	movb	$0x08, %ah	/* get drive parameters */
-	movb	drive, %dl	/* hard disk or floppy */
-	int	$0x13
+	/* Verify that we have a working disk */
+	movb $0x01, %ah /* Test the disk status and make sure */
+	movb drive, %dl /* it's safe to proceed */
+	int $0x13
+	jnc disk_okay
 
-	/* store (max + 1) - CL[5:0] = maximum head, DH = maximum head */
-	andb	$0x3F, %cl
-	incb	%cl
-	incb	%dh
+	movw $error_disk_status, %si /* Something went wrong; print a message */
+	call display_message
+	/* Intentionally drop through to the halt, an error has happend */
 
-	movb	%cl, max_sec
-	movb	%dh, max_head
+/* Halts the processor and does nothing
+ *
+ * Parameters:
+ *     None
+ */
+halt: /* Halt the processor, there's nothing we can do */
+	hlt
+	jmp halt
 
-/*
-** The disk is OK, so we now need to load the second page of the bootstrap.
-** It must immediately follow the boot sector on the disk,
-** and the target program(s) must immediately follow.
-*/
-	movw	$msg_loading,%si /* Print the Loading message */
-	call	dispMsg
+disk_okay:
+	movw $0, %ax /* Reset the disk */
+	movb drive, %dl
+	int $0x13
 
-	movw	$2,%ax		/* sector count = 1 */
-	movw	$START_SEGMENT,%bx /* read this into memory that */
-	movw	%bx,%es		/* immediately follows this code. */
-	movw	$START_OFFSET,%bx
-	call	readprog
+	/* Get the drive's parameters to determine the number of heads
+	 * and sectors per track. 
+	 */
+	xorw %ax, %ax /* Set ES:DI = 0000:0000 in case of BIOS bugs */
+	movw %ax, %es
+	movw %ax, %di
+	movb $0x08, %ah /* Get drive parameters */
+	movb drive, %dl /* Hard disk, USB, or floppy */
+	int $0x13
 
-/*
-** We've got the second block of the bootstrap program in memory. Now
-** read all of the user's program blocks.  Use %di to point to the
-** count field for the next block to load.
-*/
-	movw	$firstcount,%di
+	/* Store (max + 1) - CL[5:0] = maximum head, DH = maximum head */
+	andb $0x3F, %cl
+	incb %cl
+	incb %dh
 
-	pushw	%ds
-	movw	(%di), %bx
-	movw	$MMAP_SEGMENT, %ax
-	movw	%ax, %ds
-	movw	%bx, MMAP_SECTORS	/* store kernel image size */
-	popw	%ds
+	movb %cl, max_sectors
+	movb %dh, max_heads
 
-nextblock:
-	movw	(%di),%ax	/* get the # of sectors */
-	testw	%ax,%ax		/* is it zero? */
-	jz	done_loading	/*   yes, nothing more to load. */
+/* We have verified the disk is okay. Now we have to load the rest of the
+ * bootloader into memory
+ */
+ 	movw $message_loading, %si /* Print the loading message */
+	call display_message
 
-	subw	$2,%di
-	movw	(%di),%bx	/* get the segment value */
-	movw	%bx,%es		/*   and copy it to %es */
-	subw	$2,%di
-	movw	(%di),%bx	/* get the address offset */
-	subw	$2,%di
-	pushw	%di		/* save di */
-	call	readprog	/* read this program block, */
-	popw	%di		/* and restore di */
-	jmp	nextblock	/*   then go back and read the next one. */
+	movw $2, %ax /* Sector count = 2, we have a large bootloader :) */
+	movw $START_SEGMENT, %bx /* Read the sectors to bx:es */
+	movw %bx, %es /* Which happens to be right after this code */
+	movw $START_OFFSET, %bx
+	call read_sectors
 
-/*
-** Read one complete program block into memory.
-**
-**	ax: number of sectors to read
-**	es:bx = starting address for the block
-*/
-readprog:
-	pushw	%ax		/* save sector count */
-
-	movw	$3,%cx		/* initial retry count is 3 */
-retry:
-	pushw	%cx		/* push the retry count on the stack. */
-
-	movw	sec,%cx		/* get sector number */
-	movw	head,%dx	/* get head number */
-	movb	drive, %dl
-
-	movw	$0x0201,%ax	/* read 1 sector */
-	int	$0x13
-	jnc	readcont	/* jmp if it worked ok */
-
-	movw	$err_diskread,%si /* report the error */
-	call	dispMsg
-	popw	%cx		/* get the retry count back */
-	loop	retry		/*   and go try again. */
-	movw	$err_diskfail,%si /* can't proceed, */
-	call	dispMsg		/* print message and freeze. */
-	jmp	.
-
-readcont:
-	movw	$msg_dot,%si	/* print status: a dot */
-	call	dispMsg
-	cmpw	$OFFSET_LIMIT,%bx  /* have we reached the offset limit? */
-	je	adjust		/* Yes--must adjust the es register */
-	addw	$SECTOR_SIZE,%bx	/* No--just adjust the block size to */
-	jmp	readcont2	/*    the offset and continue. */
-
-adjust:
-	movw	$0, %bx		/* start offset over again */
-	movw	%es, %ax
-	addw	$0x1000,%ax	/* move segment pointer to next chunk */
-	movw	%ax, %es
-
-readcont2:
-	incb	%cl		/* not done - move to the next sector */
-	cmpb	max_sec, %cl	/* only 18 per track - see if we need */
-	jnz	save_sector	/* to switch heads or tracks */
-
-	movb	$1, %cl		/* reset sector number */
-	incb	%dh		/* first, switch heads */
-	cmpb	max_head, %dh	/* there are only two - if we've already */
-	jnz	save_sector	/* used both, we need to switch tracks */
-
-	xorb	%dh, %dh	/* reset to head $0 */
-	incb	%ch		/* inc track number */
-	cmpb	$80, %ch	/* 80 tracks per side - have we read all? */
-	jnz	save_sector	/* read another track */
-
-	movw	$err_toobig, %si 	/* report the error */
-	call	dispMsg
-	jmp	.		/* and freeze */
-
-save_sector:
-	movw	%cx,sec		/* save sector number */
-	movw	%dx,head	/*   and head number */
-
-	popw	%ax		/* discard the retry count */
-	popw	%ax		/* get the sector count from the stack */
-	decw	%ax		/*   and decrement it. */
-	jg	readprog	/* If it is zero, we're done reading. */
-
-readdone:
-	movw	$msg_bar,%si	/* print message saying this block is done */
-	call	dispMsg
-	ret			/* and return to the caller */
-
-/*
-** We've loaded the whole target program into memory,
-** so it's time to transfer to the startup code.
-*/
-done_loading:
-	movw	$msg_go, %si	/* last status message */
-	call	dispMsg
-
-	jmp	switch		/* move to the next phase */
+	jmp second_stage
 	
-/*
-** Support routine - display a message byte by byte to the monitor.
-*/
-dispMsg:	
-	pushw	%ax
-	pushw	%bx
-repeat:
-	lodsb			/* grab next character */
+/* Read sectors off the disk into a specified memory location
+ *
+ * Parameters:
+ *     AX - number of sectors to Read
+ *     ES:BX - Starting address for the block
+ */
+current_sector: .word 2  /* Cylinder = 0, Sector = 1 */
+current_head:   .word 0  /* Head = 0 */
+max_sectors:    .byte 19 /* Up to 18 sectors per floppy track */
+max_heads:      .byte 2  /* Only two R/W heads per floppy drive */
 
-	movb	$0x0e, %ah	/* write and advance cursor */
-	movw	$0x07, %bx	/* page 0, white on blank, no blink */
-	orb	%al, %al	/* AL is character to write */
-	jz	getOut		/* if we've reached the NUL, get out */
+read_sectors:
+	pushw %ax /* Save the sector count */
 
-	int	$0x10		/* otherwise, print and repeat */
-	jmp	repeat	
+	movw $3, %cx /* Our retry count */
+rs_retry:
+	pushw %cx /* Push the retry count onto the stack */
 
-getOut:				/* we're done, so return */
-	popw	%bx
-	popw	%ax
-	ret
+	movw current_sector, %cx /* Get our current sector offset */
+	movw current_head, %dx /* Get our current head number */
+	movb drive, %dl
 
-#if 0
-/*
-** Debugging routine.  This lives in the 1st block of the bootstrap
-** so it can be called from there as well as from the 2nd block.
-**
-**	movw	$'x',%di	/* a single character to print */
-**	movw	value,%ax	/* a 16-bit value to print in hex */
-**	call	pnum
-*/
-pnum:
-	pushw	%ax
-	pushw	%bx
-	movw	%di,%ax
-	movb	$0xe,%ah
-	movw	$7,%bx
-	int	$0x10
+	movw $0x0201, %ax /* Read one sector */
+	int $0x13
+	jnc rs_read_continue
 
-	call	pdigit
-	call	pdigit
-	call	pdigit
-	call	pdigit
+	movw $error_disk_read, %si /* Display an error message, we couldn't */
+	call display_message /* read the disk */
+	popw %cx /* Get the retry count and */
+	loop rs_retry /* try again */
+	movw $error_disk_fail, %si /* We failed to read the disk even after */
+	call display_message /* retrying */
 
-	popw	%bx
-	popw	%ax
-	ret
+	jmp halt /* Failed, halt the processor */
 
-pdigit:	movw	%si,%ax
-	shl	$4,%si
-	shr	$12,%ax
-	cmpw	$9,%ax
-	jle	pdd
-	addw	$'A'-10,%ax
-	jmp	prt
-pdd:	addw	$'0',%ax
-prt:	movb	$0xe,%ah
-	movw	$7,%bx
-	int	$0x10
-	ret
-#endif
+rs_read_continue:
+	movw $message_dot, %si /* Print status, a dot */
+	call display_message
+	cmpw $OFFSET_LIMIT, %bx /* Have we reached the offset limit? */
+	je rs_adjust /* Yes, we must adjust the es register */
+	addw $SECTOR_SIZE, %bx /* No, just add the blocksize to */
+	jmp rs_read_continue_2 /* the offset and continue */
 
-/*
-** Move the GDT entries from where they are to location 0000:0000
-**
-** As with the IDTR and GDTR loads, we need the offset for the GDT
-** data from the beginning of the segment (0000:0000).
-*/
+rs_adjust:
+	movw $0, %bx /* Start offset over again */
+	movw %es, %bx
+	addw $0x1000, %ax /* Move the segment pointer to the next chunk */
+	movw %ax, %es
+
+rs_read_continue_2:
+	incb %cl /* Not done, move to the next sector */
+	cmpb max_sectors, %cl /* Only 18 per track, see if we need */
+	jnz rs_save_sector /* to switch heads or tracks */
+
+	movb $1, %cl /* Reset sector number */
+	incb %dh /* First switch heads */
+	cmpb max_heads, %dh /* There are only two, if we've already */
+	jnz rs_save_sector /* used both, we need to switch tracks */
+
+	xorb %dh, %dh /* Reset the head to 0 */
+	incb %ch /* Increment the track number */
+	cmpb $80, %ch /* 80 tracks per side, have we read all of them? */
+	jnz rs_save_sector
+
+	movw $error_too_big, %si /* Report the error */
+	call display_message
+	jmp halt /* Failed, halt the processor */
+
+rs_save_sector:
+	movw %cx, current_sector /* Save the current sector number */
+	movw %dx, current_head /* Save the current head number */
+
+	popw %ax /* Discard the retry count */
+	popw %ax /* Get the sector count back from the stack */
+	decw %ax /* Decrement the sector count */
+	jg read_sectors /* If it's zero, we're done reading */
+
+	movw $message_bar, %si /* Print a message saying this block has been read */
+	call display_message
+	ret /* Return to who called us */
+
+/* Prints a message to the screen using BIOS calls
+ *
+ * Parameters:
+ *     SI - The message to display (pointer to it)
+ */
+display_message:
+	pushw %ax /* Save general registers */
+	pushw %bx
+
+dm_repeat:
+	lodsb /* Grab the next character */
+
+	movb $0x0E, %ah /* Write and advance the cursor */
+	movw $0x07, %bx /* Page 0, White on blank, no blink */
+	orb %al, %al /* AL is the character to write */
+	jz dm_done
+
+	int $0x10 /* Print the character to the screen */
+	jmp dm_repeat
+
+dm_done:
+	popw %bx /* Restore the stack */
+	popw %ax
+	ret /* Return to the caller */
+
+/* Move the GDT entries from where they are to 0000:0000
+ *
+ * Parameters:
+ *     None
+ */
 move_gdt:
-	movw	%cs, %si
-	movw	%si, %ds
-	movw	$start_gdt + BOOT_ADDRESS, %si
-	movw	$GDT_SEGMENT, %di
-	movw	%di, %es
-	xorw	%di, %di
-	movl	$gdt_len, %ecx
+	movw %cs, %si
+	movw %si, %ds
+	movw $start_gdt + BOOT_ADDRESS, %si
+	movw $GDT_SEGMENT, %di
+	movw %di, %es
+	xorw %di, %di
+	movl $gdt_len, %ecx
 	cld
-	rep	movsb
+	rep movsb
 	ret
 
-/*
-** Determine the amount of physical memory available to the system.
-*/
-check_mem:
-	pushw	%ax
-	pushw	%ds
-	movw	$MMAP_SEGMENT, %ax
-	movw	%ax, %ds	  /* Write relative to the memory map start */
-	movw	$0xE801, %ax	  /* Get memory size for >64M configurations */
-	int 	$0x15
-	movw	%ax, MMAP_EXT_LO  /* extended memory between 1M - 16M in K */
-	movw	%bx, MMAP_EXT_HI  /* extended memory > 16M in 64K blocks */
-	movw	%cx, MMAP_CFG_LO  /* configured memory between 1M - 16M in K */
-	movw	%dx, MMAP_CFG_HI  /* configured memory > 16M in 64K blocks */
-	popw	%ds
-	popw	%ax
+/* Determine how much physical memory is available
+ *
+ * Parameters:
+ *     None
+ */
+check_memory:
+	pushw %ax
+	pushw %ds
+	movw $MMAP_SEGMENT, %ax
+	movw %ax, %ds /* Write relative to the memory map start */
+	movw $0xE801, %ax /* Get the memory size for >64MiB configurations */
+	int $0x15
+	movw %ax, MMAP_EXT_LO /* Extended memory between 1MiB - 16MiB in KiB */
+	movw %bx, MMAP_EXT_HI /* Extended memory > 16MiB in 64KiB blocks */
+	movw %cx, MMAP_CFG_LO /* Configured memory between 1MiB - 16MiB in KiB */
+	movw %dx, MMAP_CFG_HI /* Configured memory > 16MiB in 64KiB blocks */
+	popw %ds
+	popw %ax
 	ret
 
-/*
-** DATA AREAS.
-**
-** Next sector number and head number to read from.
-*/
-sec:	.word	2	/* cylinder=0, sector=1 */
-head:	.word	0	/* head=0 */
-max_sec:	.byte	19	/* up to 18 sectors per floppy track */
-max_head:	.byte	2	/* only two r/w heads per floppy drive */
-
-/*
-** Status and error messages.
-*/
-msg_loading:
-	.asciz "Loading"
-msg_dot:
-	.asciz "."
-msg_go:
-	.asciz "done"
-msg_bar:
-	.asciz	"|"
-
-/*
-** Error messages.
-*/
-err_diskstatus:
-	.asciz "Disk not ready.\n\r"
-err_diskread:
-	.asciz "Read failed\n\r"
-err_toobig:
-	.asciz	"Too big\n\r"
-err_diskfail:
-	.asciz	"Can't proceed\n\r"
-
-/*
-** Data areas.
-*/
-
-/*
-** The GDTR and IDTR contents.
-*/
+/* The GDT and IDTR contents
+ */
 gdt_48:
-	.word	0x2000		/* 1024 GDT entries x 8 bytes/entry = 8192 */
-	.quad	GDT_ADDRESS
+	.word 0x2000 /* 1024 GDT entries * 8 bytes per entry = 8192 */
+	.quad GDT_ADDRESS
 
 idt_48:
-	.word	0x0800		/* 256 interrupts */
-	.quad	IDT_ADDRESS
+	.word 0x0800 /* 256 interrupts */
+	.quad IDT_ADDRESS
 
-/*
-** Originally, the GDT contents were here.  When booting from a floppy
-** disk, that's not a problem, as all 510 available bytes of the boot
-** sector can be used.  However, when booting from a hard drive, only
-** the first 446 bytes (0x000-0x1bd) can be used, and including the GDT
-** here pushed this part of the bootstrap over that limit.  The older
-** machines in the lab (Intel D867PERL motherboards) didn't enforce
-** this when booting from a flash drive; however, the current machines
-** (Intel DG41TX motherboards) do, so the GDT contents are now in the
-** second sector of the bootstrap program.
-*/
+/* Error messages */
+message_loading:
+	.asciz "Loading"
+message_dot:
+	.asciz "."
+message_go:
+	.asciz "Done"
+message_bar:
+	.asciz "|"
+error_disk_status:
+	.asciz "Disk not ready\n\r"
+error_disk_read:
+	.asciz "Read failed\n\r"
+error_too_big:
+	.asciz "Too big\n\r"
+error_disk_fail:
+	.asciz "Can't proceed\n\r"
 
-/*
-** End of the first sector of the boot program.  The last two bytes
-** of this sector must be AA55 in order for the disk to be recognized
-** by the BIOS as bootable.
-*/
-	.org	SECTOR_SIZE-4
-
-drive:	.word	0	/* 0x00 = floppy, 0x80 = usb */
-
+/* End the first sector of the boot program. The last two bytes of
+ * this sector must be AA55 in order for the disk to be recognized
+ * by the BIOS as bootable
+ */
+.org SECTOR_SIZE-4
+drive: 
+	.word 0x80 /* 0x00 = floppy, 0x80 = USB */
 boot_sig:
 	.word 0xAA55
 
-/*
-** Startup code.
-**
-** This code configures the GDT, enters protected mode, and then
-** transfers to the OS entry point.
-*/
-kernel_location: .quad 0x0
-load_location: .quad 0x0
-remaining: .quad 0x1
-
-	/* Okay we're good, copy the block to the right address */
-
-	/* Move the kernel */
-	BUFFER_START = 0x10000
-	BUFFER_SIZE = (MAX_VALID_RAM - BUFFER_START)
-	BUFFER_SEG = 0x1000
-	BUFFER_OFF = 0
-	BUFFER_SECTORS = BUFFER_SIZE / SECTOR_SIZE - 1
-	BUFFER_START_PROTECTED_MODE = 0x10008
-
-switch:
+/* This marks the second stage of our bootloader, this is the part of the
+ * bootloader that isn't automatically loaded into RAM by the BIOS
+ */
+second_stage:
 	call floppy_off
 	call enable_A20
 	call move_gdt
-	call check_mem
+	call check_memory
+	
+	/* IMPORTANT, make sure we fix the data segment register! */
+	movw $BOOT_SEGMENT, %bx
+	movw %bx, %ds
 
-	/* IMPORTANT, fix DS! */
-	mov $BOOT_SEGMENT, %bx
-	mov %bx, %ds
-
-	/* Okay load some modules! */
-load_loop:
+	/* Load the modules */
+ss_load_loop:
 	call load_module /* EAX contains -1 if we're done */
 	cmpl $0xFFFFFFFF, %eax
-	jne load_loop
+	jne ss_load_loop
 
 	/* The kernel expects to be in protected mode */
 	call switch_to_protected_mode
 	.code32
 
 	/* Make sure interrupts aren't on when we start the kernel */
-	cli 
+	cli
 
-	/* No more modules to load, lets jump to the kernel! */
-	movl kernel_location+BOOT_ADDRESS, %eax
-	push %eax
+	/* Alright everything should be good, lets jump to the kernel! */
+	movl kernel_location+BOOT_ADDRESS, %eax /* Add BOOT_ADDRESS because */
+	push %eax                               /* segmentation is off */
 	ret
 
 	/* In case the kernel returns */
 	cli
-stop_executing:
+kernel_returned:
 	hlt
-	jmp stop_executing
+	jmp kernel_returned 
 
-	/* The rest of the code is still 16-bits! */
-	.code16
+	.code16 /* The rest of the bootloader is still realmode code */
 
-/* Loads a single module off the disk and into ram
+/* Loads a single module from the disk
  *
  * Parameters:
  *     None
@@ -461,6 +366,10 @@ stop_executing:
  *     EAX - Contains -1 if there are no more modules to load.
  *           Otherwise it contains a non -1 value.
  */
+/* Some helper variables */
+kernel_location: .quad 0x0
+load_location:   .quad 0x0
+remaining: 		 .quad 0x1
 .code16
 load_module:
 	pushw %bx
@@ -473,71 +382,74 @@ load_module:
 	movw $BUFFER_SEG, %bx
 	movw %bx, %es
 	movw $BUFFER_OFF, %bx
-	call readprog
+	call read_sectors
 
 	/* Get the load location */
 	movl %es:(0), %eax /* The first part of the header is the load location */
-	cmpl $0xFFFFFFFF, %eax /* Check the load location, -1 is an invalid load location */
-	je exit_load_module /* This was the end of modules marker, quit */
+	cmpl $0xFFFFFFFF, %eax /* Check the load location, -1 means we're done */
+	je lm_exit
 
 	/* Okay this is a valid module, lets continue loading */
 	movl %eax, load_location /* Save the load location */
 
-	/* Also if it's the first module, save it into kernel location */
+	/* Also, if it's the first module, save it into kernel_location */
 	movl kernel_location, %ebx
 	testl %ebx, %ebx
-	jnz kernel_location_already_saved
-	movl %eax, kernel_location /* Save the kernel's location as well */
-kernel_location_already_saved:
+	jnz lm_kernel_already_saved
+	movl %eax, kernel_location /* Save the kernel's location */
 
+lm_kernel_already_saved:
 	movl %es:(4), %eax /* Grab the size of the module in sectors */
 	movl %eax, remaining /* Save the size in sectors */
 
 	/* Copy this first sector over */
-	movl $BUFFER_START_PROTECTED_MODE, %eax /* We want to skip the header information */
-	movl $1, %ebx /* We've only read one sector so far */
+	movl $COPY_START_FOR_PROTECTED_MODE, %eax /* We want to skip the header */
+	movl $1, %ebx /* infomation */
 	call copy_buffer
 
-	/* This is a one time deal, since we skipped the first 8 bytes, but we loaded
-	 * and copied 512 bytes with the copy_buffer, we need to fix the load_location
-	 * by subtracting 8 bytes, otherwise we'll have a hole in our data
+	/* This is a one time deal, since we skipped the first 8 bytes, but we
+	 * loaded and copied 512 bytes with the copy_buffer, we need to fix the
+	 * load_location by subtracting 8 bytes, otherwise we'll have a hole in
+	 * our data
 	 *
-	 * Remember: load_location is adjusted by copy_buffer
+	 * NOTE: load_location is adjusted by copy_buffer
 	 */
 	movl load_location, %edx
 	subl $8, %edx
 	movl %edx, load_location
 
 	/* Check if there's any more left to load */
-load_module_loop:
+lm_loop:
 	movl remaining, %eax
 	testl %eax, %eax
-	jz exit_load_module /* If there's nothing left, exit */
+	jz lm_exit /* If there's nothing left, exit */
 
 	/* We need to load more! */
-	movl remaining, %eax 
+	movl remaining, %eax
 	movl $BUFFER_SECTORS, %ecx /* Check if we're loading too much */
 	cmpl %eax, %ecx
-	jge load_module_enough_sectors
+	jge lm_enough_sectors
 
 	movl %ecx, %eax /* We're loading too much, fix it! */
 
-load_module_enough_sectors:
+lm_enough_sectors:
 	/* Read in some sectors */
-	pushw %ax /* Save EAX in case readprog modifies it */
+	pushw %ax /* Save EAX in case read_sectors modifies it */
 
 	movw $BUFFER_SEG, %bx
 	movw %bx, %es
 	movw $BUFFER_OFF, %bx
-	call readprog
+	call read_sectors
 
-	popw %bx /* Restore the sector count, in bx for preparation to call copy_buffer */
-	movl $BUFFER_START, %eax /* We don't want to skip the first 8 bytes this time! */
-	call copy_buffer
+	movl remaining, %eax
 
-	jmp load_module_loop /* Loop back to the top where we check the remaining count */
+	popw %bx /* Restore the sector count, in bx for preparation to call */
+	movl $BUFFER_START, %eax /* copy_buffer, We don't want to skip 8 bytes */
+	call copy_buffer /* time */
 
-exit_load_module:
+	jmp lm_loop
+
+lm_exit:
 	popw %es
 	popw %dx
 	popw %cx
@@ -547,33 +459,27 @@ exit_load_module:
 /* Copies data from a buffer to a 32-bit address
  *
  * Parameters:
- *    EAX - The source address
- *    EBX - The number of sectors to copy 
+ *     EAX - The source address
+ *     EBX - The number of sectors to copy
  *
- * This method uses load_location to find the destination
- * address, it will also update load_location and remaining
- * with the appropriate values after copying
+ * This method uses load_location to find the destination address
+ * it will also update load_location and remaining with the appropriate
+ * values after copying
  */
-COPY_BUFFER_OLD_ESP: .quad 0x0
-COPY_BUFFER_OLD_EBP: .quad 0x0
- .code16
+.code16
 copy_buffer:
 	pushw %cx
 	pushw %dx
-	/* Switch to protected mode uses only EAX and EBX so lets not use those! */
+	
+	/* Switch to protected mode uses only EAX and EBX, so lets not use those! 
+	 *
+	 * We can't use the stack because it will be different after we call
+	 * switch_to_protected_mode
+	 */
 	movl %eax, %ecx
 	movl %ebx, %edx
 
-	/* The switch methods try to save and restore the stack
-	 * only they're expected to be called in a certain order
-	 * which we are not following. So we save our stack data
-	 * manually
-	 */
-	movl %esp, COPY_BUFFER_OLD_ESP
-	movl %ebp, COPY_BUFFER_OLD_EBP
-
-
-	/* We need to switch into protected mode */
+	/* We need to switch to protected mode */
 	call switch_to_protected_mode
 	.code32
 
@@ -581,9 +487,11 @@ copy_buffer:
 	movl %ecx, %eax
 	movl %edx, %ebx
 
-	/* Grab the current load location */
-	movl load_location+BOOT_ADDRESS, %edx
-
+	/* Grab the current load_location */
+	movl load_location+BOOT_ADDRESS, %edx /* Add BOOT_ADDRESS because 
+	                                       * segmentation is off
+                                           */
+	
 	/* Update remaining while we're here */
 	movl remaining+BOOT_ADDRESS, %ecx
 	subl %ebx, %ecx
@@ -592,138 +500,130 @@ copy_buffer:
 	/* Multiply EBX by 512 to get the number of bytes to copy */
 	shl $9, %ebx
 
-copy_loop:
+/* TODO implement a faster version */
+cb_copy_loop:
 	movl (%eax), %ecx /* EAX is the source */
 	movl %ecx, (%edx) /* EDX is the destination */
 	subl $4, %ebx
 	addl $4, %eax
 	addl $4, %edx
 	testl %ebx, %ebx
-	jnz copy_loop
+	jnz cb_copy_loop
 
-	/* Save the new load location for next time */
+	/* Save the new load_location for next time */
 	movl %edx, load_location+BOOT_ADDRESS
 
-	/* Before returning we need to switch to real mode */
+	/* Before returning we need to switch back to realmode */
 	call switch_to_real_mode
 	.code16
 
-	/* Restore the stack pointers */
-	movl COPY_BUFFER_OLD_ESP, %esp
-	movl COPY_BUFFER_OLD_EBP, %ebp
-
-	popw %dx
+	popw %dx	
 	popw %cx
 	ret
 
-/*
-** Switches from protected mode to real mode
-*/
-PROT_MODE_ESP: .quad PROT_STACK+BOOT_ADDRESS
-PROT_MODE_EBP: .quad PROT_STACK+BOOT_ADDRESS
-.code32
-.globl switch_to_real_mode
-switch_to_real_mode:
-	cli
-	
+/* Switches from protected mode to realmode
+ *
+ * Parameters:
+ *     None
+ *
+ * Returns:
+ *     Nothing
+ */
+ PROT_MODE_ESP: .quad PROT_STACK
+ PROT_MODE_EBP: .quad PROT_STACK
+ .code32
+ switch_to_real_mode:
+ 	cli /* Turn off interrupts, this is tricky business */
+
 	/* Save the current ESP and EBP values */
-	movl %esp, PROT_MODE_ESP
-	movl %ebp, PROT_MODE_EBP
-	
-	/* Set up the real mode stack */
-	movl (%esp), %ecx /* copy the return address to the real stack */
-	movl REAL_MODE_ESP+BOOT_ADDRESS, %edx
-	movw %cx, (%edx)
-	
-	movl REAL_MODE_ESP+BOOT_ADDRESS, %esp /* switch to using the real mode stack */
+	movl %esp, PROT_MODE_ESP+BOOT_ADDRESS
+	movl %ebp, PROT_MODE_EBP+BOOT_ADDRESS
+
+	/* Setup the real mode stack */	
+	movl (%esp), %ecx /* Copy the return address for later */
+
+	movl REAL_MODE_ESP+BOOT_ADDRESS, %esp /* Switch to the realmode stack */
 	movl REAL_MODE_EBP+BOOT_ADDRESS, %ebp
-	
-	/* Fix esp and ebp */
-	subl $BOOT_ADDRESS, %eax
-	movl %eax, %ebp
-	movl %eax, %esp
-	
+
 	/* Load the real mode GDT selectors */
-	movw $GDT_DATA_16, %bx
 	movw $GDT_DATA_16, %ax
 	movw %ax, %ds
-	movw %bx, %es
-	movw %bx, %fs
-	movw %bx, %gs
-	movw $GDT_STACK_16, %ax
-	movw %ax, %ss
-	
-	push %cx
-	
-	/* This sets the code segment register */
-	ljmp $GDT_CODE_16, $_not_quite_real+BOOT_ADDRESS
-_not_quite_real:
-	
-	/* Switch of the protected mode flag */
-	movl %cr0, %eax /* get current CR0 */
-	andl $0xfffffffe, %eax /* clear the PE bit */
-	movl %eax, %cr0 /* and store it back. */
-	
-	/* Long jump to a real mode code segment */
-	.byte 0x66
-	ljmp $0x0, $_real_mode_segment+BOOT_ADDRESS
-	
-	.code16
-_real_mode_segment:
-
-	/* Setup the real mode segments */
-	movw $0x7c0, %ax
-	movw %ax, %ds
-	movw %ax, %ss
-	/* Clear the general purpose registers */
-	xorw %ax, %ax
 	movw %ax, %es
 	movw %ax, %fs
 	movw %ax, %gs
+	movw $GDT_STACK_16, %ax
+	movw %ax, %ss
+
+	/* This sets the code segment register */
+	ljmp $GDT_CODE_16, $(_not_quite_real+BOOT_ADDRESS)
+_not_quite_real:
 	
+	/* Switch off the protected mode flag */
+	movl %cr0, %eax /* Get the current CR0 */
+	andl $0xFFFFFFFE, %eax /* Clear the PE bit */
+	movl %eax, %cr0 /* And store it back */
+
+	/* Long jump to a real mode code segment */
+	.byte 0x66
+	ljmp $0x0, $_real_mode_segment+BOOT_ADDRESS
+
+.code16
+_real_mode_segment:
+
+	/* Setup the real mode segments */
+	movw $BOOT_SEGMENT, %ax
+	movw %ax, %ds
+	/* Clear the general purpose registers */
+	xorw %ax, %ax
+	movw %ax, %ss /* Stack segment starts at 0! */
+	movw %ax, %es
+	movw %ax, %fs
+	movw %ax, %gs
+
 	/* Load the real mode IDT */
 	lidt (real_idt)
 
+	push %cx
 	sti
 	ret
 
-/*
-** Returns to protected mode from real mode
-*/
+/* Switches from real mode to protected mode
+ *
+ * Parameters:
+ *     None
+ *
+ * Returns:
+ *     Nothing
+ */
 REAL_MODE_ESP: .quad REAL_STACK
 REAL_MODE_EBP: .quad REAL_STACK
-.globl switch_to_protected_mode
-switch_to_protected_mode:
 .code16
-	cli
+switch_to_protected_mode:
+	cli /* Turn off interrupts, this is tricky business! */
 	movb $0x08, %al /* Disable NMIs */
 	outb %al, $0x70
 
-	/* Save the current ESP and EBP */
-	movl %esp, REAL_MODE_ESP
-	movl %ebp, REAL_MODE_EBP
-	
 	/* Load the protected mode IDT */
 	lidt (idt_48)
 	lgdt (gdt_48)
-	
+
 	/* Set the protected mode flag */
-	movl %cr0, %eax /* get current CR0 */
-	orb $0x1, %al /* set the PE bit */
-	movl %eax, %cr0 /* and store it back. */
-	
+	movl %cr0, %eax /* Get the current CR0 */
+	orb $0x1, %al /* Set the PE bit */
+	movl %eax, %cr0 /* And store it back */
+
 	/* Long jump to a real mode code segment */
 	.byte 0x66
 	.code32
 	ljmp $GDT_CODE, $(_protected_mode_segment + BOOT_ADDRESS)
 _protected_mode_segment:
-	
-	cli
+
+	cli /* Sometimes interrupts are turned back on? */
 	movb $0x08, %al /* Disable NMIs */
 	outb %al, $0x70
-	
+
 	/* Load the real mode GDT selectors */
-	xor %bx, %bx
+	xorw %bx, %bx
 	movw $GDT_DATA, %ax
 	movw %ax, %ds
 	movw %bx, %es
@@ -732,134 +632,131 @@ _protected_mode_segment:
 	movw $GDT_STACK, %ax
 	movw %ax, %ss
 	
-	/* Save the current return address */
-	xorl %eax, %eax
-	movw %sp, %ax
-	addl $BOOT_ADDRESS, %eax
-	movl (%eax), %ebx /* EAX holds the return address */
+	/* Get rid of the current return address */
+	popw %bx
 	andl $0x0000FFFF, %ebx
-	
+
+	/* Save the current ESP and EBP */
+	movl %esp, REAL_MODE_ESP+BOOT_ADDRESS
+	movl %ebp, REAL_MODE_EBP+BOOT_ADDRESS
+
 	/* Switch to the protected mode stack */
-	movl PROT_MODE_ESP+BOOT_ADDRESS, %eax /* restore saved ESP and EBP */
-	movl PROT_MODE_EBP+BOOT_ADDRESS, %ebp
-	
+	movl PROT_MODE_ESP+BOOT_ADDRESS, %esp /* Restore the saved ESP */
+	movl PROT_MODE_EBP+BOOT_ADDRESS, %ebp /* Restore the saved EBP */
+
 	push %ebx
 	ret
 
-	.code16
+	.code16 /* Just in case */
 
+
+/* IDTs and GDTs */
 .code16
 real_idt:
-.short 0x3ff
-.long 0x0
+	.short 0x3FF
+	.long 0x0
 
-/*
-** Supporting code.
-**
-** Turn off the motor on the floppy disk drive.
-*/
+/* Turns the floppy disk off 
+ */
 floppy_off:
-	push	%dx
-	movw	$0x3f2, %dx
-	xorb	%al, %al
-	outb	%al, %dx
-	pop	%dx
+	push %dx
+	movw $0x3F2, %dx
+	xorb %al, %al
+	outb %al, %dx
+	pop %dx
 	ret
 
-/*
-** Enable the A20 gate for full memory access.
-*/
+/* Enable the A20 gate for full memory access
+ */
 enable_A20:
-	call	a20wait
-	movb	$0xad, %al
-	outb	%al, $0x64
+	call a20wait
+	movb $0xad, %al
+	outb %al, $0x64
 
-	call	a20wait
-	movb	$0xd0, %al
-	outb	%al, $0x64
+	call a20wait
+	movb $0xd0, %al
+	outb %al, $0x64	
 
-	call	a20wait2
-	inb	$0x60, %al
-	pushl	%eax
+	call a20wait2
+	inb $0x60, %al	
+	pushl %eax
 
-	call	a20wait
-	movb	$0xd1, %al
-	outb	%al, $0x64
+	call a20wait
+	movb $0xd1, %al
+	outb %al, $0x64
 
-	call	a20wait
-	popl	%eax
-	orb	$2, %al
-	outb	%al, $0x60
+	call a20wait
+	popl %eax
+	orb $2, %al
+	outb %al, $0x60
 
-	call	a20wait
-	mov	$0xae, %al
-	out	%al, $0x64
+	call a20wait
+	mov $0xae, %al
+	out %al, $0x64
 
-	call	a20wait
+	call a20wait
 	ret
 
-a20wait:	/* wait until bit 1 of the device register is clear */
-	movl    $65536, %ecx	/* loop a lot if need be */
-wait_loop: 
-	inb     $0x64, %al	/* grab the byte */
-	test    $2, %al		/* is the bit clear? */
-	jz      wait_exit	/* yes */
-	loop    wait_loop	/* no, so loop */
-	jmp     a20wait		/* if still not clear, go again */
-wait_exit:    
+a20wait: /* Wait until bit 1 of the device register is clear */
+	movl $65536, %ecx /* Loop a lot if need be */
+wait_loop:
+	inb $0x64, %al /* Grab the byte */
+	test $2, %al /* Is the bit clear? */
+	jz wait_exit /* Yes */
+	loop wait_loop /* No, so loop */
+	jmp a20wait /* If still not clear, go again */
+wait_exit:
 	ret
 
-a20wait2:	/* like a20wait, but waits until bit 0 is set. */
-	mov     $65536, %ecx
+a20wait2: /* Like a20wait, but waits until bit 0 is set */
+	movl $65536, %ecx
 wait2_loop:
-	in      $0x64, %al
-	test    $1, %al
-	jnz     wait2_exit
-	loop    wait2_loop
-	jmp     a20wait2
+	in $0x64, %al
+	test $1, %al
+	jnz wait2_exit
+	loop wait2_loop
+	jmp a20wait2
 wait2_exit:
 	ret
 
-/*
-** The GDT.  This cannot be created in C because the bootstrap is not
-** linked with that code.
-*/
+/* The GDT
+ */
 start_gdt:
-	.word	0,0,0,0		/* first GDT entry is always null */
+	.word 0,0,0,0 /* First GDT entry is always null */
 
-linear_seg:	/* limit FFFFF, base 0, R/W data seg, 32-bit 4K */
-	.word	0xFFFF	/* limit[15:0] */
-	.word	0x0000	/* base[15:0] */
-	.byte	0x00	/* base[23:16] */
-	.byte	0x92	/* access byte */
-	.byte	0xCF	/* granularity */
-	.byte	0x00	/* base[31:24] */
+linear_seg: /* Limit 0xFFFFF, base 0, R/W data segment, 32-bit 4K */
+	.word 0xFFFF /* limit[15:0] */
+	.word 0x0000 /* base[15:0] */
+	.byte 0x00   /* base[23:16] */
+	.byte 0x92   /* access byte */
+	.byte 0xCF   /* granularity */
+	.byte 0x00   /* base[31:24] */
 
-code_seg:	/* limit FFFFF, base 0, R/E code seg, 32-bit 4K */
-	.word	0xFFFF
-	.word	0x0000
-	.byte	0x00
-	.byte	0x9A	/* 1 00 1 1010: present, prio 0, C/D, R/E code */
-	.byte	0xCF	/* 1 1 00 1111: 4K, 32-bit, 0, 0, limit[19:16] */
-	.byte	0x00
+code_seg: /* Limit 0xFFFFF, base 0, R/E code segment, 32-bit 4K */
+	.word 0xFFFF
+	.word 0x0000
+	.byte 0x00
+	.byte 0x9A /* 1 00 1 1010: present, prio 0, C/D, R/E code */
+	.byte 0xCF /* 1 1 00 1111: 4K, 32-bit, 0, 0, limit[19:16] */
+	.byte 0x00
 
-data_seg:	/* limit FFFFF, base 0, R/W data seg, 32-bit 4K */
-	.word	0xFFFF
-	.word	0x0000
-	.byte	0x00
-	.byte	0x92	/* 1 00 1 0010: present, prio 0, C/D, R/W data */
-	.byte	0xCF
-	.byte	0x00
+data_seg: /* Limit 0xFFFFF, base 0, R/W, data segment, 32-bit 4K */
+	.word 0xFFFF
+	.word 0x0000
+	.byte 0x00
+	.byte 0x92 /* 1 00 1 0010: present, prio 0, C/D, R/W data */
+	.byte 0xCF
+	.byte 0x00
 
-stack_seg:	/* limit FFFFF, base 0, R/W data seg, 32-bit 4K */
-	.word	0xFFFF
-	.word	0x0000
-	.byte	0x00
-	.byte	0x92
-	.byte	0xCF
-	.byte	0x00
+stack_seg: /* Limit 0xFFFFF, base 0, R/W data seg, 32-bit 4K */
+	.word 0xFFFF
+	.word 0x0000
+	.byte 0x00
+	.byte 0x92
+	.byte 0xCF
+	.byte 0x00
 
-code_seg_16: /* limit 64k, base 0, R/E code seg, 16-bit 4K */
+code_seg_16: /* Limit 64K, base 0, R/E code segment, 16-bit 4K */
 	.word 0xFFFF
 	.word 0x0000
 	.byte 0x00
@@ -867,23 +764,15 @@ code_seg_16: /* limit 64k, base 0, R/E code seg, 16-bit 4K */
 	.byte 0x00
 	.byte 0x00
 
-data_seg_16: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
+data_seg_16: /* Limit 64K, base 0, R/W code segment, 16-bit 4K */
 	.word 0xFFFF
-	.word 0x7c00
+	.word 0x7C00
 	.byte 0x00
 	.byte 0x92
 	.byte 0x00
 	.byte 0x00
 
-stack_seg_16: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
-	.word 0xFFFF
-	.word 0x7c00
-	.byte 0x00
-	.byte 0x92
-	.byte 0x00
-	.byte 0x00
-
-data_seg_16_2: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
+stack_seg_16: /* Limit 64K, base 0, R/W code segment, 16-bit 4K */
 	.word 0xFFFF
 	.word 0x0000
 	.byte 0x00
@@ -891,7 +780,15 @@ data_seg_16_2: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
 	.byte 0x00
 	.byte 0x00
 
-stack_seg_16_2: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
+data_seg_16_2: /* Limit 64K, base 0, R/W code segment, 16-bit 4K */
+	.word 0xFFFF
+	.word 0x0000
+	.byte 0x00
+	.byte 0x92
+	.byte 0x00
+	.byte 0x00
+
+stack_seg_16_2: /* Limit 64K, base 0, R/W code segment, 16-bit 4K */
 	.word 0xFFFF
 	.word 0x0000
 	.byte 0x00
@@ -902,22 +799,4 @@ stack_seg_16_2: /* limit 64k, base 0, R/W code seg, 16-bit 4K */
 end_gdt:
 gdt_len = end_gdt - start_gdt
 
-/*
-** The end of this program will contain a list of the sizes and load
-** addresses of all of the blocks to be loaded.  THese values are
-** inserted here by the Modify program, which checks that there are
-** not so many blocks that the IDT would be overwritten.  The layout
-** of the data is:
-**
-**	offset
-**	segment
-**	# of sectors
-**
-** with the # of sectors for the first block appearing at firstcount, and
-** the other values appearing just before it.  If additional blocks are
-** to be loaded, their values appear just before the previous set.
-*/
-
-	.org	1536-2
-firstcount:
-	.word	0	/* n_sectors for 1st module will go here */
+.org 1536

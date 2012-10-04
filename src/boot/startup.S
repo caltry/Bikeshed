@@ -48,7 +48,7 @@
 #define PAGE_READ_WRITE 0x2
 #define PAGE_4MB 0x80
 
-.section .data
+.data
 .align 4096
 .globl boot_page_directory
 /* This page directory defines the 4MB page containing the kernel */
@@ -61,16 +61,18 @@ boot_page_directory:	/* We use this to identity map the first 1MB */
 /*
 ** A symbol for locating the beginning of the code.
 */
-	.globl begtext
+/*	.globl begtext
 
 	.text
 begtext:
-
+*/
 /*
 ** The entry point.
 */
-	.globl	_start
 
+.text
+.align 4096
+.globl	_start
 _start:
 
 /* SETUP VIRTUAL MEMORY FOR THE HIGHER HALF kernel
@@ -100,7 +102,6 @@ enable_paging:
 	ret
 move_to_higher:
 
-
 #ifdef CLEAR_BSS_SEGMENT
 
 /*
@@ -124,6 +125,7 @@ clearbss:
 */
 	mov $_init, %ecx
 	call	_init		// initialize the OS
+
 /*
 ** Restore the first user process context
 **
