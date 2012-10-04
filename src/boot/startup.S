@@ -59,14 +59,6 @@ boot_page_directory:	/* We use this to identity map the first 1MB */
 	.fill (1024 - KERNEL_PAGE_NUMBER - 1), 4, 0 /* Pages after the kernel */
 
 /*
-** A symbol for locating the beginning of the code.
-*/
-/*	.globl begtext
-
-	.text
-begtext:
-*/
-/*
 ** The entry point.
 */
 
