@@ -39,7 +39,7 @@ bikeshed_fs: build/debugfs_commands.debugfs
 	dd if=/dev/zero of=bikeshed_fs bs=1K count=$(RAMDISK_SIZE_KiB)
 	mke2fs -O^resize_inode,^sparse_super -m0 -F -L bikeshed bikeshed_fs
 	ln -f bikeshed_fs build/bikeshed_fs
-	make -C build/ populate_ramdisk
+	$(MAKE) -C build/ populate_ramdisk
 
 # A version without video
 novideo:
