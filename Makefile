@@ -24,7 +24,7 @@ build_src:
 	$(MAKE) -C src
 
 build/%: FORCE
-	make -C $(dir $@) $(notdir $@)
+	$(MAKE) -C $(dir $@) $(notdir $@)
 FORCE:
 
 #
